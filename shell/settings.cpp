@@ -29,6 +29,7 @@ namespace {
     const QString KeyWallpaper = QStringLiteral("Appearance/Wallpaper");
     const QString KeyWallpaperMode = QStringLiteral("Appearance/WallpaperMode");
     const QString KeyScheme = QStringLiteral("Appearance/ColourScheme");
+    const QString KeyThemeFiles = QStringLiteral("Appearance/ThemeFiles");
 
     const QString DefaultScheme = QStringLiteral("Windows Standard");
 
@@ -295,6 +296,22 @@ QString Settings::colourScheme() const
 void Settings::setColourScheme(const QString &name)
 {
     write(KeyScheme, name.trimmed());
+}
+
+QStringList Settings::themeFiles() const
+{
+    QStringList files = m_settings.value(KeyThemeFiles).toStringList();
+    files.removeAll(QString());
+    return files.mid(0, 50);
+}
+
+void Settings::addThemeFile(const QString &path)
+{
+    QStringList files = themeFiles();
+    if (files.contains(path))
+        return;
+    files << path;
+    write(KeyThemeFiles, files.mid(qMax(0, files.size() - 50)));
 }
 
 } // namespace Daytona

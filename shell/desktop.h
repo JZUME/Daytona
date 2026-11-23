@@ -34,6 +34,8 @@ public:
     QImage wallpaper() const { return m_wallpaper; }
 
 Q_SIGNALS:
+    // Properties was chosen from the desktop menu.
+    void propertiesRequested();
     // A new wallpaper finished loading (or failed to, and is null).
     void wallpaperLoaded();
 

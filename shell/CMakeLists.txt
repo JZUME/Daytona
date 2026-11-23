@@ -17,6 +17,8 @@ add_library(daytona-shell-core STATIC
     dbusmenu.h
     desktop.cpp
     desktop.h
+    displayproperties.cpp
+    displayproperties.h
     statusnotifierhost.cpp
     statusnotifierhost.h
     statusnotifieritem.cpp
@@ -73,7 +75,7 @@ target_include_directories(daytona-shell-core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(daytona-shell-core PUBLIC
     Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient LayerShellQt::Interface
-    daytona-style)
+    daytona-style daytona-theme-core)
 qt_generate_wayland_protocol_client_sources(daytona-shell-core
     FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml)
 

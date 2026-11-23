@@ -77,6 +77,9 @@ public:
     void setWallpaperMode(WallpaperMode mode);
     QString colourScheme() const;
     void setColourScheme(const QString &name);
+    // .theme files loaded in Display Properties, listed with the schemes.
+    QStringList themeFiles() const;
+    void addThemeFile(const QString &path);
 
     // Follows changes other programs make to the file, such as
     // daytona-themetool recording a new wallpaper.

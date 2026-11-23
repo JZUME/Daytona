@@ -83,3 +83,9 @@ add_test(NAME tst_notifications COMMAND dbus-run-session -- $<TARGET_FILE:tst_no
 set_tests_properties(tst_notifications PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_taskbarplacement daytona-shell-core)
 set_tests_properties(tst_taskbarplacement PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+daytona_add_test(tst_displayproperties daytona-shell-core)
+target_compile_definitions(tst_displayproperties PRIVATE
+    DAYTONA_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
+    DAYTONA_THEMETOOL="$<TARGET_FILE:daytona-themetool>")
+add_dependencies(tst_displayproperties daytona-themetool)
+set_tests_properties(tst_displayproperties PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)

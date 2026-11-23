@@ -35,7 +35,7 @@ Desktop::Desktop(Settings *settings, QWidget *parent)
     // NT's desktop menu without its icon commands (no desktop icons yet).
     QAction *properties = m_menu->addAction(tr("P&roperties"));
     properties->setObjectName(QStringLiteral("properties"));
-    properties->setEnabled(false); // until Display Properties exists
+    connect(properties, &QAction::triggered, this, &Desktop::propertiesRequested);
 
     connect(&m_loader, &QFutureWatcher<QImage>::finished, this, [this] {
         m_wallpaper = m_loader.result();

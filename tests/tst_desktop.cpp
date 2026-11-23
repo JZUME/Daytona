@@ -101,7 +101,10 @@ private Q_SLOTS:
         const QList<QAction *> actions = desktop.contextMenu()->actions();
         QCOMPARE(actions.size(), 1);
         QCOMPARE(actions[0]->text(), QStringLiteral("P&roperties"));
-        QVERIFY(!actions[0]->isEnabled()); // until Display Properties exists
+        QVERIFY(actions[0]->isEnabled());
+        QSignalSpy requested(&desktop, &Desktop::propertiesRequested);
+        actions[0]->trigger();
+        QCOMPARE(requested.count(), 1);
     }
 
 private:

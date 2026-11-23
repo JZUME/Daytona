@@ -4,6 +4,7 @@
 #include "balloon.h"
 #include "daytonastyle.h"
 #include "desktop.h"
+#include "displayproperties.h"
 #include "notificationarea.h"
 #include "notificationqueue.h"
 #include "notificationservice.h"
@@ -156,6 +157,20 @@ int main(int argc, char *argv[])
     taskbar.setKeepShown([&startMenu] { return startMenu.isVisible(); });
     QObject::connect(
         &startMenu, &Daytona::StartMenu::closed, &taskbar, &Daytona::Taskbar::collapseLater);
+
+    // Display Properties, from Start > Settings > Display... and the
+    // desktop's menu.
+    Daytona::DisplayPropertiesDialog displayProperties(&settings);
+    const auto showDisplayProperties = [&displayProperties] {
+        displayProperties.prepare();
+        displayProperties.show();
+        displayProperties.raise();
+        displayProperties.activateWindow();
+    };
+    QObject::connect(&startMenu, &Daytona::StartMenu::displayPropertiesRequested,
+        &displayProperties, showDisplayProperties);
+    QObject::connect(&desktop, &Daytona::Desktop::propertiesRequested, &displayProperties,
+        showDisplayProperties);
 
     // Taskbar Properties, from Start > Settings > Taskbar... and the
     // taskbar's own menu.
