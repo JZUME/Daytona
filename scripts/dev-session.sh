@@ -26,6 +26,7 @@ export WLR_LIBINPUT_NO_DEVICES=1
 export WLR_HEADLESS_OUTPUTS=1
 # As daytona-session sets them.
 export GTK_THEME=Daytona
+export QT_STYLE_OVERRIDE=daytona
 export XCURSOR_THEME="Chicago95 Standard Cursors"
 
 pids=()

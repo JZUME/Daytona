@@ -4,6 +4,7 @@
 //
 //   daytona-style-preview                   open a window
 //   daytona-style-preview --save FILE [--scale N]
+//   daytona-style-preview --save-controls FILE [--scale N]
 //                                           render to a PNG instead
 //
 // States are drawn with explicit style options rather than real widgets, so
@@ -13,23 +14,41 @@
 
 #include <QActionGroup>
 #include <QApplication>
+#include <QCalendarWidget>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCommandLineParser>
+#include <QDial>
 #include <QDialogButtonBox>
+#include <QDockWidget>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QHeaderView>
+#include <QIcon>
 #include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMainWindow>
+#include <QMdiArea>
+#include <QMdiSubWindow>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPainter>
+#include <QProgressBar>
 #include <QRadioButton>
 #include <QScrollBar>
+#include <QSizeGrip>
+#include <QSlider>
+#include <QSpinBox>
+#include <QSplitter>
+#include <QStatusBar>
 #include <QStyleOption>
 #include <QTabWidget>
+#include <QTableWidget>
+#include <QTextEdit>
+#include <QToolBar>
+#include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -419,11 +438,112 @@ QImage renderInputs(qreal ratio)
 
 } // namespace
 
+QImage renderControls(qreal ratio)
+{
+    // The other common controls, in a main window with a tool bar, dock
+    // widget and status bar, as a third-party application would use them.
+    QMainWindow window;
+    window.setWindowTitle(QStringLiteral("Controls"));
+    auto *tools = window.addToolBar(QStringLiteral("Standard"));
+    tools->setMovable(true);
+    tools->addAction(QIcon::fromTheme(QStringLiteral("document-new")), QStringLiteral("New"));
+    tools->addAction(QIcon::fromTheme(QStringLiteral("document-open")), QStringLiteral("Open"));
+    tools->addSeparator();
+    QAction *checked
+        = tools->addAction(QIcon::fromTheme(QStringLiteral("edit-copy")), QStringLiteral("Copy"));
+    checked->setCheckable(true);
+    checked->setChecked(true);
+
+    auto *dock = new QDockWidget(QStringLiteral("Folders"), &window);
+    auto *tree = new QTreeWidget;
+    tree->setHeaderLabels({ QStringLiteral("Name"), QStringLiteral("Size") });
+    auto *root = new QTreeWidgetItem(tree, { QStringLiteral("C:\\"), QString() });
+    root->setIcon(0, QIcon::fromTheme(QStringLiteral("drive-harddisk")));
+    for (const char *name : { "WINNT", "Program Files", "TEMP" }) {
+        auto *child = new QTreeWidgetItem(root, { QLatin1String(name), QStringLiteral("4 KB") });
+        child->setIcon(0, QIcon::fromTheme(QStringLiteral("folder")));
+    }
+    root->setExpanded(true);
+    tree->setCurrentItem(root->child(0));
+    dock->setWidget(tree);
+    window.addDockWidget(Qt::LeftDockWidgetArea, dock);
+
+    auto *central = new QWidget;
+    auto *grid = new QGridLayout(central);
+    auto *spin = new QSpinBox;
+    spin->setValue(42);
+    auto *disabledSpin = new QSpinBox;
+    disabledSpin->setEnabled(false);
+    grid->addWidget(new QLabel(QStringLiteral("Spin box:")), 0, 0);
+    grid->addWidget(spin, 0, 1);
+    grid->addWidget(disabledSpin, 0, 2);
+
+    auto *slider = new QSlider(Qt::Horizontal);
+    slider->setRange(0, 10);
+    slider->setValue(3);
+    slider->setTickPosition(QSlider::TicksBelow);
+    auto *vslider = new QSlider(Qt::Vertical);
+    vslider->setFixedHeight(70);
+    vslider->setTickPosition(QSlider::TicksRight);
+    grid->addWidget(new QLabel(QStringLiteral("Trackbar:")), 1, 0);
+    grid->addWidget(slider, 1, 1);
+    grid->addWidget(vslider, 1, 2, 2, 1);
+
+    auto *progress = new QProgressBar;
+    progress->setValue(60);
+    grid->addWidget(new QLabel(QStringLiteral("Progress:")), 2, 0);
+    grid->addWidget(progress, 2, 1);
+
+    auto *table = new QTableWidget(3, 3);
+    table->setHorizontalHeaderLabels(
+        { QStringLiteral("Name"), QStringLiteral("Type"), QStringLiteral("Modified") });
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c)
+            table->setItem(r, c, new QTableWidgetItem(QStringLiteral("Cell %1,%2").arg(r).arg(c)));
+    table->setCurrentCell(1, 1);
+    table->setFixedHeight(110);
+
+    auto *mdi = new QMdiArea;
+    auto *sub = mdi->addSubWindow(new QTextEdit(QStringLiteral("MDI child")));
+    sub->setWindowTitle(QStringLiteral("Document1"));
+    sub->resize(170, 90);
+    mdi->setFixedHeight(110);
+
+    auto *splitter = new QSplitter;
+    splitter->addWidget(table);
+    splitter->addWidget(mdi);
+    grid->addWidget(splitter, 3, 0, 1, 3);
+
+    auto *dial = new QDial;
+    dial->setFixedSize(60, 60);
+    dial->setValue(30);
+    dial->setNotchesVisible(true);
+    auto *calendar = new QCalendarWidget;
+    calendar->setSelectedDate(QDate(1996, 7, 29)); // NT 4.0's release
+    calendar->setFixedSize(calendar->sizeHint());
+    grid->addWidget(dial, 4, 0);
+    grid->addWidget(calendar, 4, 1, 1, 2);
+
+    window.setCentralWidget(central);
+    window.statusBar()->showMessage(QStringLiteral("For Help, press F1"));
+    window.statusBar()->setSizeGripEnabled(true);
+
+    window.resize(window.sizeHint().expandedTo(QSize(720, 0)));
+    window.show();
+    QApplication::processEvents();
+
+    QImage image(window.size() * ratio, QImage::Format_RGB32);
+    image.setDevicePixelRatio(ratio);
+    window.render(&image);
+    return image;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QApplication::setStyle(new Daytona::Style);
     QApplication::setPalette(Daytona::Style::ntPalette());
+    QIcon::setThemeName(QStringLiteral("Chicago95"));
 
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -437,9 +557,16 @@ int main(int argc, char *argv[])
         QStringLiteral("file"));
     const QCommandLineOption saveInputs(QStringLiteral("save-inputs"),
         QStringLiteral("Render dialog controls to a PNG file."), QStringLiteral("file"));
-    parser.addOptions({ save, scale, saveMenus, saveInputs });
+    const QCommandLineOption saveControls(QStringLiteral("save-controls"),
+        QStringLiteral("Render the other common controls in a main window to a PNG file."),
+        QStringLiteral("file"));
+    parser.addOptions({ save, scale, saveMenus, saveInputs, saveControls });
     parser.process(app);
 
+    if (parser.isSet(saveControls)) {
+        return renderControls(parser.value(scale).toDouble()).save(parser.value(saveControls)) ? 0
+                                                                                               : 1;
+    }
     if (parser.isSet(saveInputs))
         return renderInputs(parser.value(scale).toDouble()).save(parser.value(saveInputs)) ? 0 : 1;
     if (parser.isSet(saveMenus))

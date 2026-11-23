@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
+#include <QIcon>
 #include <QMenu>
 #include <QPainter>
 #include <QStyleFactory>
@@ -128,6 +129,12 @@ void Style::polish(QApplication *application)
         m_colourFile = colourFilePath();
     loadColourFile();
     watchColourFile();
+    // Applications without an icon theme of their own (no platform theme
+    // set one) use Chicago95's, installed with Daytona, rather than
+    // Qt's empty fallback.
+    const QString theme = QIcon::themeName();
+    if (theme.isEmpty() || theme == QLatin1String("hicolor"))
+        QIcon::setThemeName(QStringLiteral("Chicago95"));
     // NT menus, tooltips and combo box lists appear instantly.
     for (Qt::UIEffect effect : { Qt::UI_AnimateMenu, Qt::UI_FadeMenu, Qt::UI_AnimateCombo,
              Qt::UI_AnimateTooltip, Qt::UI_FadeTooltip, Qt::UI_AnimateToolBox }) {

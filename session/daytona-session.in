@@ -12,6 +12,9 @@ export XDG_SESSION_DESKTOP=Daytona
 # colour scheme), and everything uses the Windows 95 cursors. Set here, for
 # this session only, so other desktops' settings are left alone.
 export GTK_THEME=Daytona
+# Qt 6 applications use the Daytona style (Qt 5 ones cannot load it; see
+# docs/third-party-apps.md).
+export QT_STYLE_OVERRIDE=daytona
 export XCURSOR_THEME="Chicago95 Standard Cursors"
 
 exec labwc --config-dir "@DAYTONA_LABWC_DIR@" "$@"
