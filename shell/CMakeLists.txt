@@ -57,6 +57,8 @@ add_library(daytona-shell-core STATIC
     taskbar.h
     taskbarplacement.cpp
     taskbarplacement.h
+    taskbarproperties.cpp
+    taskbarproperties.h
     taskbutton.cpp
     taskbutton.h
     toplevellist.cpp

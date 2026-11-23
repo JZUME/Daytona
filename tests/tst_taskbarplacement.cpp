@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "clock.h"
 #include "notificationarea.h"
 #include "settings.h"
 #include "startbutton.h"
 #include "taskbar.h"
 #include "taskbarplacement.h"
+#include "taskbarproperties.h"
 #include "tasklist.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QMenu>
+#include <QPushButton>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -75,7 +79,11 @@ private Q_SLOTS:
             QAction *lock = taskbar.contextMenu()->actions().first();
             QCOMPARE(lock->text(), QStringLiteral("&Lock the Taskbar"));
             QVERIFY(lock->isCheckable() && lock->isChecked());
-            QVERIFY(!taskbar.contextMenu()->actions().last()->isEnabled()); // Properties
+            QAction *properties = taskbar.contextMenu()->actions().last();
+            QVERIFY(properties->isEnabled());
+            QSignalSpy requested(&taskbar, &Taskbar::propertiesRequested);
+            properties->trigger();
+            QCOMPARE(requested.count(), 1);
             lock->trigger();
             QVERIFY(!taskbar.isLocked());
             settings.setTaskbarEdge(TaskbarEdge::Left);
@@ -163,6 +171,88 @@ private Q_SLOTS:
         QCOMPARE(taskbar.width(), 150);
         taskbar.setVerticalWidth(10);
         QCOMPARE(taskbar.width(), taskbar.minimumVerticalWidth());
+    }
+
+    void autoHide()
+    {
+        Taskbar taskbar;
+        // Away from the offscreen platform's pointer, which stays at 0,0.
+        taskbar.move(200, 300);
+        taskbar.resize(1024, Taskbar::RowHeight);
+        taskbar.show();
+        QVERIFY(!taskbar.isAutoHide());
+        taskbar.setAutoHide(true);
+        QVERIFY(taskbar.isCollapsed());
+        QCOMPARE(taskbar.height(), 2); // a 2 pixel strip on its edge
+        QVERIFY(taskbar.startButton()->isHidden());
+
+        taskbar.expand(); // the pointer reached the strip
+        QVERIFY(!taskbar.isCollapsed());
+        QCOMPARE(taskbar.height(), Taskbar::RowHeight);
+        QVERIFY(!taskbar.startButton()->isHidden());
+
+        // The pointer leaves and nothing keeps it shown: it hides again
+        // after a short delay.
+        taskbar.collapseLater();
+        QTRY_VERIFY_WITH_TIMEOUT(taskbar.isCollapsed(), 2000);
+
+        // While a menu is open it stays.
+        bool menuOpen = true;
+        taskbar.setKeepShown([&menuOpen] { return menuOpen; });
+        taskbar.expand();
+        taskbar.collapseLater();
+        QTest::qWait(1200);
+        QVERIFY(!taskbar.isCollapsed());
+        menuOpen = false;
+        QTRY_VERIFY_WITH_TIMEOUT(taskbar.isCollapsed(), 2000);
+
+        taskbar.setAutoHide(false);
+        QVERIFY(!taskbar.isCollapsed());
+        QCOMPARE(taskbar.height(), Taskbar::RowHeight);
+    }
+
+    void optionsFollowSettings()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        Taskbar taskbar;
+        taskbar.setSettings(&settings);
+        QVERIFY(taskbar.isAlwaysOnTop());
+        QVERIFY(!taskbar.notificationArea()->clock()->isHidden());
+        settings.setShowClock(false);
+        QVERIFY(taskbar.notificationArea()->clock()->isHidden());
+        settings.setTaskbarAlwaysOnTop(false);
+        QVERIFY(!taskbar.isAlwaysOnTop());
+        settings.setTaskbarAutoHide(true);
+        QVERIFY(taskbar.isAutoHide());
+    }
+
+    void propertiesDialog()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        TaskbarPropertiesDialog dialog(&settings);
+        QCOMPARE(dialog.options(), TaskbarOptions::fromSettings(settings));
+        QVERIFY(!dialog.applyButton()->isEnabled());
+        auto *autoHide = dialog.findChildren<QCheckBox *>().at(1);
+        QCOMPARE(autoHide->text(), QStringLiteral("A&uto hide"));
+        autoHide->setChecked(true);
+        QVERIFY(dialog.applyButton()->isEnabled());
+        QVERIFY(!settings.taskbarAutoHide()); // not until Apply
+        dialog.apply();
+        QVERIFY(settings.taskbarAutoHide());
+        QVERIFY(!dialog.applyButton()->isEnabled());
+
+        // Cancel leaves the settings as they were.
+        dialog.findChildren<QCheckBox *>().at(3)->setChecked(false); // Show Clock
+        dialog.reject();
+        QVERIFY(settings.showClock());
+        // OK applies.
+        dialog.prepare();
+        dialog.findChildren<QCheckBox *>().at(4)->setChecked(false); // Lock
+        dialog.accept();
+        QVERIFY(!settings.taskbarLocked());
+        QCOMPARE(dialog.findChildren<QCheckBox *>().size(), 5);
     }
 
     void lockedTaskbarDoesNotMove()

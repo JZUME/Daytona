@@ -2,18 +2,21 @@
 
 #include "taskbar.h"
 
+#include "clock.h"
 #include "notificationarea.h"
 #include "startbutton.h"
 #include "taskbarplacement.h"
 #include "tasklist.h"
 
 #include <LayerShellQt/Window>
+#include <QApplication>
 #include <QBoxLayout>
 #include <QContextMenuEvent>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QScreen>
+#include <QTimer>
 #include <QWindow>
 
 namespace Daytona {
@@ -48,7 +51,24 @@ Taskbar::Taskbar(QWidget *parent)
     m_menu->addSeparator();
     QAction *properties = m_menu->addAction(tr("P&roperties"));
     properties->setObjectName(QStringLiteral("properties"));
-    properties->setEnabled(false); // until Taskbar Properties exists
+    connect(properties, &QAction::triggered, this, &Taskbar::propertiesRequested);
+
+    // Auto hide: NT waited a moment after the pointer left before hiding.
+    m_hideTimer = new QTimer(this);
+    m_hideTimer->setSingleShot(true);
+    m_hideTimer->setInterval(500);
+    connect(m_hideTimer, &QTimer::timeout, this, [this] {
+        if (!m_autoHide || m_collapsed)
+            return;
+        const bool keep = QApplication::activePopupWidget() || (m_keepShown && m_keepShown())
+            || underMouse() || m_dragging || m_resizing;
+        if (keep) {
+            m_hideTimer->start(); // check again shortly
+            return;
+        }
+        m_collapsed = true;
+        applyThickness();
+    });
 
     // For the resize cursor over the inner edge.
     setMouseTracking(true);
@@ -63,7 +83,27 @@ void Taskbar::setSettings(Settings *settings)
     setLocked(settings->taskbarLocked());
     m_rows = settings->taskbarRows();
     m_verticalWidth = settings->taskbarWidth();
+    m_onTop = settings->taskbarAlwaysOnTop();
+    m_autoHide = settings->taskbarAutoHide();
+    m_collapsed = m_autoHide;
+    setShowClock(settings->showClock());
     setEdge(settings->taskbarEdge());
+    // Taskbar Properties (or daytona.ini edited by hand) take effect at once.
+    connect(settings, &Settings::changed, this, [this](const QString &key) {
+        if (!m_settings)
+            return;
+        if (key.isEmpty() || key == QLatin1String("Taskbar/AlwaysOnTop"))
+            setAlwaysOnTop(m_settings->taskbarAlwaysOnTop());
+        if (key.isEmpty() || key == QLatin1String("Taskbar/AutoHide"))
+            setAutoHide(m_settings->taskbarAutoHide());
+        if (key.isEmpty() || key == QLatin1String("Taskbar/ShowClock"))
+            setShowClock(m_settings->showClock());
+        if (key.isEmpty() || key == QLatin1String("Taskbar/Locked"))
+            setLocked(m_settings->taskbarLocked());
+        if ((key.isEmpty() || key == QLatin1String("Taskbar/Edge"))
+            && m_settings->taskbarEdge() != m_edge && !m_dragging)
+            setEdge(m_settings->taskbarEdge());
+    });
 }
 
 void Taskbar::setLocked(bool locked)
@@ -87,8 +127,64 @@ int Taskbar::minimumVerticalWidth() const
     return content + 2 + 4; // the raised edge, padding
 }
 
+void Taskbar::setAlwaysOnTop(bool onTop)
+{
+    if (onTop == m_onTop)
+        return;
+    m_onTop = onTop;
+    if (windowHandle())
+        applyLayerShell();
+}
+
+void Taskbar::setAutoHide(bool autoHide)
+{
+    if (autoHide == m_autoHide)
+        return;
+    m_autoHide = autoHide;
+    m_collapsed = autoHide; // shown again when the pointer reaches the strip
+    applyThickness();
+}
+
+void Taskbar::setShowClock(bool show)
+{
+    m_notificationArea->clock()->setVisible(show);
+}
+
+void Taskbar::expand()
+{
+    m_hideTimer->stop();
+    if (m_autoHide && m_collapsed) {
+        m_collapsed = false;
+        applyThickness();
+    }
+}
+
+void Taskbar::collapseLater()
+{
+    if (m_autoHide && !m_collapsed)
+        m_hideTimer->start();
+}
+
+void Taskbar::enterEvent(QEnterEvent *event)
+{
+    // The pointer reached the strip. (A pending hide needs no cancelling:
+    // it does not hide while the pointer is over the taskbar.)
+    if (isCollapsed())
+        expand();
+    QWidget::enterEvent(event);
+}
+
+void Taskbar::leaveEvent(QEvent *event)
+{
+    collapseLater();
+    QWidget::leaveEvent(event);
+}
+
 int Taskbar::thickness() const
 {
+    // Auto-hidden: a 2 pixel strip along the edge, as NT left.
+    if (isCollapsed())
+        return 2;
     if (isVertical(m_edge))
         return qMax(minimumVerticalWidth(), m_verticalWidth);
     return TaskbarThickness::forRows(m_rows);
@@ -111,6 +207,9 @@ void Taskbar::setVerticalWidth(int width)
 void Taskbar::applyThickness()
 {
     const bool vertical = isVertical(m_edge);
+    for (QWidget *child : { static_cast<QWidget *>(m_startButton),
+             static_cast<QWidget *>(m_taskList), static_cast<QWidget *>(m_notificationArea) })
+        child->setVisible(!isCollapsed());
     m_taskList->setRows(vertical ? 1 : m_rows);
     setMinimumSize(0, 0);
     setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
@@ -180,7 +279,6 @@ void Taskbar::attachToLayerShell()
     winId(); // creates the QWindow the layer surface is attached to
     auto *layer = LayerShellQt::Window::get(windowHandle());
     layer->setScope(QStringLiteral("daytona-taskbar"));
-    layer->setLayer(LayerShellQt::Window::LayerTop);
     // Keyboard focus only when the user interacts with the taskbar.
     layer->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityOnDemand);
     applyLayerShell();
@@ -204,7 +302,10 @@ void Taskbar::applyLayerShell()
         layer->setAnchors(A::Anchors(A::AnchorRight | A::AnchorTop | A::AnchorBottom));
         break;
     }
-    layer->setExclusiveZone(thickness());
+    // Always on top: NT's taskbar above windows, or below them when off.
+    layer->setLayer(m_onTop ? A::LayerTop : A::LayerBottom);
+    // Auto hide reserves no space: maximised windows use the whole screen.
+    layer->setExclusiveZone(m_autoHide ? 0 : thickness());
     // Layer properties take effect on the next commit; when the size stays
     // the same (bottom to top), only a repaint makes one.
     // See docs/taskbar-placement.md.

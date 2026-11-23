@@ -5,9 +5,11 @@
 #include "settings.h"
 
 #include <QWidget>
+#include <functional>
 
 class QBoxLayout;
 class QMenu;
+class QTimer;
 
 namespace Daytona {
 
@@ -50,6 +52,21 @@ public:
     // True within the inner edge's resize strip.
     bool isResizeHandle(const QPoint &pos) const;
 
+    // Taskbar Properties: on the top layer or below windows; auto hide to a
+    // thin strip; the clock shown or not.
+    void setAlwaysOnTop(bool onTop);
+    bool isAlwaysOnTop() const { return m_onTop; }
+    void setAutoHide(bool autoHide);
+    bool isAutoHide() const { return m_autoHide; }
+    bool isCollapsed() const { return m_autoHide && m_collapsed; }
+    void setShowClock(bool show);
+    // While this returns true an auto-hidden taskbar stays shown, e.g. while
+    // the Start menu is open. Popup menus always keep it shown.
+    void setKeepShown(std::function<bool()> keepShown) { m_keepShown = std::move(keepShown); }
+    // Auto hide: show now, or hide once nothing keeps the taskbar shown.
+    void expand();
+    void collapseLater();
+
     bool isLocked() const { return m_locked; }
     void setLocked(bool locked);
 
@@ -62,6 +79,7 @@ public:
 
 Q_SIGNALS:
     void edgeChanged(Daytona::TaskbarEdge edge);
+    void propertiesRequested();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -69,6 +87,8 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
 
 private:
     void applyLayerShell();
@@ -82,6 +102,11 @@ private:
     bool m_resizing = false;
     int m_rows = 1;
     int m_verticalWidth = 0;
+    bool m_onTop = true;
+    bool m_autoHide = false;
+    bool m_collapsed = false;
+    QTimer *m_hideTimer;
+    std::function<bool()> m_keepShown;
     QBoxLayout *m_layout;
     QMenu *m_menu;
     QAction *m_lockAction;

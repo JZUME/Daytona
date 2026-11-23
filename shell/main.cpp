@@ -16,6 +16,7 @@
 #include "statusnotifierhost.h"
 #include "taskbar.h"
 #include "taskbarplacement.h"
+#include "taskbarproperties.h"
 #include "tasklist.h"
 #include "toplevelmanager.h"
 #include "waylandcheck.h"
@@ -151,6 +152,24 @@ int main(int argc, char *argv[])
     applications.start();
     Daytona::StartMenu startMenu(&applications, &settings);
     startMenu.setEdge(taskbar.edge());
+    // An auto-hidden taskbar stays shown while the Start menu is open.
+    taskbar.setKeepShown([&startMenu] { return startMenu.isVisible(); });
+    QObject::connect(
+        &startMenu, &Daytona::StartMenu::closed, &taskbar, &Daytona::Taskbar::collapseLater);
+
+    // Taskbar Properties, from Start > Settings > Taskbar... and the
+    // taskbar's own menu.
+    Daytona::TaskbarPropertiesDialog taskbarProperties(&settings);
+    const auto showTaskbarProperties = [&taskbarProperties] {
+        taskbarProperties.prepare();
+        taskbarProperties.show();
+        taskbarProperties.raise();
+        taskbarProperties.activateWindow();
+    };
+    QObject::connect(&startMenu, &Daytona::StartMenu::taskbarPropertiesRequested,
+        &taskbarProperties, showTaskbarProperties);
+    QObject::connect(&taskbar, &Daytona::Taskbar::propertiesRequested, &taskbarProperties,
+        showTaskbarProperties);
     QObject::connect(&taskbar, &Daytona::Taskbar::edgeChanged, &startMenu,
         [&startMenu](Daytona::TaskbarEdge edge) { startMenu.setEdge(edge); });
     Daytona::StartButton *startButton = taskbar.startButton();
