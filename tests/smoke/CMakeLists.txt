@@ -24,15 +24,22 @@ add_test(NAME smoke_install
 set_tests_properties(smoke_install PROPERTIES FIXTURES_SETUP smoke LABELS smoke)
 
 # daytona_add_smoke_test(NAME SCRIPT): run SCRIPT inside a headless session.
+# Each also runs at output scale 2 as NAME_2x.
 function(daytona_add_smoke_test name script)
-    add_test(NAME ${name}
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
-            ${CMAKE_CURRENT_SOURCE_DIR}/${script})
-    set_tests_properties(${name} PROPERTIES
-        FIXTURES_REQUIRED smoke
-        LABELS smoke
-        TIMEOUT 90
-        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$ENV{PATH}")
+    foreach(scale 1 2)
+        set(test ${name})
+        if(scale GREATER 1)
+            set(test ${name}_${scale}x)
+        endif()
+        add_test(NAME ${test}
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
+                ${CMAKE_CURRENT_SOURCE_DIR}/${script})
+        set_tests_properties(${test} PROPERTIES
+            FIXTURES_REQUIRED smoke
+            LABELS smoke
+            TIMEOUT 90
+            ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$ENV{PATH};DAYTONA_SMOKE_SCALE=${scale}")
+    endforeach()
 endfunction()
 
 daytona_add_smoke_test(smoke_window smoke_window.sh)

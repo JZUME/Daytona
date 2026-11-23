@@ -11,6 +11,9 @@ set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 size="${DAYTONA_OUTPUT_SIZE:-1024x768}"
+# DAYTONA_OUTPUT_SCALE (default 1, may be fractional such as 1.5) sets the
+# output scale; the size above is in device pixels.
+scale="${DAYTONA_OUTPUT_SCALE:-1}"
 runtime="${DAYTONA_RUNTIME_DIR:-/tmp/daytona-dev-$(id -u)}"
 novnc_dir="/usr/share/novnc"
 
@@ -79,7 +82,7 @@ fi
 export WAYLAND_DISPLAY="$display"
 
 output=$(wlr-randr | awk 'NR==1 {print $1}')
-if ! wlr-randr --output "$output" --custom-mode "$size"; then
+if ! wlr-randr --output "$output" --custom-mode "$size" --scale "$scale"; then
     echo "Could not set output size $size; keeping the default" >&2
 fi
 

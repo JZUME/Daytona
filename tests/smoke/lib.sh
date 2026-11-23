@@ -2,10 +2,19 @@
 # Helpers for smoke tests. Source from a test script run by run-session.sh.
 
 # wait_for_pixels SECONDS X Y #RRGGBB [...]: take screenshots until every pixel
-# matches or SECONDS pass. Leaves the last screenshot in $SCREENSHOT.
+# matches or SECONDS pass. X and Y are logical pixels; at a higher output scale
+# (DAYTONA_SCALE) they are checked at the first device pixel they cover.
+# Leaves the last screenshot in $SCREENSHOT.
 wait_for_pixels() {
     local seconds="$1"
     shift
+    local scale="${DAYTONA_SCALE:-1}"
+    local args=()
+    while (($# >= 3)); do
+        args+=("$(($1 * scale))" "$(($2 * scale))" "$3")
+        shift 3
+    done
+    set -- "${args[@]}"
     SCREENSHOT="$XDG_RUNTIME_DIR/screenshot.png"
     local end=$((SECONDS + seconds))
     while true; do

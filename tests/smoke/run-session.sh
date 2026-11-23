@@ -7,8 +7,13 @@
 # Usage: run-session.sh PREFIX TIMEOUT_SECONDS COMMAND [ARGS...]
 #   PREFIX is a Daytona install prefix (the tests install into the build tree).
 #
-# The command runs with WAYLAND_DISPLAY, XDG_RUNTIME_DIR and
-# DAYTONA_SCREENSHOT_SIZE set. Everything started here is stopped on exit.
+# The command runs with WAYLAND_DISPLAY, XDG_RUNTIME_DIR,
+# DAYTONA_SCREENSHOT_SIZE (logical) and DAYTONA_SCALE set. Everything started
+# here is stopped on exit.
+#
+# DAYTONA_SMOKE_SCALE (default 1) runs the output at that whole-number scale:
+# the logical size stays 1024x768, so tests use the same coordinates, and
+# screenshots are that many times larger.
 set -euo pipefail
 
 # The shell uses the D-Bus session bus; give the session its own bus.
@@ -23,6 +28,8 @@ shift 2
 
 width=1024
 height=768
+scale="${DAYTONA_SMOKE_SCALE:-1}"
+export DAYTONA_SCALE="$scale"
 
 runtime="$(mktemp -d)"
 chmod 700 "$runtime"
@@ -64,7 +71,8 @@ if [[ ! -S "$runtime/wayland-0" ]]; then
 fi
 export WAYLAND_DISPLAY=wayland-0
 
-wlr-randr --output HEADLESS-1 --custom-mode "${width}x${height}" >/dev/null
+wlr-randr --output HEADLESS-1 --custom-mode "$((width * scale))x$((height * scale))" \
+    --scale "$scale" >/dev/null
 
 status=0
 timeout --kill-after=5 "$limit" "$@" || status=$?
