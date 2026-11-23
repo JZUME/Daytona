@@ -1,0 +1,30 @@
+{
+    "name": "Daytona (Debian 13)",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "username": "vscode",
+            "installZsh": false,
+            "installOhMyZsh": false
+        }
+    },
+    "remoteUser": "vscode",
+    "forwardPorts": [6080],
+    "portsAttributes": {
+        "6080": {
+            "label": "Daytona desktop (noVNC)",
+            "onAutoForward": "notify"
+        }
+    },
+    "postCreateCommand": "git submodule update --init",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools"
+            ]
+        }
+    }
+}

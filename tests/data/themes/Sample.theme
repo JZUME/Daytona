@@ -1,0 +1,12 @@
+; Hand-written test theme for Daytona; not a Microsoft file.
+[Control Panel\Colors]
+ActiveTitle=128 0 0
+Background="0 64 64"
+ButtonFace=200 200 200
+
+[Control Panel\Desktop]
+Wallpaper=%ThemeDir%SAMPLE WALLPAPER.BMP
+TileWallpaper=1
+
+[AppEvents\Schemes\Apps\.Default\.Default\.Current]
+DefaultValue=%ThemeDir%ding.wav

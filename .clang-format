@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+BasedOnStyle: WebKit
+ColumnLimit: 100
+Standard: c++17
+PointerAlignment: Right
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+AllowShortFunctionsOnASingleLine: Inline
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterEnum: true
+  AfterNamespace: false
+  AfterControlStatement: Never
+  BeforeElse: false

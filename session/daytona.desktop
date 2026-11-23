@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Daytona
+Comment=Windows NT style desktop on labwc
+Exec=daytona-session
+Type=Application
+DesktopNames=Daytona

@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  Daytona's labwc configuration, written for the labwc version in Debian 13
+  (0.8.3). It reproduces the Windows NT 4.0 window behaviour: no workspaces,
+  no snapping or tiling, click to focus, NT keyboard shortcuts and the NT
+  window menu. labwc's own default key and mouse bindings are not loaded,
+  because several of them (snapping, Alt+drag, shading, launcher keys) are
+  not NT behaviour.
+-->
+<labwc_config>
+
+  <core>
+    <decoration>server</decoration>
+    <gap>0</gap>
+  </core>
+
+  <!-- NT cascades new windows. -->
+  <placement>
+    <policy>cascade</policy>
+  </placement>
+
+  <theme>
+    <name>Daytona</name>
+    <icon>Chicago95</icon>
+    <titlebar>
+      <!-- NT: window icon (system menu) on the left; Minimise, Maximise and
+           Close on the right. -->
+      <layout>icon:iconify,max,close</layout>
+      <showTitle>yes</showTitle>
+    </titlebar>
+    <cornerRadius>0</cornerRadius>
+    <dropShadows>no</dropShadows>
+    <!-- NT: bold caption text, 8 point. -->
+    <font place="ActiveWindow">
+      <name>sans</name>
+      <size>8</size>
+      <weight>bold</weight>
+    </font>
+    <font place="InactiveWindow">
+      <name>sans</name>
+      <size>8</size>
+      <weight>bold</weight>
+    </font>
+    <font place="MenuItem">
+      <name>sans</name>
+      <size>8</size>
+    </font>
+    <font place="OnScreenDisplay">
+      <name>sans</name>
+      <size>8</size>
+    </font>
+  </theme>
+
+  <!-- Alt+Tab shows a plain list: NT showed no live previews or outlines.
+       labwc 0.8.3 cannot show NT's icon grid. -->
+  <windowSwitcher show="yes" preview="no" outlines="no" allWorkspaces="no">
+    <fields>
+      <field content="desktop_entry_name" width="30%" />
+      <field content="title" width="70%" />
+    </fields>
+  </windowSwitcher>
+
+  <focus>
+    <followMouse>no</followMouse>
+    <raiseOnFocus>no</raiseOnFocus>
+  </focus>
+
+  <!-- NT has no edge snapping or drag-to-top maximise. -->
+  <snapping>
+    <range>0</range>
+    <overlay enabled="no" />
+    <topMaximize>no</topMaximize>
+  </snapping>
+
+  <desktops number="1">
+    <popupTime>0</popupTime>
+  </desktops>
+
+  <keyboard>
+    <keybind key="A-Tab">
+      <action name="NextWindow" />
+    </keybind>
+    <keybind key="A-S-Tab">
+      <action name="PreviousWindow" />
+    </keybind>
+    <keybind key="A-F4">
+      <action name="Close" />
+    </keybind>
+    <keybind key="A-Space">
+      <action name="ShowMenu" menu="client-menu" atCursor="no" />
+    </keybind>
+    <!-- The Windows keys and Ctrl+Esc open the Start menu. onRelease lets the
+         Windows key still be used as a modifier without opening the menu. -->
+    <keybind key="Super_L" onRelease="yes">
+      <action name="Execute" command="daytona-shell --start-menu" />
+    </keybind>
+    <keybind key="Super_R" onRelease="yes">
+      <action name="Execute" command="daytona-shell --start-menu" />
+    </keybind>
+    <keybind key="C-Escape">
+      <action name="Execute" command="daytona-shell --start-menu" />
+    </keybind>
+  </keyboard>
+
+  <mouse>
+    <doubleClickTime>500</doubleClickTime>
+
+    <!-- Focus and raise on press. These go in the titlebar, border and
+         client contexts, which pass the click on to the application; the
+         Frame context would swallow it. -->
+    <context name="TitleBar">
+      <mousebind button="Left" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+      <mousebind button="Right" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+    </context>
+
+    <context name="Top">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="Left">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="Right">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="Bottom">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="TRCorner">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="BRCorner">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="TLCorner">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+    <context name="BLCorner">
+      <mousebind button="Left" action="Press"><action name="Focus" /><action name="Raise" /></mousebind>
+      <mousebind button="Left" action="Drag"><action name="Resize" /></mousebind>
+    </context>
+
+    <context name="Title">
+      <mousebind button="Left" action="Drag">
+        <action name="Move" />
+      </mousebind>
+      <mousebind button="Left" action="DoubleClick">
+        <action name="ToggleMaximize" />
+      </mousebind>
+      <mousebind button="Right" action="Click">
+        <action name="ShowMenu" menu="client-menu" />
+      </mousebind>
+    </context>
+
+    <!-- NT: clicking the window icon opens the window menu; double-clicking
+         it closes the window. -->
+    <context name="Icon">
+      <mousebind button="Left" action="Press">
+        <action name="ShowMenu" menu="client-menu" atCursor="no" />
+      </mousebind>
+      <mousebind button="Left" action="DoubleClick">
+        <action name="Close" />
+      </mousebind>
+      <mousebind button="Right" action="Click">
+        <action name="ShowMenu" menu="client-menu" atCursor="no" />
+      </mousebind>
+    </context>
+
+    <context name="Iconify">
+      <mousebind button="Left" action="Click"><action name="Iconify" /></mousebind>
+    </context>
+    <context name="Maximize">
+      <mousebind button="Left" action="Click"><action name="ToggleMaximize" /></mousebind>
+    </context>
+    <context name="Close">
+      <mousebind button="Left" action="Click"><action name="Close" /></mousebind>
+    </context>
+
+    <context name="Client">
+      <mousebind button="Left" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+      <mousebind button="Middle" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+      <mousebind button="Right" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+    </context>
+
+    <!-- No Desktop/Root bindings: Daytona's desktop draws its own menu, so
+         labwc's root menu never opens. -->
+  </mouse>
+
+</labwc_config>

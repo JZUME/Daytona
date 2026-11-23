@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: CI
+
+on:
+  push:
+    branches: [qt-edition]
+  pull_request:
+    branches: [qt-edition]
+
+jobs:
+  build:
+    name: Build and test (Debian 13)
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      # git must be present before checkout, otherwise actions/checkout falls
+      # back to downloading an archive without submodules.
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates \
+            build-essential cmake ninja-build pkgconf qt6-base-dev \
+            liblayershellqtinterface-dev libwayland-dev libwayland-bin \
+            qt6-wayland-dev qt6-wayland-dev-tools \
+            labwc grim wlr-randr qt6-wayland qt6-svg-plugins dbus
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DDAYTONA_WERROR=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates clang-format
+
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git ls-files -z '*.cpp' '*.h' | xargs -0 clang-format --dry-run --Werror

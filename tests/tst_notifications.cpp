@@ -1,0 +1,220 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// Runs under dbus-run-session for the D-Bus part.
+
+#include "balloon.h"
+#include "notificationqueue.h"
+#include "notificationservice.h"
+
+#include <QApplication>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCall>
+#include <QDBusReply>
+#include <QSignalSpy>
+#include <QTest>
+
+using namespace Daytona;
+using Reason = NotificationQueue::CloseReason;
+
+namespace {
+
+Notification note(const QString &summary, int timeoutMs = -1, QStringList actions = {})
+{
+    Notification n;
+    n.summary = summary;
+    n.timeoutMs = timeoutMs;
+    n.actions = actions;
+    return n;
+}
+
+} // namespace
+
+class TestNotifications : public QObject
+{
+    Q_OBJECT
+
+private Q_SLOTS:
+    void initTestCase() { qRegisterMetaType<NotificationQueue::CloseReason>(); }
+
+    void oneAtATimeInOrder()
+    {
+        NotificationQueue queue;
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        const uint a = queue.notify(note(QStringLiteral("A")));
+        const uint b = queue.notify(note(QStringLiteral("B")));
+        QVERIFY(a != 0 && b != 0 && a != b);
+        QCOMPARE(queue.current()->summary, QStringLiteral("A"));
+        QCOMPARE(queue.queued().size(), 1);
+        QVERIFY(queue.close(a, Reason::Dismissed));
+        QCOMPARE(closed.takeFirst(), QVariantList({ a, QVariant::fromValue(Reason::Dismissed) }));
+        QCOMPARE(queue.current()->summary, QStringLiteral("B"));
+        QVERIFY(queue.close(b, Reason::ClosedByCall));
+        QVERIFY(!queue.current());
+        QVERIFY(!queue.close(b, Reason::ClosedByCall)); // already gone
+    }
+
+    void replacement()
+    {
+        NotificationQueue queue;
+        QSignalSpy changed(&queue, &NotificationQueue::currentChanged);
+        const uint a = queue.notify(note(QStringLiteral("A")));
+        const uint b = queue.notify(note(QStringLiteral("B")));
+        changed.clear();
+        // Replacing the shown one updates it in place, keeping its id.
+        QCOMPARE(queue.notify(note(QStringLiteral("A2")), a), a);
+        QCOMPARE(queue.current()->summary, QStringLiteral("A2"));
+        QCOMPARE(changed.count(), 1);
+        // Replacing a queued one keeps its place.
+        QCOMPARE(queue.notify(note(QStringLiteral("B2")), b), b);
+        QCOMPARE(queue.queued().first().summary, QStringLiteral("B2"));
+        // An unknown id is a new notification.
+        const uint c = queue.notify(note(QStringLiteral("C")), 9999);
+        QVERIFY(c != 9999 && c != a && c != b);
+        QCOMPARE(queue.queued().size(), 2);
+    }
+
+    void timeouts()
+    {
+        NotificationQueue queue;
+        QCOMPARE(queue.effectiveTimeoutMs(note({}, -1)), NotificationQueue::DefaultTimeoutMs);
+        QCOMPARE(queue.effectiveTimeoutMs(note({}, 0)), NotificationQueue::DefaultTimeoutMs);
+        QCOMPARE(queue.effectiveTimeoutMs(note({}, 2500)), 2500);
+        QCOMPARE(queue.effectiveTimeoutMs(note({}, 999999)), NotificationQueue::MaxTimeoutMs);
+
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        const uint a = queue.notify(note(QStringLiteral("A"), 100));
+        queue.notify(note(QStringLiteral("B"), 100));
+        QVERIFY(closed.wait(2000));
+        QCOMPARE(closed.takeFirst(), QVariantList({ a, QVariant::fromValue(Reason::Expired) }));
+        QCOMPARE(queue.current()->summary, QStringLiteral("B")); // the next one shows
+    }
+
+    void defaultAction()
+    {
+        NotificationQueue queue;
+        QSignalSpy invoked(&queue, &NotificationQueue::actionInvoked);
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        const uint a = queue.notify(note(QStringLiteral("A"), -1,
+            { QStringLiteral("default"), QStringLiteral("Open"), QStringLiteral("x"),
+                QStringLiteral("X") }));
+        queue.activateCurrent();
+        QCOMPARE(invoked.takeFirst(), QVariantList({ a, QStringLiteral("default") }));
+        QCOMPARE(closed.takeFirst(), QVariantList({ a, QVariant::fromValue(Reason::Dismissed) }));
+        // Without a default action, a click only dismisses.
+        const uint b = queue.notify(
+            note(QStringLiteral("B"), -1, { QStringLiteral("other"), QStringLiteral("Other") }));
+        queue.activateCurrent();
+        QVERIFY(invoked.isEmpty());
+        QCOMPARE(closed.takeFirst(), QVariantList({ b, QVariant::fromValue(Reason::Dismissed) }));
+    }
+
+    void queueIsBounded()
+    {
+        NotificationQueue queue;
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        for (int i = 0; i < NotificationQueue::MaxQueued + 2; ++i)
+            queue.notify(note(QString::number(i)));
+        QCOMPARE(queue.queued().size(), NotificationQueue::MaxQueued);
+        QCOMPARE(closed.count(), 1);
+        QCOMPARE(closed.first().at(1).value<Reason>(), Reason::Undefined);
+    }
+
+    void balloonGeometryPointsAtTarget()
+    {
+        // Bottom taskbar, target 60 px from the right edge.
+        const BalloonGeometry g = balloonGeometry(TaskbarEdge::Bottom, QSize(200, 40), 60);
+        QCOMPARE(g.surface, QSize(216, 56 + 16));
+        QCOMPARE(g.margin, 36);
+        // The tip is at the bottom, target - margin from the surface's right.
+        const QPoint tip = g.tail.last();
+        QCOMPARE(tip.y(), g.surface.height() - 1);
+        QCOMPARE(g.surface.width() - 1 - tip.x(), 60 - 36);
+        // Close to the screen edge the balloon stays on screen.
+        QCOMPARE(balloonGeometry(TaskbarEdge::Bottom, QSize(200, 40), 10).margin, 4);
+        // Other edges: the tail is on the taskbar's side.
+        QCOMPARE(balloonGeometry(TaskbarEdge::Top, QSize(200, 40), 60).tail.last().y(), 0);
+        QCOMPARE(balloonGeometry(TaskbarEdge::Left, QSize(200, 40), 30).tail.last().x(), 0);
+        const BalloonGeometry right = balloonGeometry(TaskbarEdge::Right, QSize(200, 40), 30);
+        QCOMPARE(right.tail.last().x(), right.surface.width() - 1);
+    }
+
+    void balloonClicks()
+    {
+        Balloon balloon;
+        Notification n = note(QStringLiteral("Title"));
+        n.id = 7;
+        n.body = QStringLiteral("<b>not bold</b>");
+        balloon.prepare(n, TaskbarEdge::Bottom, 60);
+        balloon.show();
+        QSignalSpy closeClicked(&balloon, &Balloon::closeClicked);
+        QSignalSpy bodyClicked(&balloon, &Balloon::bodyClicked);
+        QTest::mouseClick(&balloon, Qt::LeftButton, {}, balloon.closeButtonRect().center());
+        QCOMPARE(closeClicked.takeFirst(), QVariantList({ 7u }));
+        QTest::mouseClick(&balloon, Qt::LeftButton, {}, QPoint(20, 30));
+        QCOMPARE(bodyClicked.takeFirst(), QVariantList({ 7u }));
+        QVERIFY(balloon.focusPolicy() == Qt::NoFocus);
+        QVERIFY(balloon.testAttribute(Qt::WA_ShowWithoutActivating));
+    }
+
+    void overDBus()
+    {
+        QVERIFY2(QDBusConnection::sessionBus().isConnected(), "run under dbus-run-session");
+        NotificationQueue queue;
+        NotificationService service(&queue, QDBusConnection::sessionBus());
+        QVERIFY(service.registerOnBus());
+
+        // A client on its own connection, as notify-send would be.
+        QDBusConnection client
+            = QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("client"));
+        // Plain messages: QDBusInterface would introspect synchronously, and
+        // the server runs in this same thread.
+        const auto call = [&client](const QString &method, const QVariantList &args) {
+            QDBusMessage message = QDBusMessage::createMethodCall(
+                QString::fromLatin1(NotificationService::ServiceName),
+                QString::fromLatin1(NotificationService::ObjectPath),
+                QStringLiteral("org.freedesktop.Notifications"), method);
+            message.setArguments(args);
+            return client.asyncCall(message);
+        };
+        QVERIFY(client.connect(QString(), QString::fromLatin1(NotificationService::ObjectPath),
+            QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("NotificationClosed"),
+            this, SLOT(recordClosed(uint, uint))));
+
+        QDBusPendingCall caps = call(QStringLiteral("GetCapabilities"), {});
+        QTRY_VERIFY(caps.isFinished());
+        QCOMPARE(QDBusReply<QStringList>(caps).value(),
+            QStringList({ QStringLiteral("body"), QStringLiteral("actions"),
+                QStringLiteral("icon-static") }));
+
+        QDBusPendingCall notify = call(QStringLiteral("Notify"),
+            { QStringLiteral("app"), 0u, QString(), QStringLiteral("Hello"),
+                QStringLiteral("World"), QStringList(), QVariantMap(), -1 });
+        QTRY_VERIFY(notify.isFinished());
+        const uint id = QDBusReply<uint>(notify).value();
+        QVERIFY(id != 0);
+        QCOMPARE(queue.current()->summary, QStringLiteral("Hello"));
+        QCOMPARE(queue.current()->body, QStringLiteral("World"));
+
+        call(QStringLiteral("CloseNotification"), { id });
+        QTRY_COMPARE(m_closed.size(), 1);
+        QCOMPARE(m_closed.first(), QVariantList({ id, 3u }));
+        client = QDBusConnection(QStringLiteral("released"));
+        QDBusConnection::disconnectFromBus(QStringLiteral("client"));
+
+        // A second server cannot take the name.
+        NotificationQueue other;
+        NotificationService second(&other,
+            QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("second")));
+        QVERIFY(!second.registerOnBus());
+    }
+
+public Q_SLOTS:
+    void recordClosed(uint id, uint reason) { m_closed << QVariantList({ id, reason }); }
+
+private:
+    QList<QVariantList> m_closed;
+};
+
+QTEST_MAIN(TestNotifications)
+#include "tst_notifications.moc"

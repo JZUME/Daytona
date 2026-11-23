@@ -1,0 +1,17 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Starts a Daytona session: labwc with Daytona's configuration, which in turn
+# starts daytona-shell from its autostart file.
+
+# Desktop name used for OnlyShowIn/NotShowIn and by portals. Display managers
+# usually set this from DesktopNames already; set it for direct starts too.
+export XDG_CURRENT_DESKTOP=Daytona
+export XDG_SESSION_DESKTOP=Daytona
+
+# GTK 3 applications use the Daytona GTK theme (Chicago95 in the current
+# colour scheme), and everything uses the Windows 95 cursors. Set here, for
+# this session only, so other desktops' settings are left alone.
+export GTK_THEME=Daytona
+export XCURSOR_THEME="Chicago95 Standard Cursors"
+
+exec labwc --config-dir "@DAYTONA_LABWC_DIR@" "$@"

@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Run by labwc at startup.
+daytona-shell >/dev/null 2>&1 &
