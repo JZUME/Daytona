@@ -1,0 +1,74 @@
+{
+    // Daytona development tasks. "Daytona: Run desktop" configures, builds and
+    // installs Daytona into build/prefix, then starts the desktop in a headless
+    // labwc session shown in the browser on port 6080 (noVNC). It works in a
+    // GitHub Codespace or any Debian 13 dev container (.devcontainer/).
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Daytona: Configure",
+            "detail": "Fetch the Chicago95 submodule and configure CMake in build/",
+            "type": "shell",
+            "command": "git submodule update --init && cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo",
+            "problemMatcher": []
+        },
+        {
+            "label": "Daytona: Build",
+            "detail": "Compile everything in build/",
+            "type": "shell",
+            "command": "cmake --build build",
+            "dependsOn": "Daytona: Configure",
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Daytona: Install to build/prefix",
+            "detail": "Install the build, themes, icons and cursors into build/prefix for the session",
+            "type": "shell",
+            "command": "cmake --install build --prefix build/prefix",
+            "dependsOn": "Daytona: Build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Daytona: Run desktop",
+            "detail": "Build, install and start the desktop; open port 6080 → vnc.html",
+            "type": "shell",
+            "command": "scripts/dev-session.sh",
+            "dependsOn": "Daytona: Install to build/prefix",
+            "isBackground": true,
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": {
+                "owner": "daytona-session",
+                "pattern": { "regexp": "^(labwc did not start.*)$", "message": 1 },
+                "background": {
+                    "activeBegin": true,
+                    "beginsPattern": "^Using ",
+                    "endsPattern": "^Press Ctrl\\+C to stop\\."
+                }
+            }
+        },
+        {
+            "label": "Daytona: Stop desktop",
+            "detail": "Stop the desktop started by Run desktop",
+            "type": "shell",
+            "command": "pkill -x labwc || true",
+            "problemMatcher": []
+        },
+        {
+            "label": "Daytona: Run tests",
+            "detail": "Build, then run all tests (unit and headless smoke tests)",
+            "type": "shell",
+            "command": "ctest --test-dir build --output-on-failure",
+            "dependsOn": "Daytona: Build",
+            "group": { "kind": "test", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "Daytona: Screenshot",
+            "detail": "Save a screenshot of the running desktop to build/screenshot.png",
+            "type": "shell",
+            "command": "scripts/screenshot.sh build/screenshot.png",
+            "problemMatcher": []
+        }
+    ]
+}

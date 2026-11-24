@@ -7,7 +7,18 @@
 #
 # Stop with Ctrl+C. Set DAYTONA_OUTPUT_SIZE (default 1024x768) to change the
 # virtual screen size.
+#
+# If the build has been installed into build/prefix (cmake --install build
+# --prefix build/prefix, as the VS Code "Daytona: Run desktop" task does),
+# the session uses that install: the shell and tools, the Daytona labwc and
+# GTK themes, Chicago95's icons and cursors, and the daytona Qt style plugin.
 set -euo pipefail
+
+# The shell needs a D-Bus session bus (tray icons, notification balloons,
+# the single-instance check); start one if there is none, as in a Codespace.
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v dbus-run-session >/dev/null; then
+    exec dbus-run-session -- "$0" "$@"
+fi
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 size="${DAYTONA_OUTPUT_SIZE:-1024x768}"
@@ -52,8 +63,19 @@ else
     echo "Daytona labwc configuration not found; using labwc defaults"
 fi
 
-# Prefer a freshly built shell over an installed one.
-for dir in "$repo/build/shell" "$repo/build-trixie/shell"; do
+# Prefer a local install of this build (build/prefix), then a build tree,
+# over a system-wide install.
+prefix="$repo/build/prefix"
+if [[ -x "$prefix/bin/daytona-shell" ]]; then
+    export PATH="$prefix/bin:$PATH"
+    export XDG_DATA_DIRS="$prefix/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    plugins=$(find "$prefix/lib" -maxdepth 3 -type d -path '*/qt6/plugins' 2>/dev/null | head -n 1)
+    if [[ -n "$plugins" ]]; then
+        export QT_PLUGIN_PATH="$plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+    fi
+    echo "Using the Daytona install in $prefix"
+fi
+for dir in "$prefix/bin" "$repo/build/shell" "$repo/build-trixie/shell"; do
     if [[ -x "$dir/daytona-shell" ]]; then
         export PATH="$dir:$PATH"
         echo "Using daytona-shell from $dir"
@@ -99,6 +121,13 @@ export XDG_RUNTIME_DIR="$runtime"
 export WAYLAND_DISPLAY="$display"
 export LABWC_PID="$labwc_pid"
 export QT_QPA_PLATFORM=wayland
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-}"
+export PATH="$PATH"
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export QT_PLUGIN_PATH="${QT_PLUGIN_PATH:-}"
+export GTK_THEME=Daytona
+export QT_STYLE_OVERRIDE=daytona
+export XCURSOR_THEME="Chicago95 Standard Cursors"
 ENV
 
 cat <<MSG

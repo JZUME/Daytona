@@ -103,22 +103,25 @@ clang-format -i $(git ls-files '*.cpp' '*.h')
 The repository has a dev container (`.devcontainer/`, Debian 13) that works in GitHub Codespaces or any dev container tool. It needs no GPU or display: labwc runs headless with software rendering, and the desktop is shown in your browser through noVNC.
 
 1. Create a Codespace on the `main` branch (Code → Codespaces). Submodules are fetched automatically.
-2. Build as described above.
-3. Start the session:
-
-   ```bash
-   scripts/dev-session.sh
-   ```
-
-4. Open the forwarded port **6080** from the Ports tab and choose `vnc.html` → Connect.
-5. In a second terminal, run applications inside the session:
+2. Run the VS Code task **Daytona: Run desktop** (Terminal → Run Task…). It configures, builds and
+   installs Daytona into `build/prefix`, then starts the desktop. Wait for "Daytona development
+   session is running" in its terminal.
+3. Open the forwarded port **6080** from the Ports tab and choose `vnc.html` → Connect.
+4. In a second terminal, run applications inside the session:
 
    ```bash
    source /tmp/daytona-dev-$(id -u)/session.env
    qterminal &
    ```
 
-6. Take a screenshot with `scripts/screenshot.sh [file.png]`. Stop the session with Ctrl+C.
+5. Take a screenshot with the **Daytona: Screenshot** task (or `scripts/screenshot.sh [file.png]`).
+   Stop the session with **Daytona: Stop desktop** or Ctrl+C in its terminal.
+
+Other tasks: **Daytona: Build** (the default build task, Ctrl+Shift+B) and **Daytona: Run tests**.
+Without VS Code, run the same steps by hand: configure and build as above, then
+`cmake --install build --prefix build/prefix` and `scripts/dev-session.sh`. The session uses
+`build/prefix` when it exists, so the Daytona and Chicago95 themes, icons and cursors are
+available, and starts its own D-Bus session bus if there is none.
 
 Set `DAYTONA_OUTPUT_SIZE` (default `1024x768`) to change the virtual screen size. The VNC server and noVNC listen on localhost only; Codespaces forwards port 6080 privately to you.
 
