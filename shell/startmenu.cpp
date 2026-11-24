@@ -598,6 +598,10 @@ void StartMenu::popUpFrom(QWidget *anchor, bool fromKeyboard)
     }
     updateCommandItems();
     resize(sizeHint());
+    create();
+    // On the taskbar's output.
+    if (anchor->screen())
+        windowHandle()->setScreen(anchor->screen());
     attachToLayerShell();
     auto *layer = LayerShellQt::Window::get(windowHandle());
     // Line up with the Start button along the taskbar.

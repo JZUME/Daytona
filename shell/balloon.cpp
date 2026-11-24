@@ -136,7 +136,8 @@ void Balloon::prepare(const Notification &notification, TaskbarEdge edge, int ta
     update();
 }
 
-void Balloon::showNotification(const Notification &notification, TaskbarEdge edge, int target)
+void Balloon::showNotification(
+    const Notification &notification, TaskbarEdge edge, int target, QScreen *screen)
 {
     // LayerShellQt (6.3) loses the layer role when a surface is hidden and
     // shown again, so each balloon starts from a fresh native window.
@@ -146,6 +147,8 @@ void Balloon::showNotification(const Notification &notification, TaskbarEdge edg
     }
     prepare(notification, edge, target);
     create();
+    if (screen)
+        windowHandle()->setScreen(screen);
     auto *layer = LayerShellQt::Window::get(windowHandle());
     layer->setScope(QStringLiteral("daytona-balloon"));
     layer->setLayer(LayerShellQt::Window::LayerOverlay);

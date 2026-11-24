@@ -7,6 +7,8 @@
 
 #include <QWidget>
 
+class QScreen;
+
 namespace Daytona {
 
 // Where a balloon's box and tail go, in logical pixels. edge is the screen
@@ -34,8 +36,10 @@ public:
     explicit Balloon(QWidget *parent = nullptr);
 
     // Shows the notification with its tail pointing at target (see
-    // BalloonGeometry) on the given taskbar edge.
-    void showNotification(const Notification &notification, TaskbarEdge edge, int target);
+    // BalloonGeometry) on the given taskbar edge,
+    // on the given output (the taskbar's).
+    void showNotification(
+        const Notification &notification, TaskbarEdge edge, int target, QScreen *screen = nullptr);
 
     // For tests: the layout without a layer surface.
     void prepare(const Notification &notification, TaskbarEdge edge, int target);

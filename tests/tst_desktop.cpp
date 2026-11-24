@@ -6,9 +6,11 @@
 
 #include <QApplication>
 #include <QMenu>
+#include <QScreen>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QWindow>
 
 using namespace Daytona;
 
@@ -93,6 +95,21 @@ private Q_SLOTS:
         QSignalSpy loaded(&desktop, &Desktop::wallpaperLoaded);
         QVERIFY(loaded.wait(3000));
         QCOMPARE(desktop.grab().toImage().pixelColor(1, 1), QColor(0, 128, 128));
+    }
+
+    void onePerScreen()
+    {
+        Settings settings(m_dir.filePath(QStringLiteral("m.ini")));
+        DesktopManager manager(&settings);
+        manager.start();
+        QCOMPARE(manager.desktops().size(), QGuiApplication::screens().size());
+        for (QScreen *screen : QGuiApplication::screens()) {
+            QVERIFY(manager.desktop(screen));
+            QCOMPARE(manager.desktop(screen)->windowHandle()->screen(), screen);
+        }
+        QSignalSpy requested(&manager, &DesktopManager::propertiesRequested);
+        manager.desktops().first()->contextMenu()->actions().first()->trigger();
+        QCOMPARE(requested.count(), 1);
     }
 
     void propertiesMenu()

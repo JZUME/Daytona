@@ -5,6 +5,7 @@
 #include <LayerShellQt/Window>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QWindow>
 
 namespace Daytona {
@@ -18,10 +19,18 @@ ClickCatcher::ClickCatcher(QWidget *parent)
 
 void ClickCatcher::cover(const QWidget *onScreenOf)
 {
+    QScreen *screen = onScreenOf ? onScreenOf->screen() : nullptr;
+    // A layer surface stays on the output it was made for: start afresh when
+    // the taskbar has moved to another output.
+    if (m_attached && screen && windowHandle() && windowHandle()->screen() != screen) {
+        hide();
+        destroy(true, false);
+        m_attached = false;
+    }
     if (!m_attached) {
         winId();
-        if (onScreenOf && onScreenOf->screen())
-            windowHandle()->setScreen(onScreenOf->screen());
+        if (screen)
+            windowHandle()->setScreen(screen);
         auto *layer = LayerShellQt::Window::get(windowHandle());
         layer->setScope(QStringLiteral("daytona-click-catcher"));
         layer->setLayer(LayerShellQt::Window::LayerTop);

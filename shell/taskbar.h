@@ -9,6 +9,7 @@
 
 class QBoxLayout;
 class QMenu;
+class QScreen;
 class QTimer;
 
 namespace Daytona {
@@ -33,6 +34,9 @@ public:
 
     // Makes the window a layer-shell surface. Call before show().
     void attachToLayerShell();
+    // Puts the taskbar on another output (NT had one taskbar, on the primary
+    // output): the surface is made afresh there.
+    void moveToScreen(QScreen *screen);
 
     // Reads and saves edge and lock state. Call before show().
     void setSettings(Settings *settings);

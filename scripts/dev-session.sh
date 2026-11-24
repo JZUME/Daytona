@@ -26,7 +26,8 @@ export XDG_RUNTIME_DIR="$runtime"
 export WLR_BACKENDS=headless
 export WLR_RENDERER=pixman
 export WLR_LIBINPUT_NO_DEVICES=1
-export WLR_HEADLESS_OUTPUTS=1
+# DAYTONA_OUTPUTS (default 1) headless outputs, side by side.
+export WLR_HEADLESS_OUTPUTS="${DAYTONA_OUTPUTS:-1}"
 # As daytona-session sets them.
 export GTK_THEME=Daytona
 export QT_STYLE_OVERRIDE=daytona
@@ -81,10 +82,11 @@ if [[ -z "$display" ]]; then
 fi
 export WAYLAND_DISPLAY="$display"
 
-output=$(wlr-randr | awk 'NR==1 {print $1}')
-if ! wlr-randr --output "$output" --custom-mode "$size" --scale "$scale"; then
-    echo "Could not set output size $size; keeping the default" >&2
-fi
+for output in $(wlr-randr | awk '/^[^ ]/ {print $1}'); do
+    if ! wlr-randr --output "$output" --custom-mode "$size" --scale "$scale"; then
+        echo "Could not set $output to size $size; keeping the default" >&2
+    fi
+done
 
 wayvnc 127.0.0.1 5900 >"$runtime/wayvnc.log" 2>&1 &
 pids+=($!)

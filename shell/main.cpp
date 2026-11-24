@@ -26,7 +26,9 @@
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QLoggingCategory>
+#include <QScreen>
 #include <QSignalBlocker>
+#include <QWindow>
 #include <cstdio>
 #include <cstring>
 
@@ -108,8 +110,13 @@ int main(int argc, char *argv[])
         taskbar.notificationArea()->setHost(&trayHost);
     else
         qCWarning(lcShell) << "No D-Bus session bus: the notification area shows no tray icons";
+    // One taskbar, on the primary output, as in NT 4.0.
+    taskbar.winId();
+    taskbar.windowHandle()->setScreen(QGuiApplication::primaryScreen());
     taskbar.attachToLayerShell();
     taskbar.show();
+    QObject::connect(qApp, &QGuiApplication::primaryScreenChanged, &taskbar,
+        [&taskbar](QScreen *screen) { taskbar.moveToScreen(screen); });
 
     // The Start menu: its own layer surface, so it has no parent window.
     settings.watchFile();
@@ -136,7 +143,7 @@ int main(int argc, char *argv[])
             const Daytona::TaskbarEdge edge = taskbar.edge();
             const int target = Daytona::isVertical(edge) ? taskbar.height() - centre.y()
                                                          : taskbar.width() - centre.x();
-            balloon.showNotification(*current, edge, target);
+            balloon.showNotification(*current, edge, target, taskbar.screen());
         });
     QObject::connect(
         &balloon, &Daytona::Balloon::closeClicked, &notifications, [&notifications](uint id) {
@@ -146,9 +153,8 @@ int main(int argc, char *argv[])
         &Daytona::NotificationQueue::activateCurrent);
 
     // The desktop: colour and wallpaper behind every window.
-    Daytona::Desktop desktop(&settings);
-    desktop.attachToLayerShell();
-    desktop.show();
+    Daytona::DesktopManager desktops(&settings);
+    desktops.start();
     Daytona::ApplicationIndex applications;
     applications.start();
     Daytona::StartMenu startMenu(&applications, &settings);
@@ -169,7 +175,7 @@ int main(int argc, char *argv[])
     };
     QObject::connect(&startMenu, &Daytona::StartMenu::displayPropertiesRequested,
         &displayProperties, showDisplayProperties);
-    QObject::connect(&desktop, &Daytona::Desktop::propertiesRequested, &displayProperties,
+    QObject::connect(&desktops, &Daytona::DesktopManager::propertiesRequested, &displayProperties,
         showDisplayProperties);
 
     // Taskbar Properties, from Start > Settings > Taskbar... and the

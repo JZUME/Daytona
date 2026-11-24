@@ -5,10 +5,12 @@
 #include "settings.h"
 
 #include <QFutureWatcher>
+#include <QHash>
 #include <QImage>
 #include <QWidget>
 
 class QMenu;
+class QScreen;
 
 namespace Daytona {
 
@@ -26,8 +28,9 @@ class Desktop : public QWidget
 public:
     explicit Desktop(Settings *settings, QWidget *parent = nullptr);
 
-    // Makes this a layer-shell background surface. Call before show().
-    void attachToLayerShell();
+    // Makes this a layer-shell background surface on screen (the window's
+    // own screen if null). Call before show().
+    void attachToLayerShell(QScreen *screen = nullptr);
 
     QMenu *contextMenu() const { return m_menu; }
     // The wallpaper being shown; null while there is none or it is loading.
@@ -52,6 +55,32 @@ private:
     WallpaperMode m_mode = WallpaperMode::Centre;
     QImage m_wallpaper;
     QFutureWatcher<QImage> m_loader;
+};
+
+// One desktop per output, following outputs as they come and go.
+class DesktopManager : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit DesktopManager(Settings *settings, QObject *parent = nullptr);
+    ~DesktopManager() override;
+
+    // Creates a desktop for every screen and follows screen changes.
+    void start();
+    QList<Desktop *> desktops() const { return m_desktops.values(); }
+    Desktop *desktop(QScreen *screen) const { return m_desktops.value(screen); }
+
+Q_SIGNALS:
+    // Properties was chosen on any desktop.
+    void propertiesRequested();
+
+private:
+    void add(QScreen *screen);
+    void remove(QScreen *screen);
+
+    Settings *m_settings;
+    QHash<QScreen *, Desktop *> m_desktops;
 };
 
 } // namespace Daytona

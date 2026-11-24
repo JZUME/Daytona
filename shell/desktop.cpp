@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QWindow>
 #include <QtConcurrent>
 
@@ -53,9 +54,11 @@ Desktop::Desktop(Settings *settings, QWidget *parent)
     loadWallpaper();
 }
 
-void Desktop::attachToLayerShell()
+void Desktop::attachToLayerShell(QScreen *screen)
 {
     winId();
+    if (screen)
+        windowHandle()->setScreen(screen);
     auto *layer = LayerShellQt::Window::get(windowHandle());
     layer->setScope(QStringLiteral("daytona-desktop"));
     layer->setLayer(LayerShellQt::Window::LayerBackground);
@@ -120,6 +123,43 @@ void Desktop::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::RightButton)
         m_menu->popup(event->globalPosition().toPoint());
     event->accept();
+}
+
+DesktopManager::DesktopManager(Settings *settings, QObject *parent)
+    : QObject(parent)
+    , m_settings(settings)
+{
+}
+
+DesktopManager::~DesktopManager()
+{
+    qDeleteAll(m_desktops);
+}
+
+void DesktopManager::start()
+{
+    for (QScreen *screen : QGuiApplication::screens())
+        add(screen);
+    connect(qApp, &QGuiApplication::screenAdded, this, &DesktopManager::add);
+    connect(qApp, &QGuiApplication::screenRemoved, this, &DesktopManager::remove);
+}
+
+void DesktopManager::add(QScreen *screen)
+{
+    if (m_desktops.contains(screen))
+        return;
+    auto *desktop = new Desktop(m_settings);
+    desktop->setObjectName(QStringLiteral("desktop-") + screen->name());
+    connect(desktop, &Desktop::propertiesRequested, this, &DesktopManager::propertiesRequested);
+    desktop->attachToLayerShell(screen);
+    desktop->show();
+    m_desktops.insert(screen, desktop);
+}
+
+void DesktopManager::remove(QScreen *screen)
+{
+    // The output is gone; so is its desktop.
+    delete m_desktops.take(screen);
 }
 
 } // namespace Daytona

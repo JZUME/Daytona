@@ -284,6 +284,22 @@ void Taskbar::attachToLayerShell()
     applyLayerShell();
 }
 
+void Taskbar::moveToScreen(QScreen *screen)
+{
+    if (!screen || (windowHandle() && windowHandle()->screen() == screen && isVisible()))
+        return;
+    const bool shown = isVisible();
+    if (windowHandle()) {
+        hide();
+        destroy(true, false);
+    }
+    create();
+    windowHandle()->setScreen(screen);
+    attachToLayerShell();
+    if (shown)
+        show();
+}
+
 void Taskbar::applyLayerShell()
 {
     using A = LayerShellQt::Window;
