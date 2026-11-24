@@ -6,7 +6,7 @@ Daytona is a small, standalone Qt 6 Widgets shell (taskbar, Start menu, notifica
 
 Status: early development. See [AGENT.md](AGENT.md) for the design and project rules.
 
-Development happens on the `qt-edition` branch.
+Development happens on `main`. The earlier GTK edition is kept on the `legacy` branch.
 
 ## Installing on Debian 13
 
@@ -102,7 +102,7 @@ clang-format -i $(git ls-files '*.cpp' '*.h')
 
 The repository has a dev container (`.devcontainer/`, Debian 13) that works in GitHub Codespaces or any dev container tool. It needs no GPU or display: labwc runs headless with software rendering, and the desktop is shown in your browser through noVNC.
 
-1. Create a Codespace on the `qt-edition` branch (Code → Codespaces). Submodules are fetched automatically.
+1. Create a Codespace on the `main` branch (Code → Codespaces). Submodules are fetched automatically.
 2. Build as described above.
 3. Start the session:
 

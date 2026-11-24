@@ -162,7 +162,7 @@ A dev container (`.devcontainer/`) based on Debian 13 lets the session run in Gi
 
 This combination (headless labwc, pixman, a Qt 6 Wayland client with labwc server-side decorations, grim, wayvnc and noVNC) has been run successfully in a plain Linux container. Codespaces itself has not yet been verified.
 
-CI (GitHub Actions) builds Daytona, runs the Qt Test suites and runs a headless session smoke test on every pull request to `qt-edition`.
+CI (GitHub Actions) builds Daytona, runs the Qt Test suites and runs a headless session smoke test on every pull request to `main`.
 
 ---
 
@@ -588,7 +588,7 @@ Each commit should build and be understandable on its own. Do not mix features, 
 
 ## Current Project Priorities
 
-Work is tracked as GitHub issues titled `[QT] ...`, which list their dependencies and acceptance criteria. Pull requests for them target the `qt-edition` branch, never `main`. Broad order:
+Work is tracked as GitHub issues titled `[QT] ...`, which list their dependencies and acceptance criteria. Pull requests for them target `main`. The earlier GTK edition is kept on the `legacy` branch and is not developed further. Broad order:
 
 1. Repository scaffolding, dev container and CI
 2. Session: labwc configuration (NT keybindings, window menu, titlebar double-click) and a Win95 labwc theme

@@ -17,8 +17,8 @@ Build-Depends:
  dbus-daemon,
 Standards-Version: 4.7.2
 Homepage: https://github.com/soup-bowl/Project-Daytona
-Vcs-Browser: https://github.com/soup-bowl/Project-Daytona/tree/qt-edition
-Vcs-Git: https://github.com/soup-bowl/Project-Daytona.git -b qt-edition
+Vcs-Browser: https://github.com/soup-bowl/Project-Daytona/tree/main
+Vcs-Git: https://github.com/soup-bowl/Project-Daytona.git
 Rules-Requires-Root: no
 
 Package: daytona

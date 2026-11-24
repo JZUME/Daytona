@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [qt-edition]
+    branches: [main]
   pull_request:
-    branches: [qt-edition]
+    branches: [main]
 
 jobs:
   build:

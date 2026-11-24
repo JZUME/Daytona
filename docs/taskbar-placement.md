@@ -10,7 +10,7 @@ account.
 - **Compositor:** labwc 0.8.3 (Debian 13 package), headless backend with the
   pixman renderer, 1024×768 output at scale 1.
 - **Shell:** Qt 6.8.2 Widgets with LayerShellQt 6.3, `daytona-shell` built
-  from `qt-edition` with temporary debug code. The debug code was not
+  from the Qt edition (then on the `qt-edition` branch) with temporary debug code. The debug code was not
   merged; it lived only in a throwaway checkout.
 - **Input:** wayvnc + noVNC, driven by Playwright (`mouse.down`, stepped
   `mouse.move`, `mouse.up`), so the compositor saw a real pointer device.
