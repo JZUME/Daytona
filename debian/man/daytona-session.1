@@ -1,0 +1,17 @@
+.TH DAYTONA-SESSION 1 "November 2026" "Daytona 0.1.0" "User Commands"
+.SH NAME
+daytona-session \- start a Daytona desktop session
+.SH SYNOPSIS
+.B daytona-session
+[\fIlabwc options\fR]
+.SH DESCRIPTION
+.B daytona-session
+starts labwc with Daytona's configuration (NT key bindings, window menu and
+theme), which starts \fBdaytona-shell\fR(1). Login managers run it for the
+"Daytona" session. It sets, for the session only, \fBGTK_THEME=Daytona\fR,
+\fBXCURSOR_THEME\fR to the Chicago95 cursors and \fBQT_STYLE_OVERRIDE=daytona\fR,
+so GTK 3 and Qt 6 applications take the NT look.
+Further arguments are passed to labwc.
+.SH SEE ALSO
+.BR daytona-shell (1),
+.BR labwc (1)

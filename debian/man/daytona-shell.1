@@ -1,0 +1,33 @@
+.TH DAYTONA-SHELL 1 "November 2026" "Daytona 0.1.0" "User Commands"
+.SH NAME
+daytona-shell \- Windows NT 4.0-style desktop shell for labwc
+.SH SYNOPSIS
+.B daytona-shell
+[\fB\-\-start\-menu\fR | \fB\-\-version\fR]
+.SH DESCRIPTION
+.B daytona-shell
+draws the Daytona desktop on a Wayland compositor with the layer-shell
+protocol (labwc): the taskbar with Start button, Start menu, window buttons,
+notification area and clock, the desktop, notification balloons and NT's Run,
+Shut Down, Taskbar Properties and Display Properties dialogs.
+It is normally started by labwc's autostart file in a Daytona session
+(see \fBdaytona-session\fR(1)). Only one shell runs per session.
+.SH OPTIONS
+.TP
+.B \-\-start\-menu
+Ask the running shell to open or close its Start menu. labwc runs this for the
+Windows keys and Ctrl+Esc.
+.TP
+.B \-\-version
+Print the version and exit.
+.SH FILES
+.TP
+.I $XDG_CONFIG_HOME/daytona/daytona.ini
+Taskbar, appearance and command settings.
+.TP
+.I $XDG_CONFIG_HOME/daytona/colors.ini
+The colour scheme, written by \fBdaytona-themetool\fR(1).
+.SH SEE ALSO
+.BR daytona-session (1),
+.BR daytona-themetool (1),
+.BR labwc (1)

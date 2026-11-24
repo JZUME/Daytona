@@ -1,0 +1,7 @@
+daytona (0.1.0) unstable; urgency=medium
+
+  * First packaged release of the Qt edition: the Daytona shell, the daytona
+    Qt style, daytona-themetool, the labwc configuration and session, and
+    Chicago95 built from its pinned submodule.
+
+ -- soup-bowl <soup-bowl@users.noreply.github.com>  Tue, 24 Nov 2026 09:00:00 +0000

@@ -8,6 +8,36 @@ Status: early development. See [AGENT.md](AGENT.md) for the design and project r
 
 Development happens on the `qt-edition` branch.
 
+## Installing on Debian 13
+
+CI builds `.deb` packages for Debian 13 (amd64 and arm64) on every change; download them from the
+**Packages (amd64)** or **Packages (arm64)** artifact of a CI run, or build them yourself (below). Install both packages:
+
+```bash
+sudo apt install ./daytona_*.deb ./daytona-chicago95_*.deb
+```
+
+- `daytona` holds the shell, the `daytona` Qt style, `daytona-themetool`, the labwc configuration
+  and the session file. It pulls in labwc and the Qt runtime it needs.
+- `daytona-chicago95` holds the Chicago95 GTK theme, icons and cursors, built from the pinned
+  submodule.
+
+Then log out and choose **Daytona** in your login manager's session menu. It is installed as
+a Wayland session in `/usr/share/wayland-sessions/daytona.desktop`. GDM, SDDM and LightDM all list
+it there.
+
+To build the packages:
+
+```bash
+sudo apt install dpkg-dev debhelper fakeroot && sudo apt build-dep .
+```
+
+```bash
+dpkg-buildpackage -us -uc -b
+```
+
+The packages are written to the parent directory.
+
 ## Building
 
 Daytona uses a git submodule for [Chicago95](https://github.com/grassmunk/Chicago95). Clone with:

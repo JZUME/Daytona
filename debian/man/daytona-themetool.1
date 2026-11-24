@@ -1,0 +1,24 @@
+.TH DAYTONA-THEMETOOL 1 "November 2026" "Daytona 0.1.0" "User Commands"
+.SH NAME
+daytona-themetool \- apply Windows colour schemes and .theme files to Daytona
+.SH SYNOPSIS
+.B daytona-themetool inspect
+\fIFILE.theme\fR | \fB\-\-scheme\fR \fINAME\fR
+.br
+.B daytona-themetool apply
+\fIFILE.theme\fR | \fB\-\-scheme\fR \fINAME\fR
+.SH DESCRIPTION
+.B inspect
+prints the colours, wallpaper and cursors of a Windows 95, NT or Plus!
+\&.theme file or a built-in scheme (Windows Standard, High Contrast Black,
+High Contrast White), with warnings for parts Daytona does not support.
+.PP
+.B apply
+makes it the current scheme: it writes
+\fI$XDG_CONFIG_HOME/daytona/colors.ini\fR (followed live by the shell and Qt
+applications using the daytona style), a labwc window theme and a GTK 3 theme
+under \fI$XDG_DATA_HOME/themes/Daytona\fR (removed again for Windows
+Standard), sets the Chicago95 icon and cursor themes for GTK, and copies a
+\&.theme file's wallpaper. A running labwc is told to reload its theme.
+.SH SEE ALSO
+.BR daytona-shell (1)

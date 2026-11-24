@@ -1,0 +1,61 @@
+Source: daytona
+Section: x11
+Priority: optional
+Maintainer: soup-bowl <soup-bowl@users.noreply.github.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ ninja-build,
+ pkgconf,
+ qt6-base-dev,
+ qt6-svg-plugins <!nocheck>,
+ qt6-wayland-dev,
+ qt6-wayland-dev-tools,
+ liblayershellqtinterface-dev,
+ libwayland-dev,
+ libwayland-bin,
+ dbus-daemon,
+Standards-Version: 4.7.2
+Homepage: https://github.com/soup-bowl/Project-Daytona
+Vcs-Browser: https://github.com/soup-bowl/Project-Daytona/tree/qt-edition
+Vcs-Git: https://github.com/soup-bowl/Project-Daytona.git -b qt-edition
+Rules-Requires-Root: no
+
+Package: daytona
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ daytona-chicago95 (= ${source:Version}),
+ labwc,
+ qt6-wayland,
+ qt6-svg-plugins,
+ dbus-user-session | dbus-x11,
+Recommends:
+ xdg-utils,
+Suggests:
+ systemd,
+Description: Windows NT 4.0-style desktop shell for labwc
+ Daytona recreates the Windows NT 4.0 desktop on Wayland: a taskbar with
+ Start button, Start menu, window buttons, notification area (tray icons and
+ balloons) and clock, a desktop with NT wallpaper modes, and NT's Run, Shut
+ Down, Taskbar Properties and Display Properties dialogs. labwc provides the
+ window management, configured with NT key bindings, window menu and theme.
+ .
+ The package also contains the "daytona" Qt 6 style, which gives other Qt 6
+ Widgets applications the NT look, and daytona-themetool, which applies
+ Windows 95/NT/Plus! .theme colour schemes to the shell, Qt and GTK 3
+ applications and labwc. A "Daytona" session is installed for login managers.
+
+Package: daytona-chicago95
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+Description: Chicago95 GTK theme, icons and cursors for Daytona
+ Chicago95 is a Windows 95 look for GTK, with matching icon and cursor
+ themes. Daytona uses its icons and cursors throughout and applies its GTK 3
+ theme, in the current Daytona colour scheme, to GTK 3 applications.
+ .
+ This package contains the Chicago95 GTK 2/3 theme, the Chicago95 icon theme
+ and the "Chicago95 Standard Cursors" cursor theme, as pinned by Daytona.

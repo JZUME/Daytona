@@ -37,6 +37,48 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  package:
+    name: Debian packages (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:trixie
+    steps:
+      - name: Install packaging tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates \
+            dpkg-dev debhelper fakeroot lintian
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          path: daytona
+
+      - name: Install build dependencies
+        run: apt-get build-dep -y ./daytona
+
+      - name: Build
+        working-directory: daytona
+        run: dpkg-buildpackage -us -uc -b
+
+      - name: Lintian
+        run: lintian --fail-on error --info daytona_*.deb daytona-chicago95_*.deb
+
+      - name: Collect
+        run: mkdir dist && mv daytona_*.deb daytona-chicago95_*.deb dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Packages (${{ matrix.arch }})
+          path: dist/*.deb
+
   format:
     name: clang-format
     runs-on: ubuntu-latest

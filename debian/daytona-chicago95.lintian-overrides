@@ -1,0 +1,4 @@
+# Helper scripts inside Chicago95's upstream theme and icon trees, installed
+# as they are; they are not run by Daytona or by GTK.
+daytona-chicago95: script-not-executable [usr/share/themes/Chicago95/gnome-shell/assets-render/render-assets.sh]
+daytona-chicago95: script-not-executable [usr/share/icons/Chicago95/apps/scalable/links.sh]

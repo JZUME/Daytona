@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+include /usr/share/dpkg/architecture.mk
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+# Unit tests draw widgets without a display.
+export QT_QPA_PLATFORM = offscreen
+
+%:
+	dh $@ --buildsystem=cmake+ninja
+
+override_dh_auto_configure:
+	dh_auto_configure -- -DDAYTONA_WERROR=OFF
+
+# The smoke tests need a Wayland compositor and are run by CI, not here.
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	cd obj-$(DEB_HOST_GNU_TYPE) && ctest --output-on-failure -LE smoke
+endif
+
+override_dh_missing:
+	dh_missing --fail-missing
