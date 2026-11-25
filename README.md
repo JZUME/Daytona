@@ -129,7 +129,10 @@ The repository has a dev container (`.devcontainer/`, Debian 13) that works in G
 5. Take a screenshot with the **Daytona: Screenshot** task (or `scripts/screenshot.sh [file.png]`).
    Stop the session with **Daytona: Stop desktop** or Ctrl+C in its terminal.
 
-Other tasks: **Daytona: Build** (the default build task, Ctrl+Shift+B) and **Daytona: Run tests**.
+Other tasks: **Daytona: Build** (the default build task, Ctrl+Shift+B), **Daytona: Run tests**, and
+**Daytona: Run desktop (2×)** and **(1.5×)**, which start the desktop at HiDPI scales (see
+[docs/hidpi.md](docs/hidpi.md)). At those scales the noVNC canvas is larger than the logical
+desktop: keep noVNC's Scaling Mode on None to check pixels, or use Local Scaling for an overview.
 Without VS Code, run the same steps by hand: configure and build as above, then
 `cmake --install build --prefix build/prefix` and `scripts/dev-session.sh`. The session uses
 `build/prefix` when it exists, so the Daytona and Chicago95 themes, icons and cursors are

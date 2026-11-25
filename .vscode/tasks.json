@@ -48,6 +48,44 @@
             }
         },
         {
+            "label": "Daytona: Run desktop (2×)",
+            "detail": "As Run desktop, at scale 2: 2048×1536 device pixels, a 1024×768 desktop (HiDPI)",
+            "type": "shell",
+            "command": "scripts/dev-session.sh",
+            "options": { "env": { "DAYTONA_OUTPUT_SIZE": "2048x1536", "DAYTONA_OUTPUT_SCALE": "2" } },
+            "dependsOn": "Daytona: Install to build/prefix",
+            "isBackground": true,
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": {
+                "owner": "daytona-session",
+                "pattern": { "regexp": "^(labwc did not start.*)$", "message": 1 },
+                "background": {
+                    "activeBegin": true,
+                    "beginsPattern": "^Using ",
+                    "endsPattern": "^Press Ctrl\\+C to stop\\."
+                }
+            }
+        },
+        {
+            "label": "Daytona: Run desktop (1.5×)",
+            "detail": "As Run desktop, at scale 1.5: 1536×1152 device pixels, a 1024×768 desktop (fractional HiDPI)",
+            "type": "shell",
+            "command": "scripts/dev-session.sh",
+            "options": { "env": { "DAYTONA_OUTPUT_SIZE": "1536x1152", "DAYTONA_OUTPUT_SCALE": "1.5" } },
+            "dependsOn": "Daytona: Install to build/prefix",
+            "isBackground": true,
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": {
+                "owner": "daytona-session",
+                "pattern": { "regexp": "^(labwc did not start.*)$", "message": 1 },
+                "background": {
+                    "activeBegin": true,
+                    "beginsPattern": "^Using ",
+                    "endsPattern": "^Press Ctrl\\+C to stop\\."
+                }
+            }
+        },
+        {
             "label": "Daytona: Stop desktop",
             "detail": "Stop the desktop started by Run desktop",
             "type": "shell",

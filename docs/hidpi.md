@@ -16,6 +16,12 @@ DAYTONA_OUTPUT_SIZE=2048x1536 DAYTONA_OUTPUT_SCALE=2 scripts/dev-session.sh
 DAYTONA_OUTPUT_SIZE=1536x1152 DAYTONA_OUTPUT_SCALE=1.5 scripts/dev-session.sh
 ```
 
+In VS Code the tasks **Daytona: Run desktop (2×)** and **Daytona: Run desktop
+(1.5×)** run these. In noVNC, leave Scaling Mode on None to see device pixels
+one for one; Local Scaling (or `vnc.html?resize=scale`) fits the desktop to the
+browser but blurs it, so don't judge sharpness that way. The **Daytona:
+Screenshot** task saves the full-resolution image to `build/screenshot.png`.
+
 Both give a 1024×768 logical desktop. The scale is set with `wlr-randr --scale`
 on the headless output, which labwc 0.8.3 and wlr-randr 0.4.1 (Debian 13)
 support, including fractional scales.
