@@ -185,7 +185,7 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
     m_submenuDelay.setInterval(
         style()->styleHint(QStyle::SH_Menu_SubMenuPopupDelay, nullptr, this));
     connect(&m_submenuDelay, &QTimer::timeout, this, [this] {
-        if (m_current >= 0 && m_items[m_current].submenu && underMouse())
+        if (m_current >= 0 && m_items[m_current].submenu)
             openSubmenu(m_current, false);
     });
 
@@ -328,7 +328,12 @@ void StartMenu::moveCurrent(int step)
 
 void StartMenu::mouseMoveEvent(QMouseEvent *event)
 {
-    const int index = itemAt(event->position().toPoint());
+    hoverAt(event->position().toPoint());
+}
+
+void StartMenu::hoverAt(const QPoint &pos)
+{
+    const int index = itemAt(pos);
     if (index < 0 || index == m_current)
         return;
     setCurrent(index);
@@ -340,20 +345,34 @@ void StartMenu::mouseMoveEvent(QMouseEvent *event)
 
 void StartMenu::mousePressEvent(QMouseEvent *event)
 {
-    const int index = itemAt(event->position().toPoint());
-    if (index >= 0 && m_items[index].submenu)
-        activate(index, false);
+    pressAt(event->position().toPoint());
 }
 
 void StartMenu::mouseReleaseEvent(QMouseEvent *event)
 {
-    const int index = itemAt(event->position().toPoint());
+    releaseAt(event->position().toPoint());
+}
+
+void StartMenu::pressAt(const QPoint &pos)
+{
+    const int index = itemAt(pos);
+    if (index >= 0 && m_items[index].submenu) {
+        setCurrent(index);
+        activate(index, false);
+    }
+}
+
+void StartMenu::releaseAt(const QPoint &pos)
+{
+    const int index = itemAt(pos);
     if (index >= 0 && !m_items[index].submenu)
         activate(index, false);
 }
 
 void StartMenu::leaveEvent(QEvent *)
 {
+    // Left the menu before a submenu opened: it no longer opens.
+    m_submenuDelay.stop();
     if (!m_openSubmenu)
         setCurrent(-1);
 }
@@ -449,6 +468,29 @@ void StartMenu::closeSubmenu()
 
 bool StartMenu::eventFilter(QObject *watched, QEvent *event)
 {
+    // While a submenu is open Qt gives it every mouse event, including those
+    // over the Start menu (submenus pass on what is outside them to the menu
+    // that opened them, ending at a first-level submenu). Take back the ones
+    // over the Start menu, so pointing at another item there highlights it
+    // and opens its submenu, and clicking there works, as in NT.
+    if ((event->type() == QEvent::MouseMove || event->type() == QEvent::MouseButtonPress
+            || event->type() == QEvent::MouseButtonRelease)
+        && m_openSubmenu && isVisible()) {
+        auto *menu = static_cast<QWidget *>(watched);
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (!menu->rect().contains(mouse->position().toPoint())) {
+            const QPoint pos = mapFromGlobal(mouse->globalPosition()).toPoint();
+            if (rect().contains(pos)) {
+                if (event->type() == QEvent::MouseMove)
+                    hoverAt(pos);
+                else if (event->type() == QEvent::MouseButtonPress)
+                    pressAt(pos);
+                else
+                    releaseAt(pos);
+                return true;
+            }
+        }
+    }
     // Escape or Left in a first-level submenu returns to the Start menu.
     if (event->type() == QEvent::KeyPress && watched == m_openSubmenu) {
         const int key = static_cast<QKeyEvent *>(event)->key();

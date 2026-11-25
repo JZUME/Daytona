@@ -90,6 +90,8 @@ Smoke tests run a real headless labwc session against an install of the build an
 sudo apt install labwc grim wlr-randr qt6-wayland qt6-svg-plugins dbus
 ```
 
+The pointer tests also need `wlrctl`.
+
 Run only the smoke tests with:
 
 ```bash

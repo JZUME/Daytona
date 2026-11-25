@@ -110,6 +110,9 @@ private:
     int itemHeight(const Item &item) const;
     QRect itemRect(int index) const;
     int itemAt(const QPoint &pos) const;
+    void hoverAt(const QPoint &pos);
+    void pressAt(const QPoint &pos);
+    void releaseAt(const QPoint &pos);
     void setCurrent(int index);
     void moveCurrent(int step);
     void activate(int index, bool fromKeyboard);
