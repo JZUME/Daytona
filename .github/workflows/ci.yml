@@ -65,6 +65,12 @@ jobs:
       - name: Install build dependencies
         run: apt-get build-dep -y ./daytona
 
+      - name: Snapshot version
+        working-directory: daytona
+        run: |
+          git config --global --add safe.directory "$PWD"
+          scripts/snapshot-version.sh
+
       - name: Build
         working-directory: daytona
         run: dpkg-buildpackage -us -uc -b

@@ -38,7 +38,26 @@ sudo apt install dpkg-dev debhelper fakeroot && sudo apt build-dep .
 dpkg-buildpackage -us -uc -b
 ```
 
-The packages are written to the parent directory.
+The packages are written to the parent directory. To give them a snapshot version as CI does
+(below), run `scripts/snapshot-version.sh` first; it adds an entry to `debian/changelog`.
+
+### Updating
+
+CI packages have a snapshot version made from the commit they were built from, such as
+`0.1.0+git20261125222910.412d7ba`: the release version, the commit's date and time (UTC) and its
+short hash. Each build is newer than the last, so installing newer packages over older ones
+upgrades them:
+
+```bash
+sudo apt install ./daytona_*.deb ./daytona-chicago95_*.deb
+```
+
+Then log out and back in. Your settings (colour scheme, wallpaper, taskbar) are kept.
+`dpkg -l daytona` shows which commit is installed. apt asks before installing an older build
+over a newer one.
+
+Packages built before snapshot versions all have version `0.1.0`. To replace one of those with
+another `0.1.0` build, add `--reinstall`.
 
 ## Building
 
