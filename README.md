@@ -18,7 +18,9 @@ sudo apt install ./daytona_*.deb ./daytona-chicago95_*.deb
 ```
 
 - `daytona` holds the shell, the `daytona` Qt style, `daytona-themetool`, the labwc configuration
-  and the session file. It pulls in labwc and the Qt runtime it needs.
+  and the session file, and its own build of labwc with Daytona's window frame patch, installed
+  privately in `/usr/libexec/daytona` so a system labwc is left alone. It pulls in the Qt
+  runtime it needs.
 - `daytona-chicago95` holds the Chicago95 GTK theme, icons and cursors, built from the pinned
   submodule.
 

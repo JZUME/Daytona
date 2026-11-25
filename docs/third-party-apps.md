@@ -74,3 +74,35 @@ applications do not follow Daytona's colour scheme.
 See `docs/colour-schemes.md`: GTK 3 applications in the session use Chicago95
 in the current colour scheme (`GTK_THEME=Daytona`). GTK 4 and libadwaita
 applications are out of scope.
+
+## Notification area (tray icons)
+
+The notification area shows icons that applications register over D-Bus
+(StatusNotifierItem): Daytona runs the `org.kde.StatusNotifierWatcher`
+service and draws each icon, tooltip and menu itself. Qt's
+`QSystemTrayIcon`, KDE applications, Electron applications, Chromium,
+Firefox and GTK applications using libayatana-appindicator all use it.
+
+Applications that only know the older X11 tray (XEmbed), which embeds the
+application's own small window in the taskbar, show no icon. This includes
+GTK 2 and GTK 3's `GtkStatusIcon` (removed in GTK 4), older Wine programs and
+plain X11 utilities. Wayland does not let one program embed another
+program's window, so there is nowhere to put such an icon; the rest of the
+application works as usual. Other Wayland desktops have the same limit. A
+bridge such as KDE's `xembedsniproxy`, which turns XEmbed icons of Xwayland
+applications into StatusNotifierItems, could be added later.
+
+Notifications sent through `org.freedesktop.Notifications` (`notify-send`,
+libnotify) are shown as Windows 2000 balloons pointing at the notification
+area.
+
+To try both in the dev session, with the desktop running:
+
+```bash
+scripts/widget-gallery.sh widgets/desktop/systray
+```
+
+```bash
+source /tmp/daytona-dev-$(id -u)/session.env
+notify-send "Hello" "A test notification"
+```
