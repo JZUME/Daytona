@@ -53,7 +53,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-labwc --config-dir "$prefix/share/daytona/labwc" >"$runtime/labwc.log" 2>&1 &
+# Daytona's patched labwc when the build includes it, as daytona-session does.
+labwc="$prefix/libexec/daytona/labwc"
+[[ -x "$labwc" ]] || labwc=labwc
+"$labwc" --config-dir "$prefix/share/daytona/labwc" >"$runtime/labwc.log" 2>&1 &
 labwc_pid=$!
 
 for _ in $(seq 100); do

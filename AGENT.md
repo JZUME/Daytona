@@ -123,7 +123,7 @@ These are project constraints unless a task explicitly changes them.
 
 * **Language:** C++17 (C++20 features only where the target Qt and compilers support them cleanly)
 * **UI toolkit:** Qt 6 Widgets. No QML, no Qt Quick, no style sheets for core styling.
-* **Compositor:** labwc (wlroots-based), unmodified upstream where possible
+* **Compositor:** labwc (wlroots-based), unmodified upstream where possible. **Approved exception:** NT's raised 3D window frame cannot be drawn by any labwc release (borders are one flat colour), so Daytona builds labwc itself: the `third_party/labwc` submodule, pinned to the version Debian 13 ships, plus the minimal patches in `patches/labwc/`, applied at build time by `scripts/build-labwc.sh` without changing the submodule. The result is installed as `libexec/daytona/labwc` and run by the Daytona session. Keep these patches small, theme-option driven and off by default, and offer them upstream; drop each one once a labwc release Daytona can use includes it.
 * **Display protocol:** Wayland, with XWayland provided by labwc for X11 applications
 * **Shell surfaces:** `wlr-layer-shell` via LayerShellQt
 * **Taskbar window list:** `wlr-foreign-toplevel-management-unstable-v1` (and `ext-foreign-toplevel-list-v1` where it adds value), bound through QtWaylandClient
@@ -415,7 +415,7 @@ Dependencies must earn their place. Current expected dependencies:
 * Qt 6 (Core, Gui, Widgets, WaylandClient)
 * LayerShellQt
 * wayland-client and protocol XML files
-* labwc (runtime)
+* labwc (built from the `third_party/labwc` submodule with `patches/labwc/`; needs meson and labwc's build dependencies, such as wlroots 0.18)
 * QtDBus (part of Qt)
 * Chicago95 (git submodule; GTK theme, icons and cursors)
 

@@ -54,6 +54,12 @@ private Q_SLOTS:
         QCOMPARE(value("menu.items.text.color"), QByteArray("#ffffff"));
         QCOMPARE(value("menu.items.active.bg.color"), QByteArray("#800080"));
         QCOMPARE(value("osd.bg.color"), QByteArray("#000000"));
+        // The raised frame takes the scheme's 3D colours.
+        QCOMPARE(value("window.border.bevel"), QByteArray("yes"));
+        QCOMPARE(value("window.border.bevel.light.color"), QByteArray("#c0c0c0"));
+        QCOMPARE(value("window.border.bevel.highlight.color"), QByteArray("#ffffff"));
+        QCOMPARE(value("window.border.bevel.shadow.color"), QByteArray("#808080"));
+        QCOMPARE(value("window.border.bevel.darkshadow.color"), QByteArray("#808080"));
         QCOMPARE(value("osd.window-switcher.preview.border.color"),
             QByteArray("#808080,#ffffff,#808080"));
     }

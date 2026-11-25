@@ -12,10 +12,11 @@
 #include <QLoggingCategory>
 #include <QMessageBox>
 #include <QPointer>
-#include <QProcess>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QVBoxLayout>
+#include <csignal>
+#include <sys/types.h>
 
 Q_LOGGING_CATEGORY(lcSession, "daytona.session", QtInfoMsg)
 
@@ -72,9 +73,13 @@ void SessionActions::queryAvailability(Availability done)
 void SessionActions::perform(SessionAction action, Failure failed)
 {
     if (action == SessionAction::LogOff) {
-        // labwc's own way to end the session; it needs LABWC_PID, which labwc
-        // sets for the programs it starts, including this shell.
-        if (!QProcess::startDetached(QStringLiteral("labwc"), { QStringLiteral("--exit") }))
+        // End the session as "labwc --exit" does: SIGTERM to the compositor
+        // named by LABWC_PID, which labwc sets for the programs it starts,
+        // including this shell. Signalling it directly works whichever
+        // labwc binary runs the session (Daytona's own build included).
+        bool ok = false;
+        const qint64 pid = qEnvironmentVariable("LABWC_PID").toLongLong(&ok);
+        if (!ok || pid <= 1 || ::kill(pid_t(pid), SIGTERM) != 0)
             failed(tr("Could not end the session."));
         return;
     }

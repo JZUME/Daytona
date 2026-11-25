@@ -31,6 +31,26 @@ License: HPND-sell-variant
  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
  THIS SOFTWARE.
 
+Files: third_party/labwc/*
+Copyright: 2019-2025 Johan Malm and the labwc contributors (see third_party/labwc)
+License: GPL-2
+Comment:
+ labwc 0.8.3, built and installed as /usr/libexec/daytona/labwc with the
+ patches in patches/labwc/.
+
+Files: third_party/labwc/src/img/img-xpm.c
+ third_party/labwc/src/img/xpm-color-table.h
+ third_party/labwc/src/img/gen-color-table.pl
+Copyright: 1999 Mark Crichton
+ 1999 The Free Software Foundation
+ 2024 John Lindgren
+License: LGPL-2+
+
+Files: patches/labwc/*
+Copyright: 2026 Daytona contributors
+License: GPL-2
+Comment: Modifications to labwc, under labwc's licence.
+
 Files: third_party/Chicago95/*
 Copyright: 2016-2024 Grassmunk and the Chicago95 contributors (see CREDITS)
 License: GPL-3+ or Expat
@@ -78,3 +98,30 @@ License: Expat
  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: GPL-2
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 2 as
+ published by the Free Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: LGPL-2+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU Library General Public
+ License version 2 can be found in "/usr/share/common-licenses/LGPL-2".

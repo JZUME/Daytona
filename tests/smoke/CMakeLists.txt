@@ -46,3 +46,7 @@ daytona_add_smoke_test(smoke_window smoke_window.sh)
 daytona_add_smoke_test(smoke_taskbar smoke_taskbar.sh)
 daytona_add_smoke_test(smoke_taskbuttons smoke_taskbuttons.sh)
 daytona_add_smoke_test(smoke_startmenu smoke_startmenu.sh)
+# The bevelled frame comes from Daytona's labwc patch, so needs that build.
+if(DAYTONA_BUILD_LABWC)
+    daytona_add_smoke_test(smoke_frame smoke_frame.sh)
+endif()

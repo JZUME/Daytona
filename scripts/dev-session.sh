@@ -83,8 +83,19 @@ for dir in "$prefix/bin" "$repo/build/shell" "$repo/build-trixie/shell"; do
     fi
 done
 
+# Daytona's patched labwc (bevelled NT window frames): installed, or built,
+# else the system's.
+labwc=labwc
+for candidate in "$prefix/libexec/daytona/labwc" "$repo/build/labwc-build/meson/labwc"; do
+    if [[ -x "$candidate" ]]; then
+        labwc="$candidate"
+        echo "Using labwc from $candidate"
+        break
+    fi
+done
+
 before=$(ls "$runtime" 2>/dev/null | grep -E '^wayland-[0-9]+$' || true)
-labwc "${labwc_args[@]}" >"$runtime/labwc.log" 2>&1 &
+"$labwc" "${labwc_args[@]}" >"$runtime/labwc.log" 2>&1 &
 labwc_pid=$!
 pids+=($labwc_pid)
 

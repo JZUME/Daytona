@@ -40,7 +40,7 @@ The packages are written to the parent directory.
 
 ## Building
 
-Daytona uses a git submodule for [Chicago95](https://github.com/grassmunk/Chicago95). Clone with:
+Daytona uses git submodules for [Chicago95](https://github.com/grassmunk/Chicago95) and [labwc](https://github.com/labwc/labwc). Clone with:
 
 ```bash
 git clone --recurse-submodules https://github.com/soup-bowl/Project-Daytona.git
@@ -59,6 +59,18 @@ sudo apt install build-essential cmake ninja-build pkgconf qt6-base-dev \
     liblayershellqtinterface-dev libwayland-dev libwayland-bin \
     qt6-wayland-dev qt6-wayland-dev-tools qt6-svg-plugins clang-format
 ```
+
+The build also compiles labwc from its submodule with Daytona's patch for NT's raised window
+frames (`patches/labwc/`), which needs labwc's own build dependencies:
+
+```bash
+sudo apt install meson libwlroots-0.18-dev wayland-protocols libxkbcommon-dev libxcb1-dev \
+    libxcb-icccm4-dev libdrm-dev libxml2-dev libglib2.0-dev libcairo2-dev libpango1.0-dev \
+    libinput-dev libpixman-1-dev libpng-dev librsvg2-dev libsfdo-dev
+```
+
+Configure with `-DDAYTONA_BUILD_LABWC=OFF` to skip it and use the system's labwc instead; window
+frames are then flat.
 
 Configure, build and run the tests:
 

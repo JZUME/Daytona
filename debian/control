@@ -15,6 +15,22 @@ Build-Depends:
  libwayland-dev,
  libwayland-bin,
  dbus-daemon,
+ meson,
+ libwlroots-0.18-dev,
+ wayland-protocols,
+ libxkbcommon-dev,
+ libxcb1-dev,
+ libxcb-icccm4-dev,
+ libdrm-dev,
+ libxml2-dev,
+ libglib2.0-dev,
+ libcairo2-dev,
+ libpango1.0-dev,
+ libinput-dev,
+ libpixman-1-dev,
+ libpng-dev,
+ librsvg2-dev,
+ libsfdo-dev,
 Standards-Version: 4.7.2
 Homepage: https://github.com/soup-bowl/Project-Daytona
 Vcs-Browser: https://github.com/soup-bowl/Project-Daytona/tree/main
@@ -27,12 +43,12 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  daytona-chicago95 (= ${source:Version}),
- labwc,
  qt6-wayland,
  qt6-svg-plugins,
  dbus-user-session | dbus-x11,
 Recommends:
  xdg-utils,
+ xwayland,
 Suggests:
  systemd,
 Description: Windows NT 4.0-style desktop shell for labwc
@@ -40,7 +56,10 @@ Description: Windows NT 4.0-style desktop shell for labwc
  Start button, Start menu, window buttons, notification area (tray icons and
  balloons) and clock, a desktop with NT wallpaper modes, and NT's Run, Shut
  Down, Taskbar Properties and Display Properties dialogs. labwc provides the
- window management, configured with NT key bindings, window menu and theme.
+ window management, configured with NT key bindings, window menu and theme;
+ the package includes its own build of labwc 0.8.3 with a small patch that
+ draws NT's raised 3D window frames, installed privately in
+ /usr/libexec/daytona so it does not replace a system labwc.
  .
  The package also contains the "daytona" Qt 6 style, which gives other Qt 6
  Widgets applications the NT look, and daytona-themetool, which applies

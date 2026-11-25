@@ -5,9 +5,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QProcess>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <csignal>
+#include <sys/types.h>
 
 namespace Daytona {
 
@@ -73,6 +74,12 @@ QByteArray labwcThemerc(const SchemeColours &colours)
         { "window.active.border.color", { "ActiveBorder" } },
         { "window.inactive.border.color", { "InactiveBorder" } },
         { "window.active.indicator.toggled-keybind.color", { "ActiveBorder" } },
+        // The raised frame (Daytona's labwc patch): NT draws window frames
+        // with the 3D button colours.
+        { "window.border.bevel.light.color", { "ButtonLight" } },
+        { "window.border.bevel.highlight.color", { "ButtonHilight" } },
+        { "window.border.bevel.shadow.color", { "ButtonShadow" } },
+        { "window.border.bevel.darkshadow.color", { "ButtonDkShadow" } },
         { "window.active.title.bg.color", { "ActiveTitle" } },
         { "window.inactive.title.bg.color", { "InactiveTitle" } },
         { "window.active.label.text.color", { "TitleText" } },
@@ -229,11 +236,12 @@ bool removeLabwcTheme(const QString &dir, QString *error)
 
 bool reconfigureLabwc()
 {
-    // labwc --reconfigure signals the compositor named by LABWC_PID, which
-    // labwc sets for the programs it starts.
-    if (qEnvironmentVariable("LABWC_PID").toInt() <= 0)
-        return false;
-    return QProcess::execute(QStringLiteral("labwc"), { QStringLiteral("--reconfigure") }) == 0;
+    // As "labwc --reconfigure" does: SIGHUP to the compositor named by
+    // LABWC_PID, which labwc sets for the programs it starts. Signalling it
+    // directly works whichever labwc binary runs the session.
+    bool ok = false;
+    const qint64 pid = qEnvironmentVariable("LABWC_PID").toLongLong(&ok);
+    return ok && pid > 1 && ::kill(pid_t(pid), SIGHUP) == 0;
 }
 
 } // namespace Daytona

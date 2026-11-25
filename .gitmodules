@@ -1,3 +1,6 @@
 [submodule "third_party/Chicago95"]
 	path = third_party/Chicago95
 	url = https://github.com/grassmunk/Chicago95
+[submodule "third_party/labwc"]
+	path = third_party/labwc
+	url = https://github.com/labwc/labwc

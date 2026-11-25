@@ -1,0 +1,207 @@
+From 87034a8c629a3aa8147be9eb082728215d9e48c7 Mon Sep 17 00:00:00 2001
+From: Daytona <daytona@localhost>
+Date: Wed, 25 Nov 2026 21:13:46 +0000
+Subject: [PATCH] ssd: add optional bevelled (Windows 9x/NT style) window
+ border
+
+Add theme option window.border.bevel and four colours
+(window.border.bevel.{light,highlight,shadow,darkshadow}.color). When
+enabled, the outer two pixels of the window border, all the way round the
+frame including beside the titlebar, are drawn as a raised 3D edge, as
+classic Windows frames are. The lines are border parts, so pointer input
+on them keeps resolving to the border's resize edges and corners.
+
+Disabled by default; borders are unchanged unless a theme enables it.
+---
+ docs/labwc-theme.5.scd | 19 +++++++++++++++
+ docs/themerc           |  5 ++++
+ include/theme.h        |  9 +++++++
+ src/ssd/ssd-border.c   | 53 ++++++++++++++++++++++++++++++++++++++++++
+ src/theme.c            | 20 ++++++++++++++++
+ 5 files changed, 106 insertions(+)
+
+diff --git a/docs/labwc-theme.5.scd b/docs/labwc-theme.5.scd
+index c8b8815..11d0f05 100644
+--- a/docs/labwc-theme.5.scd
++++ b/docs/labwc-theme.5.scd
+@@ -70,6 +70,25 @@ labwc-config(5).
+ *window.inactive.border.color*
+ 	Border color of inactive window. Default is #aaaaaa.
+ 
++*window.border.bevel* [yes|no]
++	Draw the window border as a raised 3D frame in the style of Windows
++	9x/NT: the outer two pixels of the border on every side, including
++	beside the titlebar, become a bevel in the four colors below, and the
++	rest of the border keeps *window.\*.border.color*. Needs
++	*border.width* of at least 2. Default is no.
++
++*window.border.bevel.light.color*
++	Outer top and left line of a bevelled border. Default is #dfdfdf.
++
++*window.border.bevel.highlight.color*
++	Inner top and left line of a bevelled border. Default is #ffffff.
++
++*window.border.bevel.shadow.color*
++	Inner bottom and right line of a bevelled border. Default is #808080.
++
++*window.border.bevel.darkshadow.color*
++	Outer bottom and right line of a bevelled border. Default is #000000.
++
+ *window.active.indicator.toggled-keybind.color*
+ 	Status indicator for the ToggleKeybinds action. Can be set to the same
+ 	value as set for window.active.border.color to disable the status
+diff --git a/docs/themerc b/docs/themerc
+index 1ab3934..74646eb 100644
+--- a/docs/themerc
++++ b/docs/themerc
+@@ -18,6 +18,11 @@ window.titlebar.padding.height: 0
+ # window border
+ window.active.border.color: #aaaaaa
+ window.inactive.border.color: #aaaaaa
++window.border.bevel: no
++window.border.bevel.light.color: #dfdfdf
++window.border.bevel.highlight.color: #ffffff
++window.border.bevel.shadow.color: #808080
++window.border.bevel.darkshadow.color: #000000
+ 
+ # ToggleKeybinds status indicator
+ window.active.indicator.toggled-keybind.color: #ff0000
+diff --git a/include/theme.h b/include/theme.h
+index c2c7e8b..a5f071f 100644
+--- a/include/theme.h
++++ b/include/theme.h
+@@ -41,6 +41,15 @@ enum lab_button_state {
+ struct theme {
+ 	int border_width;
+ 
++	/*
++	 * Bevelled window frame (Windows 9x/NT style): when enabled, the outer
++	 * two pixels of the border are drawn as a raised 3D edge in these
++	 * colours: outer top-left, inner top-left, inner bottom-right and outer
++	 * bottom-right. The rest of the border keeps window.*.border.color.
++	 */
++	bool border_bevel;
++	float border_bevel_color[4][4];
++
+ 	/*
+ 	 * the space between title bar border and
+ 	 * buttons on the left/right/top
+diff --git a/src/ssd/ssd-border.c b/src/ssd/ssd-border.c
+index 435119e..007ec5b 100644
+--- a/src/ssd/ssd-border.c
++++ b/src/ssd/ssd-border.c
+@@ -11,6 +11,50 @@
+ 	&(ssd)->border.active, \
+ 	&(ssd)->border.inactive)
+ 
++/*
++ * A bevelled (Windows 9x/NT style) frame is drawn as eight 1px lines over
++ * the outer two pixels of the border, around the whole frame including the
++ * titlebar. They are border parts of type LAB_SSD_FRAME, so pointer input
++ * on them resolves to the same resize edges and corners as the border.
++ */
++#define BEVEL_LINES 8
++
++static void
++bevel_layout(struct ssd *ssd, struct ssd_sub_tree *subtree)
++{
++	struct theme *theme = ssd->view->server->theme;
++	int bw = theme->border_width;
++	int w = ssd->view->current.width + 2 * bw;
++	int h = view_effective_height(ssd->view, /* use_pending */ false)
++		+ ssd->titlebar.height + 2 * bw;
++	int top = -(ssd->titlebar.height + bw);
++
++	/* x, y, width, height, colour: light, highlight, shadow, dark shadow */
++	const int lines[BEVEL_LINES][5] = {
++		{ 0, 0, w - 1, 1, 0 },
++		{ 0, 0, 1, h - 1, 0 },
++		{ 1, 1, w - 3, 1, 1 },
++		{ 1, 1, 1, h - 3, 1 },
++		{ 1, h - 2, w - 2, 1, 2 },
++		{ w - 2, 1, 1, h - 2, 2 },
++		{ 0, h - 1, w, 1, 3 },
++		{ w - 1, 0, 1, h, 3 },
++	};
++
++	int i = 0;
++	struct ssd_part *part;
++	wl_list_for_each(part, &subtree->parts, link) {
++		if (part->type != LAB_SSD_FRAME || i >= BEVEL_LINES) {
++			continue;
++		}
++		const int *line = lines[i++];
++		struct wlr_scene_rect *rect = wlr_scene_rect_from_node(part->node);
++		wlr_scene_rect_set_size(rect, MAX(line[2], 0), MAX(line[3], 0));
++		wlr_scene_rect_set_color(rect, theme->border_bevel_color[line[4]]);
++		wlr_scene_node_set_position(part->node, line[0], top + line[1]);
++	}
++}
++
+ void
+ ssd_border_create(struct ssd *ssd)
+ {
+@@ -52,6 +96,14 @@ ssd_border_create(struct ssd *ssd)
+ 			width - 2 * corner_width, theme->border_width,
+ 			theme->border_width + corner_width,
+ 			-(ssd->titlebar.height + theme->border_width), color);
++
++		/* Needs room for the two bevel lines on each side */
++		if (theme->border_bevel && theme->border_width >= 2) {
++			for (int i = 0; i < BEVEL_LINES; i++) {
++				add_scene_rect(&subtree->parts, LAB_SSD_FRAME,
++					parent, 0, 0, 0, 0, color);
++			}
++		}
+ 	} FOR_EACH_END
+ 
+ 	if (view->maximized == VIEW_AXIS_BOTH) {
+@@ -171,6 +223,7 @@ ssd_border_update(struct ssd *ssd)
+ 				continue;
+ 			}
+ 		}
++		bevel_layout(ssd, subtree);
+ 	} FOR_EACH_END
+ }
+ 
+diff --git a/src/theme.c b/src/theme.c
+index 51468e0..826b095 100644
+--- a/src/theme.c
++++ b/src/theme.c
+@@ -480,6 +480,11 @@ static void
+ theme_builtin(struct theme *theme, struct server *server)
+ {
+ 	theme->border_width = 1;
++	theme->border_bevel = false;
++	parse_hexstr("#dfdfdf", theme->border_bevel_color[0]);
++	parse_hexstr("#ffffff", theme->border_bevel_color[1]);
++	parse_hexstr("#808080", theme->border_bevel_color[2]);
++	parse_hexstr("#000000", theme->border_bevel_color[3]);
+ 	theme->window_titlebar_padding_height = 0;
+ 	theme->window_titlebar_padding_width = 0;
+ 
+@@ -634,6 +639,21 @@ entry(struct theme *theme, const char *key, const char *value)
+ 	if (match_glob(key, "window.inactive.border.color")) {
+ 		parse_hexstr(value, theme->window[THEME_INACTIVE].border_color);
+ 	}
++	if (match_glob(key, "window.border.bevel")) {
++		set_bool(value, &theme->border_bevel);
++	}
++	if (match_glob(key, "window.border.bevel.light.color")) {
++		parse_hexstr(value, theme->border_bevel_color[0]);
++	}
++	if (match_glob(key, "window.border.bevel.highlight.color")) {
++		parse_hexstr(value, theme->border_bevel_color[1]);
++	}
++	if (match_glob(key, "window.border.bevel.shadow.color")) {
++		parse_hexstr(value, theme->border_bevel_color[2]);
++	}
++	if (match_glob(key, "window.border.bevel.darkshadow.color")) {
++		parse_hexstr(value, theme->border_bevel_color[3]);
++	}
+ 	/* border.color is obsolete, but handled for backward compatibility */
+ 	if (match_glob(key, "border.color")) {
+ 		parse_hexstr(value, theme->window[THEME_ACTIVE].border_color);
+-- 
+2.43.0
+

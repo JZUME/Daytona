@@ -4,12 +4,19 @@
 # Original artwork. Colours here are plain values so that daytona-themetool
 # can generate variants from Windows .theme files.
 #
-# labwc limits: window borders and menus are a single flat colour (no NT
-# 3D bevel), and caption buttons have no pressed image.
+# Window frames are NT's 4 pixel raised frame: the window.border.bevel keys
+# come from Daytona's labwc patch (patches/labwc); stock labwc ignores them and
+# draws a flat border. Menus are flat, and caption buttons have no pressed
+# image (labwc limits).
 
 border.width: 4
 window.active.border.color: #c0c0c0
 window.inactive.border.color: #c0c0c0
+window.border.bevel: yes
+window.border.bevel.light.color: #c0c0c0
+window.border.bevel.highlight.color: #ffffff
+window.border.bevel.shadow.color: #808080
+window.border.bevel.darkshadow.color: #000000
 window.active.indicator.toggled-keybind.color: #c0c0c0
 
 window.titlebar.padding.width: 2

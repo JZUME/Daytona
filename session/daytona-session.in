@@ -17,4 +17,8 @@ export GTK_THEME=Daytona
 export QT_STYLE_OVERRIDE=daytona
 export XCURSOR_THEME="Chicago95 Standard Cursors"
 
-exec labwc --config-dir "@DAYTONA_LABWC_DIR@" "$@"
+# Daytona's patched labwc (bevelled NT window frames), installed next to this
+# script's prefix; the system's labwc if it was built without it.
+labwc="$(dirname "$(readlink -f "$0")")/../libexec/daytona/labwc"
+[ -x "$labwc" ] || labwc=labwc
+exec "$labwc" --config-dir "@DAYTONA_LABWC_DIR@" "$@"
