@@ -131,6 +131,11 @@ The repository has a dev container (`.devcontainer/`, Debian 13) that works in G
 5. Take a screenshot with the **Daytona: Screenshot** task (or `scripts/screenshot.sh [file.png]`).
    Stop the session with **Daytona: Stop desktop** or Ctrl+C in its terminal.
 
+**Daytona: Widget Gallery** opens Qt's Widget Gallery (`qt6-base-examples`) in the running desktop:
+most standard widgets in one window, with a check box to disable them all, for checking the Daytona
+style. `scripts/widget-gallery.sh widgets/dialogs/standarddialogs` (or `widgets/mainwindows/menus`)
+opens another Qt example instead.
+
 Other tasks: **Daytona: Build** (the default build task, Ctrl+Shift+B), **Daytona: Run tests**, and
 **Daytona: Run desktop (2×)** and **(1.5×)**, which start the desktop at HiDPI scales (see
 [docs/hidpi.md](docs/hidpi.md)). At those scales the noVNC canvas is larger than the logical

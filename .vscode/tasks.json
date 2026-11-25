@@ -93,6 +93,13 @@
             "problemMatcher": []
         },
         {
+            "label": "Daytona: Widget Gallery",
+            "detail": "Open Qt's Widget Gallery in the running desktop, to check the Daytona style",
+            "type": "shell",
+            "command": "scripts/widget-gallery.sh",
+            "problemMatcher": []
+        },
+        {
             "label": "Daytona: Run tests",
             "detail": "Build, then run all tests (unit and headless smoke tests)",
             "type": "shell",
