@@ -19,7 +19,7 @@
             "command": "cmake --build build",
             "dependsOn": "Daytona: Configure",
             "group": { "kind": "build", "isDefault": true },
-            "problemMatcher": "$gcc"
+            "problemMatcher": []
         },
         {
             "label": "Daytona: Install to build/prefix",
