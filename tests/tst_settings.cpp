@@ -39,7 +39,6 @@ private Q_SLOTS:
         QCOMPARE(s.taskbarAutoHide(), false);
         QCOMPARE(s.showClock(), true);
         QCOMPARE(s.smallStartMenuIcons(), false);
-        QCOMPARE(s.controlPanelCommand(), QString());
         QCOMPARE(s.findCommand(), QString());
         QCOMPARE(s.runHistory(), QStringList());
         QCOMPARE(s.wallpaperPath(), QString());
@@ -86,8 +85,7 @@ private Q_SLOTS:
             s.setTaskbarAutoHide(true);
             s.setShowClock(false);
             s.setSmallStartMenuIcons(true);
-            s.setControlPanelCommand(QStringLiteral("  control-panel --flag "));
-            s.setFindCommand(QStringLiteral("catfish"));
+            s.setFindCommand(QStringLiteral("  catfish --path ~ "));
             s.addToRunHistory(QStringLiteral("notepad, with comma"));
             s.setWallpaperPath(QStringLiteral("/tmp/clouds.bmp"));
             s.setWallpaperMode(WallpaperMode::Tile);
@@ -101,8 +99,7 @@ private Q_SLOTS:
         QCOMPARE(s.taskbarAutoHide(), true);
         QCOMPARE(s.showClock(), false);
         QCOMPARE(s.smallStartMenuIcons(), true);
-        QCOMPARE(s.controlPanelCommand(), QStringLiteral("control-panel --flag"));
-        QCOMPARE(s.findCommand(), QStringLiteral("catfish"));
+        QCOMPARE(s.findCommand(), QStringLiteral("catfish --path ~"));
         QCOMPARE(s.runHistory(), QStringList { QStringLiteral("notepad, with comma") });
         QCOMPARE(s.wallpaperPath(), QStringLiteral("/tmp/clouds.bmp"));
         QCOMPARE(s.wallpaperMode(), WallpaperMode::Tile);

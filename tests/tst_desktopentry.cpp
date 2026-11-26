@@ -95,6 +95,15 @@ private Q_SLOTS:
         QCOMPARE(parse(file, QStringLiteral("C")).name, QStringLiteral("Calculator"));
     }
 
+    void localisedComment()
+    {
+        const QByteArray file = "[Desktop Entry]\nName=Printers\nComment=Set up printers\n"
+                                "Comment[de]=Drucker einrichten\n";
+        QCOMPARE(parse(file, QStringLiteral("de_DE.UTF-8")).comment,
+            QStringLiteral("Drucker einrichten"));
+        QCOMPARE(parse(file, QStringLiteral("C")).comment, QStringLiteral("Set up printers"));
+    }
+
     void localeKeyOrder()
     {
         QCOMPARE(localeKeys(QStringLiteral("sr_RS.UTF-8@latin")),

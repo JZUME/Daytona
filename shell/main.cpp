@@ -2,6 +2,7 @@
 
 #include "applicationindex.h"
 #include "balloon.h"
+#include "controlpanel.h"
 #include "daytonastyle.h"
 #include "desktop.h"
 #include "displayproperties.h"
@@ -194,8 +195,8 @@ int main(int argc, char *argv[])
     QObject::connect(
         &startMenu, &Daytona::StartMenu::closed, &taskbar, &Daytona::Taskbar::collapseLater);
 
-    // Display Properties, from Start > Settings > Display... and the
-    // desktop's menu.
+    // Display Properties, from Start > Settings > Display..., the desktop's
+    // menu and the Control Panel.
     Daytona::DisplayPropertiesDialog displayProperties(&settings);
     displayProperties.setScreenSettings(&outputs);
     const auto showDisplayProperties = [&displayProperties] {
@@ -209,18 +210,20 @@ int main(int argc, char *argv[])
     QObject::connect(&desktops, &Daytona::DesktopManager::propertiesRequested, &displayProperties,
         showDisplayProperties);
 
-    // Mouse Properties, from Start > Settings > Mouse....
+    // Mouse Properties, from Start > Settings > Mouse... and the Control
+    // Panel.
     Daytona::MousePropertiesDialog mouseProperties(&settings);
+    const auto showMouseProperties = [&mouseProperties] {
+        mouseProperties.prepare();
+        mouseProperties.show();
+        mouseProperties.raise();
+        mouseProperties.activateWindow();
+    };
     QObject::connect(&startMenu, &Daytona::StartMenu::mousePropertiesRequested, &mouseProperties,
-        [&mouseProperties] {
-            mouseProperties.prepare();
-            mouseProperties.show();
-            mouseProperties.raise();
-            mouseProperties.activateWindow();
-        });
+        showMouseProperties);
 
-    // Taskbar Properties, from Start > Settings > Taskbar... and the
-    // taskbar's own menu.
+    // Taskbar Properties, from Start > Settings > Taskbar..., the taskbar's
+    // own menu and the Control Panel.
     Daytona::TaskbarPropertiesDialog taskbarProperties(&settings);
     const auto showTaskbarProperties = [&taskbarProperties] {
         taskbarProperties.prepare();
@@ -272,6 +275,23 @@ int main(int argc, char *argv[])
         runDialog.raise();
         runDialog.activateWindow();
     });
+
+    // Control Panel, from Start > Settings > Control Panel: the dialogs
+    // above, plus installed settings applications.
+    Daytona::ControlPanel controlPanel(&applications);
+    QObject::connect(
+        &startMenu, &Daytona::StartMenu::controlPanelRequested, &controlPanel, [&controlPanel] {
+            controlPanel.prepare();
+            controlPanel.show();
+            controlPanel.raise();
+            controlPanel.activateWindow();
+        });
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::displayPropertiesRequested,
+        &displayProperties, showDisplayProperties);
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::mousePropertiesRequested,
+        &mouseProperties, showMouseProperties);
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::taskbarPropertiesRequested,
+        &taskbarProperties, showTaskbarProperties);
 
     Daytona::SessionActions sessionActions;
     Daytona::ShutDownDialog shutDownDialog(&sessionActions);

@@ -188,7 +188,7 @@ Daytona
 │   ├── Taskbar (Start button, window buttons, notification area, clock)
 │   ├── Start menu
 │   ├── Run and Shut Down dialogs
-│   ├── Taskbar Properties and Display Properties dialogs
+│   ├── Control Panel; Taskbar, Display and Mouse Properties dialogs
 │   ├── Notification balloons
 │   ├── Desktop (background, context menu)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
@@ -338,13 +338,24 @@ Top to bottom, matching NT 4.0:
 
 * **Programs**: cascading submenus built from `.desktop` files, grouped by freedesktop main categories, alphabetical within each. Entries with `NoDisplay=true`, `Hidden=true`, or `OnlyShowIn`/`NotShowIn` excluding Daytona are omitted.
 * **Documents**: the 15 most recent items from `~/.local/share/recently-used.xbel`.
-* **Settings**: Control Panel (launches a command set in Daytona's INI file; greyed out if unset), Taskbar... (Taskbar Properties), Display... (Display Properties, colours/wallpaper/`.theme`), Mouse... (Mouse Properties, pointer scheme).
+* **Settings**: Control Panel (see Control Panel below), Taskbar... (Taskbar Properties), Display... (Display Properties, colours/wallpaper/`.theme`), Mouse... (Mouse Properties, pointer scheme).
 * **Find**: launches a file-search command set in Daytona's INI file; greyed out if unset.
 * **Run...**: Daytona's Run dialog.
 * separator
 * **Shut Down...**: NT-style dialog offering Shut down, Restart and Close all programs and log on as a different user, using systemd-logind over QtDBus. Options logind reports as unavailable are disabled.
 
 NT's **Help** item is omitted; there is no system-wide help viewer to open.
+
+---
+
+## Control Panel
+
+Start > Settings > Control Panel opens NT's Control Panel: a folder window of applet icons, with File (Open, Close) and View (Status Bar, Large Icons, Small Icons, List, Refresh) menus and a status bar showing the object count or the selected applet's description.
+
+* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Display, Mouse, Taskbar), then **Applications**.
+* **Applications** lists every installed application the Start menu would show whose `.desktop` file has `Settings` in `Categories`. This is the registration mechanism: an application adds a Control Panel applet with a standard freedesktop `.desktop` file, and the list follows installs and removals. There is no Daytona-specific applet API or plugin system.
+* Opening a Daytona applet opens its dialog in the shell; opening an application launches it as the Start menu does.
+* A new Daytona settings dialog is added to the Daytona group as well as (where NT had one) its own Start > Settings item.
 
 ---
 

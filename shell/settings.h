@@ -69,8 +69,6 @@ public:
     bool smallStartMenuIcons() const;
     void setSmallStartMenuIcons(bool small);
 
-    QString controlPanelCommand() const;
-    void setControlPanelCommand(const QString &command);
     QString findCommand() const;
     void setFindCommand(const QString &command);
 

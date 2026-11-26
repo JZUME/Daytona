@@ -23,7 +23,6 @@ namespace {
     const QString KeyAutoHide = QStringLiteral("Taskbar/AutoHide");
     const QString KeyShowClock = QStringLiteral("Taskbar/ShowClock");
     const QString KeySmallIcons = QStringLiteral("Taskbar/SmallStartMenuIcons");
-    const QString KeyControlPanel = QStringLiteral("Commands/ControlPanel");
     const QString KeyFind = QStringLiteral("Commands/Find");
     const QString KeyRunHistory = QStringLiteral("Run/History");
     const QString KeyWallpaper = QStringLiteral("Appearance/Wallpaper");
@@ -228,16 +227,6 @@ bool Settings::smallStartMenuIcons() const
 void Settings::setSmallStartMenuIcons(bool small)
 {
     write(KeySmallIcons, small);
-}
-
-QString Settings::controlPanelCommand() const
-{
-    return m_settings.value(KeyControlPanel).toString().trimmed();
-}
-
-void Settings::setControlPanelCommand(const QString &command)
-{
-    write(KeyControlPanel, command.trimmed());
 }
 
 QString Settings::findCommand() const

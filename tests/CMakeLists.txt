@@ -97,3 +97,5 @@ target_compile_definitions(tst_displayproperties PRIVATE
     DAYTONA_THEMETOOL="$<TARGET_FILE:daytona-themetool>")
 add_dependencies(tst_displayproperties daytona-themetool)
 set_tests_properties(tst_displayproperties PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+daytona_add_test(tst_controlpanel daytona-shell-core)
+set_tests_properties(tst_controlpanel PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)

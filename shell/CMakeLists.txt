@@ -27,6 +27,8 @@ add_library(daytona-shell-core STATIC
     statusnotifierwatcher.h
     clock.cpp
     clock.h
+    controlpanel.cpp
+    controlpanel.h
     desktopentry.cpp
     desktopentry.h
     notificationarea.cpp

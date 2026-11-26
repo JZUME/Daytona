@@ -216,6 +216,7 @@ std::optional<DesktopEntry> DesktopEntry::parse(
     entry.filePath = filePath;
     entry.type = values.value(QStringLiteral("Type"));
     entry.name = localised(QStringLiteral("Name"));
+    entry.comment = localised(QStringLiteral("Comment"));
     entry.icon = unescapeValue(values.value(QStringLiteral("Icon")));
     entry.exec = unescapeValue(values.value(QStringLiteral("Exec")));
     entry.tryExec = unescapeValue(values.value(QStringLiteral("TryExec")));

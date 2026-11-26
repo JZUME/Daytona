@@ -89,10 +89,12 @@ private Q_SLOTS:
             if (action->isEnabled())
                 enabled << action->text();
         }
-        // Control Panel is greyed out without a command; the dialogs work.
         QCOMPARE(enabled,
-            QStringList({ QStringLiteral("&Taskbar..."), QStringLiteral("&Display..."),
-                QStringLiteral("&Mouse...") }));
+            QStringList({ QStringLiteral("&Control Panel"), QStringLiteral("&Taskbar..."),
+                QStringLiteral("&Display..."), QStringLiteral("&Mouse...") }));
+        QSignalSpy controlPanel(&menu, &StartMenu::controlPanelRequested);
+        settingsMenu->actions().first()->trigger();
+        QCOMPARE(controlPanel.count(), 1);
         QSignalSpy mouse(&menu, &StartMenu::mousePropertiesRequested);
         settingsMenu->actions().last()->trigger();
         QCOMPARE(mouse.count(), 1);
@@ -103,13 +105,10 @@ private Q_SLOTS:
         Settings settings(m_dir.filePath(QStringLiteral("daytona.ini")));
         {
             StartMenu menu(nullptr, &settings);
-            QVERIFY(!menu.controlPanelAction()->isEnabled());
             QVERIFY(!menu.findAction()->isEnabled());
         }
-        settings.setControlPanelCommand(QStringLiteral("control-panel"));
         settings.setFindCommand(QStringLiteral("catfish --path ~"));
         StartMenu menu(nullptr, &settings);
-        QVERIFY(menu.controlPanelAction()->isEnabled());
         QVERIFY(menu.findAction()->isEnabled());
     }
 

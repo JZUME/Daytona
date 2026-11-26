@@ -89,6 +89,7 @@ Q_SIGNALS:
     void runRequested();
     void shutDownRequested();
     void taskbarPropertiesRequested();
+    void controlPanelRequested();
     void displayPropertiesRequested();
     void mousePropertiesRequested();
 

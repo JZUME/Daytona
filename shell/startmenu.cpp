@@ -136,9 +136,8 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
     rebuildDocuments();
 
     m_settingsMenu = new QMenu(this);
-    m_controlPanel
-        = m_settingsMenu->addAction(themeIcon("preferences-system"), tr("&Control Panel"), this,
-            [this] { runCommand(m_settings->controlPanelCommand(), tr("Control Panel")); });
+    m_controlPanel = m_settingsMenu->addAction(themeIcon("preferences-system"),
+        tr("&Control Panel"), this, &StartMenu::controlPanelRequested);
     m_settingsMenu->addAction(themeIcon("preferences-system-windows"), tr("&Taskbar..."), this,
         &StartMenu::taskbarPropertiesRequested);
     m_settingsMenu->addAction(themeIcon("preferences-desktop-display"), tr("&Display..."), this,
@@ -515,9 +514,8 @@ void StartMenu::hideEvent(QHideEvent *event)
 
 void StartMenu::updateCommandItems()
 {
-    // Control Panel and Find run commands from the settings file and are
-    // greyed out when none is set.
-    m_controlPanel->setEnabled(m_settings && !m_settings->controlPanelCommand().isEmpty());
+    // Find runs a command from the settings file and is greyed out when none
+    // is set.
     m_find->setEnabled(m_settings && !m_settings->findCommand().isEmpty());
 }
 

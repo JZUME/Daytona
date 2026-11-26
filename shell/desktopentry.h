@@ -16,6 +16,7 @@ struct DesktopEntry
     QString filePath; // the file it was read from
     QString type;
     QString name; // localised
+    QString comment; // localised
     QString icon;
     QString exec;
     QString tryExec;
