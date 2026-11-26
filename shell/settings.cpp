@@ -314,4 +314,39 @@ void Settings::addThemeFile(const QString &path)
     write(KeyThemeFiles, files.mid(qMax(0, files.size() - 50)));
 }
 
+namespace {
+
+    // The key for a screen's scale. '/' and '\\' would start a subgroup in
+    // QSettings; QSettings escapes everything else itself.
+    QString scaleKey(const QString &screen)
+    {
+        QString name = screen;
+        name.replace(QLatin1Char('/'), QLatin1Char('_'));
+        name.replace(QLatin1Char('\\'), QLatin1Char('_'));
+        return QStringLiteral("ScreenScale/") + name;
+    }
+
+} // namespace
+
+double Settings::outputScale(const QString &screen) const
+{
+    const QString key = scaleKey(screen);
+    if (screen.isEmpty() || !m_settings.contains(key))
+        return 0;
+    bool ok = false;
+    const double scale = m_settings.value(key).toString().trimmed().toDouble(&ok);
+    if (!ok || scale < MinScreenScale || scale > MaxScreenScale) {
+        qCWarning(lcSettings) << "Invalid value for" << key << "- ignoring it";
+        return 0;
+    }
+    return scale;
+}
+
+void Settings::setOutputScale(const QString &screen, double scale)
+{
+    if (screen.isEmpty())
+        return;
+    write(scaleKey(screen), QString::number(qBound(MinScreenScale, scale, MaxScreenScale), 'g', 6));
+}
+
 } // namespace Daytona

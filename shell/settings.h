@@ -81,6 +81,13 @@ public:
     QStringList themeFiles() const;
     void addThemeFile(const QString &path);
 
+    // A screen's scale (NT's Small Fonts, Large Fonts or a custom size),
+    // filed under ScreenScaler::identity(); 0 when none is saved.
+    static constexpr double MinScreenScale = 1.0;
+    static constexpr double MaxScreenScale = 3.0;
+    double outputScale(const QString &screen) const;
+    void setOutputScale(const QString &screen, double scale);
+
     // Follows changes other programs make to the file, such as
     // daytona-themetool recording a new wallpaper.
     void watchFile();

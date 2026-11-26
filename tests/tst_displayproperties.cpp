@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "displayproperties.h"
+#include "outputmanager.h"
 #include "settings.h"
 
 #include <QComboBox>
@@ -8,12 +9,42 @@
 #include <QFile>
 #include <QImage>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 
 using namespace Daytona;
+
+namespace {
+
+// Stands in for the compositor: records scale requests and answers them at
+// once, applying the scale when it accepts.
+class FakeScaler : public ScreenScaler
+{
+public:
+    double scale(const QString &screen) const override { return scales.value(screen); }
+    QString identity(const QString &screen) const override
+    {
+        return QStringLiteral("Maker Model ") + screen;
+    }
+    void setScale(
+        const QString &screen, double scale, const std::function<void(bool)> &done) override
+    {
+        requests.append({ screen, scale });
+        if (accept)
+            scales.insert(screen, scale);
+        if (done)
+            done(accept);
+    }
+
+    QHash<QString, double> scales { { QStringLiteral("DP-1"), 1.0 } };
+    QList<QPair<QString, double>> requests;
+    bool accept = true;
+};
+
+} // namespace
 
 class TestDisplayProperties : public QObject
 {
@@ -85,6 +116,153 @@ private Q_SLOTS:
         const int count = dialog.schemeBox()->count();
         dialog.loadThemeFile(theme); // not twice
         QCOMPARE(dialog.schemeBox()->count(), count);
+    }
+
+    void fontSizeChoices()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenScaler(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        dialog.prepare();
+        QVERIFY(dialog.fontSizeBox()->isEnabled());
+        QCOMPARE(dialog.fontSizeBox()->count(), 2);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Small Fonts"));
+        QCOMPARE(dialog.selectedScale(), 1.0);
+        QVERIFY(!dialog.applyButton()->isEnabled());
+
+        dialog.selectScale(1.25);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Large Fonts"));
+        QVERIFY(dialog.applyButton()->isEnabled());
+        // A custom size gets one entry of its own, reused for the next one.
+        dialog.selectScale(1.5);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Other (150%)"));
+        dialog.selectScale(2.0);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Other (200%)"));
+        QCOMPARE(dialog.fontSizeBox()->count(), 3);
+        QCOMPARE(dialog.selectedScale(), 2.0);
+
+        // Opening the dialog again shows the screen's actual scale.
+        scaler.scales.insert(QStringLiteral("DP-1"), 1.75);
+        dialog.prepare();
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Other (175%)"));
+        QVERIFY(!dialog.applyButton()->isEnabled());
+    }
+
+    void fontSizeKeptWhenConfirmed()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenScaler(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        int asked = 0;
+        dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
+            ++asked;
+            done(true);
+        });
+        dialog.prepare();
+
+        dialog.selectScale(1.25);
+        dialog.apply();
+        QCOMPARE(scaler.requests.size(), 1);
+        QCOMPARE(scaler.requests.first(), qMakePair(QStringLiteral("DP-1"), 1.25));
+        QCOMPARE(asked, 1);
+        // Saved for that monitor, not for the connector.
+        QCOMPARE(settings.outputScale(QStringLiteral("Maker Model DP-1")), 1.25);
+        QCOMPARE(settings.outputScale(QStringLiteral("DP-1")), 0.0);
+        QVERIFY(!dialog.applyButton()->isEnabled());
+
+        // Applying again without a change asks nothing.
+        dialog.apply();
+        QCOMPARE(scaler.requests.size(), 1);
+    }
+
+    void fontSizeRevertsWhenNotConfirmed()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenScaler(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        dialog.setScaleConfirmation([](const std::function<void(bool)> &done) { done(false); });
+        dialog.prepare();
+
+        dialog.selectScale(2.0);
+        dialog.apply();
+        // Set, then set back.
+        QCOMPARE(scaler.requests.size(), 2);
+        QCOMPARE(scaler.requests.at(0).second, 2.0);
+        QCOMPARE(scaler.requests.at(1).second, 1.0);
+        QCOMPARE(scaler.scale(QStringLiteral("DP-1")), 1.0);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Small Fonts"));
+        QCOMPARE(settings.outputScale(QStringLiteral("Maker Model DP-1")), 0.0);
+        QVERIFY(!dialog.applyButton()->isEnabled());
+    }
+
+    void fontSizeRefusedByCompositor()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        scaler.accept = false;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenScaler(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        bool asked = false;
+        dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
+            asked = true;
+            done(true);
+        });
+        dialog.prepare();
+
+        dialog.selectScale(1.25);
+        dialog.apply();
+        QCOMPARE(scaler.requests.size(), 1);
+        QVERIFY(!asked);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Small Fonts"));
+        QCOMPARE(settings.outputScale(QStringLiteral("Maker Model DP-1")), 0.0);
+        // The warning is not modal; close it.
+        const auto boxes = dialog.findChildren<QMessageBox *>();
+        QCOMPARE(boxes.size(), 1);
+        QCOMPARE(boxes.first()->text(), QStringLiteral("The font size could not be changed."));
+        boxes.first()->close();
+    }
+
+    void fontSizeUnavailableWithoutCompositorSupport()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenScaler(&scaler);
+        dialog.setScreenName(QStringLiteral("UNKNOWN-1")); // not reported
+        dialog.prepare();
+        QVERIFY(!dialog.fontSizeBox()->isEnabled());
+        QVERIFY(!dialog.customFontSizeButton()->isEnabled());
+
+        DisplayPropertiesDialog noScaler(&settings);
+        QVERIFY(!noScaler.fontSizeBox()->isEnabled());
+        noScaler.selectScale(1.25);
+        noScaler.apply(); // nothing to apply it with; must not crash
+    }
+
+    void customFontSizeDialog()
+    {
+        CustomFontSizeDialog custom;
+        QCOMPARE(custom.windowTitle(), QStringLiteral("Custom Font Size"));
+        custom.setPercent(150);
+        QCOMPARE(custom.percent(), 150);
+        custom.setPercent(500);
+        QCOMPARE(custom.percent(), 300);
+        custom.setPercent(10);
+        QCOMPARE(custom.percent(), 100);
+        custom.percentBox()->setCurrentText(QStringLiteral("abc"));
+        QCOMPARE(custom.percent(), 100);
     }
 
     void applyRunsThemeTool()

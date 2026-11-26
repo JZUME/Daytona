@@ -10,6 +10,12 @@ License: GPL-3+
 Files: protocols/wlr-foreign-toplevel-management-unstable-v1.xml
 Copyright: 2018 Ilia Bozhinov
 License: HPND-sell-variant
+
+Files: protocols/wlr-output-management-unstable-v1.xml
+Copyright: 2019 Purism SPC
+License: HPND-sell-variant
+
+License: HPND-sell-variant
  Permission to use, copy, modify, distribute, and sell this
  software and its documentation for any purpose is hereby granted
  without fee, provided that the above copyright notice appear in

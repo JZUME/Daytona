@@ -137,6 +137,34 @@ private Q_SLOTS:
         QCOMPARE(s.colourScheme(), QStringLiteral("Windows Standard"));
     }
 
+    void screenScales()
+    {
+        const QString file = path(QStringLiteral("scales.ini"));
+        {
+            Settings s(file);
+            QCOMPARE(s.outputScale(QStringLiteral("eDP-1")), 0.0);
+            s.setOutputScale(QStringLiteral("eDP-1"), 1.25);
+            // Monitors with a serial number are filed by make, model and
+            // serial, which may contain spaces and slashes.
+            s.setOutputScale(QStringLiteral("Dell Inc. DELL U2720Q AB/12\\34"), 2.0);
+            s.setOutputScale(QStringLiteral("HDMI-A-1"), 9.0); // clamped
+            s.setOutputScale(QString(), 2.0); // ignored
+        }
+        Settings s(file);
+        QCOMPARE(s.outputScale(QStringLiteral("eDP-1")), 1.25);
+        QCOMPARE(s.outputScale(QStringLiteral("Dell Inc. DELL U2720Q AB/12\\34")), 2.0);
+        QCOMPARE(s.outputScale(QStringLiteral("HDMI-A-1")), Settings::MaxScreenScale);
+        QCOMPARE(s.outputScale(QStringLiteral("DP-2")), 0.0);
+        QCOMPARE(s.outputScale(QString()), 0.0);
+
+        const QString bad = path(QStringLiteral("badscales.ini"));
+        writeFile(bad, "[ScreenScale]\neDP-1=big\nDP-1=0.5\nDP-2=1.5\n");
+        Settings b(bad);
+        QCOMPARE(b.outputScale(QStringLiteral("eDP-1")), 0.0);
+        QCOMPARE(b.outputScale(QStringLiteral("DP-1")), 0.0); // below 100%
+        QCOMPARE(b.outputScale(QStringLiteral("DP-2")), 1.5);
+    }
+
     void negativeRowsAreClamped()
     {
         const QString file = path(QStringLiteral("rows.ini"));

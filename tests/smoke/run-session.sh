@@ -14,6 +14,11 @@
 # DAYTONA_SMOKE_SCALE (default 1) runs the output at that whole-number scale:
 # the logical size stays 1024x768, so tests use the same coordinates, and
 # screenshots are that many times larger.
+#
+# The session has its own empty configuration directory. DAYTONA_SMOKE_CONFIG
+# names a daytona.ini to start with instead; the output is then left as labwc
+# created it (no size or scale is set), as the test is about what the shell
+# does with that configuration.
 set -euo pipefail
 
 # The shell uses the D-Bus session bus; give the session its own bus.
@@ -34,6 +39,11 @@ export DAYTONA_SCALE="$scale"
 runtime="$(mktemp -d)"
 chmod 700 "$runtime"
 export XDG_RUNTIME_DIR="$runtime"
+export XDG_CONFIG_HOME="$runtime/config"
+mkdir -p "$XDG_CONFIG_HOME/daytona"
+if [[ -n "${DAYTONA_SMOKE_CONFIG:-}" ]]; then
+    cp "$DAYTONA_SMOKE_CONFIG" "$XDG_CONFIG_HOME/daytona/daytona.ini"
+fi
 export WLR_BACKENDS=headless
 export WLR_RENDERER=pixman
 export WLR_LIBINPUT_NO_DEVICES=1
@@ -74,8 +84,10 @@ if [[ ! -S "$runtime/wayland-0" ]]; then
 fi
 export WAYLAND_DISPLAY=wayland-0
 
-wlr-randr --output HEADLESS-1 --custom-mode "$((width * scale))x$((height * scale))" \
-    --scale "$scale" >/dev/null
+if [[ -z "${DAYTONA_SMOKE_CONFIG:-}" ]]; then
+    wlr-randr --output HEADLESS-1 --custom-mode "$((width * scale))x$((height * scale))" \
+        --scale "$scale" >/dev/null
+fi
 
 status=0
 timeout --kill-after=5 "$limit" "$@" || status=$?

@@ -8,6 +8,7 @@
 #include "notificationarea.h"
 #include "notificationqueue.h"
 #include "notificationservice.h"
+#include "outputmanager.h"
 #include "rundialog.h"
 #include "settings.h"
 #include "shellservice.h"
@@ -101,6 +102,15 @@ int main(int argc, char *argv[])
     }
 
     Daytona::Settings settings(Daytona::Settings::defaultFilePath());
+
+    // Screen scales (Display Properties > Settings > Font Size), restored
+    // for each screen when it appears.
+    Daytona::OutputManager outputs;
+    outputs.setSettings(&settings);
+    if (!Daytona::compositorHasGlobal("zwlr_output_manager_v1")) {
+        qCWarning(lcShell) << "The compositor does not support wlr-output-management;"
+                           << "the font size cannot be changed";
+    }
     Daytona::Taskbar taskbar;
     taskbar.setSettings(&settings); // edge and lock state
     taskbar.taskList()->setManager(&toplevels);
@@ -167,6 +177,7 @@ int main(int argc, char *argv[])
     // Display Properties, from Start > Settings > Display... and the
     // desktop's menu.
     Daytona::DisplayPropertiesDialog displayProperties(&settings);
+    displayProperties.setScreenScaler(&outputs);
     const auto showDisplayProperties = [&displayProperties] {
         displayProperties.prepare();
         displayProperties.show();

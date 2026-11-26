@@ -4,6 +4,27 @@ Daytona is designed in logical pixels and drawn at the output's scale (see
 AGENT.md → HiDPI and Multi-Monitor). This page records how scaling is tested
 and what was found.
 
+## Setting the scale
+
+Display Properties > **Settings** > **Font Size** sets the scale of the screen
+the dialog is on, as NT's font size setting did:
+
+- **Small Fonts** is 100% and **Large Fonts** 125%.
+- **Custom...** opens NT's Custom Font Size dialog for any size from 100% to
+  300%, such as 150% or 200% for a high-density screen.
+
+Apply changes the screen at once and asks whether to keep the new size. If
+nobody answers within 15 seconds, the previous size comes back, so a size
+that makes the screen hard to use undoes itself.
+
+A kept size is saved in `daytona.ini` (`[ScreenScale]`) and applied whenever
+that screen appears, including at login. A monitor that reports a serial
+number is remembered by make, model and serial number, so the size follows it
+to another port. Otherwise the size belongs to the connector (for example
+`eDP-1`). The shell sets scales through wlr-output-management, as `wlr-randr`
+does, so a size set with `wlr-randr` or kanshi is replaced by the saved one
+only at the next login or when the screen next appears.
+
 ## Running at another scale
 
 The dev session takes the output size in device pixels and a scale:

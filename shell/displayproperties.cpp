@@ -5,6 +5,7 @@
 #include "bevel.h"
 #include "colourscheme.h"
 #include "daytonastyle.h"
+#include "outputmanager.h"
 
 #include <QApplication>
 #include <QComboBox>
@@ -16,17 +17,23 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QImageReader>
+#include <QIntValidator>
 #include <QLabel>
 #include <QListWidget>
 #include <QLoggingCategory>
+#include <QMessageBox>
 #include <QPainter>
+#include <QPointer>
 #include <QProcess>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScreen>
 #include <QStandardPaths>
 #include <QTabWidget>
+#include <QTimer>
 #include <QVBoxLayout>
+#include <cmath>
+#include <memory>
 
 Q_LOGGING_CATEGORY(lcDisplay, "daytona.display", QtInfoMsg)
 
@@ -273,6 +280,7 @@ DisplayPropertiesDialog::DisplayPropertiesDialog(Settings *settings, QWidget *pa
     auto *tabs = new QTabWidget(this);
     tabs->addTab(createBackgroundTab(), tr("Background"));
     tabs->addTab(createAppearanceTab(), tr("Appearance"));
+    tabs->addTab(createSettingsTab(), tr("Settings"));
 
     auto *ok = new QPushButton(tr("OK"), this);
     ok->setDefault(true);
@@ -394,6 +402,22 @@ void DisplayPropertiesDialog::prepare()
     const int index = m_schemes->findText(current);
     m_schemes->setCurrentIndex(index >= 0 ? index : 0);
     m_appliedScheme = m_schemes->currentText();
+
+    // Settings: the font size of the screen the dialog is on.
+    const QString name = screenName();
+    const double reported = m_scaler ? m_scaler->scale(name) : 0.0;
+    const double currentScale
+        = reported > 0 ? reported : (screen() ? screen()->devicePixelRatio() : 1.0);
+    while (m_fontSize->count() > 2)
+        m_fontSize->removeItem(2);
+    selectScale(currentScale);
+    m_appliedScale = currentScale;
+    const bool canScale = reported > 0;
+    m_fontSize->setEnabled(canScale);
+    m_customFontSize->setEnabled(canScale);
+    m_screenLabel->setText(canScale
+            ? tr("The font size applies to this screen (%1) and is remembered for it.").arg(name)
+            : tr("The font size cannot be changed in this session."));
 
     m_preparing = false;
     updateBackgroundPreview();
@@ -525,7 +549,233 @@ void DisplayPropertiesDialog::apply()
         process->start(m_themeTool, arguments);
         m_appliedScheme = m_schemes->currentText();
     }
+    applyScale();
     m_apply->setEnabled(false);
+}
+
+namespace {
+
+    bool sameScale(double a, double b)
+    {
+        return std::abs(a - b) < 0.001;
+    }
+
+    constexpr int MinPercent = 100;
+    constexpr int MaxPercent = 300;
+
+} // namespace
+
+QWidget *DisplayPropertiesDialog::createSettingsTab()
+{
+    auto *page = new QWidget;
+    auto *group = new QGroupBox(tr("Font Size"), page);
+    m_fontSize = new QComboBox(group);
+    m_fontSize->addItem(tr("Small Fonts"), 1.0);
+    m_fontSize->addItem(tr("Large Fonts"), 1.25);
+    m_customFontSize = new QPushButton(tr("&Custom..."), group);
+    m_customFontSize->setMinimumSize(75, 23);
+    connect(m_fontSize, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::changed);
+    connect(m_customFontSize, &QPushButton::clicked, this, [this] {
+        CustomFontSizeDialog custom(this);
+        custom.setPercent(qRound(selectedScale() * 100));
+        if (custom.exec() == QDialog::Accepted)
+            selectScale(custom.percent() / 100.0);
+    });
+    m_screenLabel = new QLabel(group);
+    m_screenLabel->setWordWrap(true);
+
+    auto *row = new QHBoxLayout;
+    row->addWidget(m_fontSize, 1);
+    row->addWidget(m_customFontSize);
+    auto *groupLayout = new QVBoxLayout(group);
+    groupLayout->addLayout(row);
+    groupLayout->addWidget(m_screenLabel);
+    auto *layout = new QVBoxLayout(page);
+    layout->addWidget(group);
+    layout->addStretch();
+    return page;
+}
+
+QString DisplayPropertiesDialog::screenName() const
+{
+    if (!m_screenName.isEmpty())
+        return m_screenName;
+    if (QScreen *s = screen())
+        return s->name();
+    return QGuiApplication::primaryScreen() ? QGuiApplication::primaryScreen()->name() : QString();
+}
+
+double DisplayPropertiesDialog::selectedScale() const
+{
+    return m_fontSize->currentData().toDouble();
+}
+
+void DisplayPropertiesDialog::selectScale(double scale)
+{
+    for (int i = 0; i < m_fontSize->count(); ++i) {
+        if (sameScale(m_fontSize->itemData(i).toDouble(), scale)) {
+            m_fontSize->setCurrentIndex(i);
+            return;
+        }
+    }
+    // A custom size: one entry after Small and Large Fonts.
+    const QString text = tr("Other (%1%)").arg(qRound(scale * 100));
+    if (m_fontSize->count() > 2) {
+        m_fontSize->setItemText(2, text);
+        m_fontSize->setItemData(2, scale);
+    } else {
+        m_fontSize->addItem(text, scale);
+    }
+    m_fontSize->setCurrentIndex(2);
+}
+
+void DisplayPropertiesDialog::applyScale()
+{
+    if (!m_scaler)
+        return;
+    const double scale = selectedScale();
+    if (sameScale(scale, m_appliedScale))
+        return;
+    const double previous = m_appliedScale;
+    const QString name = screenName();
+    const QString id = m_scaler->identity(name);
+    m_appliedScale = scale;
+
+    QPointer<DisplayPropertiesDialog> self(this);
+    // Back to the previous size: in the compositor and in the list.
+    const auto revert = [self, name, previous](bool tellCompositor) {
+        if (!self)
+            return;
+        self->m_appliedScale = previous;
+        if (tellCompositor)
+            self->m_scaler->setScale(name, previous);
+        const bool preparing = self->m_preparing;
+        self->m_preparing = true;
+        self->selectScale(previous);
+        self->m_preparing = preparing;
+    };
+    m_scaler->setScale(name, scale, [self, id, scale, revert](bool ok) {
+        if (!self)
+            return;
+        if (!ok) {
+            revert(false);
+            // Not modal: this runs inside the compositor's event.
+            auto *box = new QMessageBox(QMessageBox::Warning, tr("Display Properties"),
+                tr("The font size could not be changed."), QMessageBox::Ok, self);
+            box->setAttribute(Qt::WA_DeleteOnClose);
+            box->open();
+            return;
+        }
+        self->confirmScale([self, id, scale, revert](bool keep) {
+            if (!self)
+                return;
+            if (!keep) {
+                revert(true);
+                return;
+            }
+            if (self->m_settings)
+                self->m_settings->setOutputScale(id, scale);
+        });
+    });
+}
+
+void DisplayPropertiesDialog::confirmScale(const std::function<void(bool)> &done)
+{
+    if (m_confirm) {
+        m_confirm(done);
+        return;
+    }
+    // A wrong size can make the screen hard to use, so the new size is kept
+    // only when confirmed; otherwise the old one comes back by itself.
+    auto *box = new QMessageBox(QMessageBox::Question, tr("Display Properties"), QString(),
+        QMessageBox::Yes | QMessageBox::No, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setDefaultButton(QMessageBox::No);
+    auto remaining = std::make_shared<int>(15);
+    const auto update = [box, remaining] {
+        box->setText(tr("Do you want to keep this font size?\n\n"
+                        "The previous size will be restored in %n second(s).",
+            nullptr, *remaining));
+    };
+    update();
+    auto *timer = new QTimer(box);
+    connect(timer, &QTimer::timeout, box, [box, remaining, update] {
+        if (--*remaining <= 0)
+            box->done(QMessageBox::No);
+        else
+            update();
+    });
+    connect(
+        box, &QMessageBox::finished, box, [done](int result) { done(result == QMessageBox::Yes); });
+    timer->start(1000);
+    box->open();
+}
+
+CustomFontSizeDialog::CustomFontSizeDialog(QWidget *parent)
+    : QDialog(parent)
+{
+    setWindowTitle(tr("Custom Font Size"));
+    auto *label = new QLabel(tr("&Scale to"), this);
+    m_percent = new QComboBox(this);
+    m_percent->setEditable(true);
+    for (int percent : { 100, 125, 150, 175, 200, 250, 300 })
+        m_percent->addItem(QString::number(percent));
+    m_percent->setValidator(new QIntValidator(MinPercent, MaxPercent, m_percent));
+    label->setBuddy(m_percent);
+    auto *suffix = new QLabel(tr("% of normal size"), this);
+    m_sample = new QLabel(this);
+    m_sample->setFrameShape(QFrame::Panel);
+    m_sample->setFrameShadow(QFrame::Sunken);
+    m_sample->setAlignment(Qt::AlignCenter);
+    m_sample->setMinimumSize(260, 80);
+    m_sample->setAutoFillBackground(true);
+    m_sample->setBackgroundRole(QPalette::Base);
+    connect(m_percent, &QComboBox::currentTextChanged, this, &CustomFontSizeDialog::updateSample);
+
+    auto *ok = new QPushButton(tr("OK"), this);
+    ok->setDefault(true);
+    auto *cancel = new QPushButton(tr("Cancel"), this);
+    for (QPushButton *b : { ok, cancel })
+        b->setMinimumSize(75, 23);
+    connect(ok, &QPushButton::clicked, this, &QDialog::accept);
+    connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+
+    auto *row = new QHBoxLayout;
+    row->addWidget(label);
+    row->addWidget(m_percent);
+    row->addWidget(suffix);
+    row->addStretch();
+    auto *buttons = new QHBoxLayout;
+    buttons->addStretch();
+    buttons->addWidget(ok);
+    buttons->addWidget(cancel);
+    auto *layout = new QVBoxLayout(this);
+    layout->addLayout(row);
+    layout->addWidget(m_sample);
+    layout->addLayout(buttons);
+    updateSample();
+    setFixedSize(sizeHint());
+}
+
+void CustomFontSizeDialog::setPercent(int percent)
+{
+    m_percent->setCurrentText(QString::number(qBound(MinPercent, percent, MaxPercent)));
+}
+
+int CustomFontSizeDialog::percent() const
+{
+    bool ok = false;
+    const int value = m_percent->currentText().toInt(&ok);
+    return ok ? qBound(MinPercent, value, MaxPercent) : MinPercent;
+}
+
+void CustomFontSizeDialog::updateSample()
+{
+    // NT showed a line of text at the chosen size.
+    QFont sample = font();
+    sample.setPointSizeF(sample.pointSizeF() * percent() / 100.0);
+    m_sample->setFont(sample);
+    m_sample->setText(tr("Sample text at %1%").arg(percent()));
 }
 
 void DisplayPropertiesDialog::accept()

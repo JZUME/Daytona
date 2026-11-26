@@ -50,6 +50,17 @@ daytona_add_smoke_test(smoke_startmenu smoke_startmenu.sh)
 if(DAYTONA_BUILD_LABWC)
     daytona_add_smoke_test(smoke_frame smoke_frame.sh)
 endif()
+# A screen's saved font size is applied at login. Runs once: the test sets
+# the scale itself, so the harness leaves the output alone.
+add_test(NAME smoke_screen_scale
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
+        ${CMAKE_CURRENT_SOURCE_DIR}/smoke_screen_scale.sh)
+set_tests_properties(smoke_screen_scale PROPERTIES
+    FIXTURES_REQUIRED smoke
+    LABELS smoke
+    TIMEOUT 90
+    ENVIRONMENT "DAYTONA_SMOKE_CONFIG=${CMAKE_CURRENT_SOURCE_DIR}/screen-scale.ini")
+
 # Pointer tests drive a virtual pointer with wlrctl.
 find_program(WLRCTL_EXECUTABLE wlrctl)
 if(WLRCTL_EXECUTABLE)

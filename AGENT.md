@@ -295,7 +295,7 @@ Accepted configuration, Display Properties equivalents:
 * colour scheme and fonts (normally applied via `.theme` files)
 * wallpaper
 * clock format (follows the system locale)
-* high-contrast schemes and font size, as accessibility options
+* high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts, Large Fonts, custom), applied as each screen's scale through wlr-output-management and remembered per screen.
 
 Accepted configuration, Taskbar Properties equivalents:
 

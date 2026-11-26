@@ -7,13 +7,17 @@
 
 #include <QDialog>
 #include <QImage>
+#include <functional>
 
 class QComboBox;
+class QLabel;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
 
 namespace Daytona {
+
+class ScreenScaler;
 
 // Image files directly in each directory (no subdirectories), sorted by
 // name within each, without duplicates. At most limit files.
@@ -65,7 +69,29 @@ private:
     SchemeColours m_colours;
 };
 
-// NT's Display Properties, with the Background and Appearance tabs.
+// NT's Custom Font Size dialog: the scale as a percentage of normal size,
+// with a sample.
+class CustomFontSizeDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    explicit CustomFontSizeDialog(QWidget *parent = nullptr);
+    void setPercent(int percent);
+    int percent() const;
+    QComboBox *percentBox() const { return m_percent; }
+
+private:
+    void updateSample();
+
+    QComboBox *m_percent;
+    QLabel *m_sample;
+};
+
+// NT's Display Properties, with the Background, Appearance and Settings
+// tabs. The Settings tab has NT's Font Size: Small Fonts (100%), Large
+// Fonts (125%) or a custom size, applied as the scale of the screen the
+// dialog is on and remembered for that screen.
 class DisplayPropertiesDialog : public QDialog
 {
     Q_OBJECT
@@ -79,7 +105,22 @@ public:
     // The theme tool run on Apply; the one next to the shell by default.
     void setThemeTool(const QString &program) { m_themeTool = program; }
 
+    // What changes screen scales; without one the font size cannot be
+    // changed.
+    void setScreenScaler(ScreenScaler *scaler) { m_scaler = scaler; }
+    // Asks whether to keep a new font size and calls done(keep). By default
+    // a message box that reverts after 15 seconds.
+    using Confirmation = std::function<void(const std::function<void(bool)> &done)>;
+    void setScaleConfirmation(Confirmation confirm) { m_confirm = std::move(confirm); }
+    // The screen the Settings tab changes; the dialog's own by default.
+    void setScreenName(const QString &name) { m_screenName = name; }
+
     QListWidget *wallpaperList() const { return m_wallpapers; }
+    QComboBox *fontSizeBox() const { return m_fontSize; }
+    QPushButton *customFontSizeButton() const { return m_customFontSize; }
+    double selectedScale() const;
+    // Selects scale in the font size list, adding a custom entry if needed.
+    void selectScale(double scale);
     QComboBox *schemeBox() const { return m_schemes; }
     QPushButton *applyButton() const { return m_apply; }
     QString selectedWallpaper() const;
@@ -100,6 +141,10 @@ Q_SIGNALS:
 private:
     QWidget *createBackgroundTab();
     QWidget *createAppearanceTab();
+    QWidget *createSettingsTab();
+    QString screenName() const;
+    void applyScale();
+    void confirmScale(const std::function<void(bool)> &done);
     void selectWallpaper(const QString &path);
     void browse();
     void updateBackgroundPreview();
@@ -115,6 +160,13 @@ private:
     AppearancePreview *m_appearancePreview;
     QComboBox *m_schemes;
     QPushButton *m_apply;
+    ScreenScaler *m_scaler = nullptr;
+    Confirmation m_confirm;
+    QString m_screenName;
+    QLabel *m_screenLabel;
+    QComboBox *m_fontSize;
+    QPushButton *m_customFontSize;
+    double m_appliedScale = 1.0;
     QString m_appliedScheme; // what the combo showed when last prepared or applied
     bool m_preparing = false;
 };

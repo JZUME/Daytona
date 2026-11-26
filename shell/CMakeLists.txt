@@ -35,6 +35,8 @@ add_library(daytona-shell-core STATIC
     notificationqueue.h
     notificationservice.cpp
     notificationservice.h
+    outputmanager.cpp
+    outputmanager.h
     recentdocuments.cpp
     recentdocuments.h
     rundialog.cpp
@@ -77,7 +79,8 @@ target_link_libraries(daytona-shell-core PUBLIC
     Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient LayerShellQt::Interface
     daytona-style daytona-theme-core)
 qt_generate_wayland_protocol_client_sources(daytona-shell-core
-    FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml)
+    FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml
+          ${PROJECT_SOURCE_DIR}/protocols/wlr-output-management-unstable-v1.xml)
 
 # The logo is SVG; Qt loads it through the SVG icon engine plugin
 # (qt6-svg-plugins) at run time, so no extra library is linked.
