@@ -2,6 +2,14 @@
 # Run by labwc at startup.
 daytona-shell >/dev/null 2>&1 &
 
+# The polkit authentication agent, which asks for an administrator password
+# (pkexec, mounting drives, Shut Down when logind asks). LXQt's agent is Qt,
+# so it takes the daytona style; its own autostart entry is OnlyShowIn=LXQt,
+# so the session starts it here rather than through dex.
+if command -v lxqt-policykit-agent >/dev/null; then
+    lxqt-policykit-agent >/dev/null 2>&1 &
+fi
+
 # Then the applications in the XDG autostart directories (~/.config/autostart
 # and /etc/xdg/autostart), honouring Hidden, OnlyShowIn/NotShowIn and TryExec,
 # with dex. They start once the shell's notification area is on the session

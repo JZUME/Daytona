@@ -114,6 +114,27 @@ To see what would start, and why other entries are skipped:
 dex --autostart --environment Daytona --dry-run --verbose
 ```
 
+## Administrator password prompts (polkit)
+
+When an application needs administrator rights through polkit (`pkexec`,
+mounting a drive in a file manager, changing the time zone, joining a system
+Wi-Fi network, or Shut Down when logind asks for authentication), a polkit
+authentication agent asks for the password. Daytona uses LXQt's agent,
+`lxqt-policykit-agent` from the `lxqt-policykit` package, which the Daytona
+package recommends. It is a Qt 6 application, so its dialog takes the
+`daytona` style.
+
+Its own autostart entry is limited to LXQt (`OnlyShowIn=LXQt;`), so
+Daytona's labwc `autostart` file starts it directly, alongside the shell,
+whenever it is installed. Without it, actions that need a password fail or
+do nothing.
+
+To check it works:
+
+```bash
+pkexec true
+```
+
 ## Notification area (tray icons)
 
 The notification area shows icons that applications register over D-Bus

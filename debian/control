@@ -49,6 +49,7 @@ Depends:
 Recommends:
  dex,
  libglib2.0-bin,
+ lxqt-policykit,
  xdg-utils,
  xwayland,
 Suggests:
