@@ -6,6 +6,7 @@
 #include "colourscheme.h"
 #include "daytonastyle.h"
 #include "desktop.h"
+#include "monitorlayout.h"
 #include "outputmanager.h"
 #include "systemlogo.h"
 
@@ -18,6 +19,7 @@
 #include <QFileInfo>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QImageReader>
 #include <QIntValidator>
@@ -509,49 +511,8 @@ void DisplayPropertiesDialog::prepare()
     // Nothing to choose between when the system has no logo.
     m_systemLogo->setEnabled(!systemLogo().isNull());
 
-    // Settings: the screen the dialog is on.
-    const QString name = screenName();
-    const double reported = m_screens ? m_screens->scale(name) : 0.0;
-    const double currentScale
-        = reported > 0 ? reported : (screen() ? screen()->devicePixelRatio() : 1.0);
-    while (m_fontSize->count() > 2)
-        m_fontSize->removeItem(2);
-    selectScale(currentScale);
-    m_appliedScale = currentScale;
-    const bool canChange = reported > 0;
-    m_fontSize->setEnabled(canChange);
-    m_customFontSize->setEnabled(canChange);
-
-    m_modes = m_screens ? m_screens->modes(name) : QList<ScreenMode>();
-    m_sizes.clear();
-    for (const ScreenMode &mode : std::as_const(m_modes)) {
-        if (mode.isValid() && !m_sizes.contains(mode.size))
-            m_sizes.append(mode.size);
-    }
-    // Less to more: by area, then width.
-    std::sort(m_sizes.begin(), m_sizes.end(), [](const QSize &a, const QSize &b) {
-        const qint64 areaA = qint64(a.width()) * a.height();
-        const qint64 areaB = qint64(b.width()) * b.height();
-        return areaA != areaB ? areaA < areaB : a.width() < b.width();
-    });
-    ScreenMode currentScreenMode = m_screens ? m_screens->currentMode(name) : ScreenMode();
-    if (!currentScreenMode.isValid()) {
-        for (const ScreenMode &mode : std::as_const(m_modes)) {
-            if (mode.preferred)
-                currentScreenMode = mode;
-        }
-    }
-    m_appliedMode = currentScreenMode;
-    const bool canMode = canChange && !m_sizes.isEmpty();
-    m_desktopArea->setEnabled(canMode);
-    m_refresh->setEnabled(canMode);
-    m_desktopArea->setRange(0, qMax(0, int(m_sizes.size()) - 1));
-    selectScreenMode(currentScreenMode);
-    if (!canMode)
-        m_areaLabel->setText(tr("Not available"));
-    m_screenLabel->setText(canChange
-            ? tr("These settings apply to this screen (%1) and are remembered for it.").arg(name)
-            : tr("The display settings cannot be changed in this session."));
+    // Settings: every screen, the dialog's own first shown.
+    prepareMonitors();
 
     m_preparing = false;
     updateBackgroundPreview();
@@ -711,8 +672,45 @@ namespace {
 QWidget *DisplayPropertiesDialog::createSettingsTab()
 {
     // Laid out as NT's Settings tab: Desktop Area and Refresh Frequency on
-    // one side, Font Size on the other.
+    // one side, Font Size on the other. With more than one screen, Windows
+    // 2000's monitor diagram and Display list go above, and its primary
+    // monitor and Extend check boxes below.
     auto *page = new QWidget;
+
+    m_arrangementBox = new QWidget(page);
+    auto *dragHint = new QLabel(
+        tr("Drag the monitor icons to match the physical arrangement of your monitors."),
+        m_arrangementBox);
+    dragHint->setWordWrap(true);
+    m_arrangement = new MonitorArrangement(m_arrangementBox);
+    connect(m_arrangement, &MonitorArrangement::selectedChanged, this,
+        &DisplayPropertiesDialog::selectMonitor);
+    connect(m_arrangement, &MonitorArrangement::monitorMoved, this,
+        &DisplayPropertiesDialog::monitorMoved);
+    m_display = new QComboBox(m_arrangementBox);
+    connect(
+        m_display, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::selectMonitor);
+    auto *displayLabel = new QLabel(tr("&Display:"), m_arrangementBox);
+    displayLabel->setBuddy(m_display);
+    auto *displayRow = new QHBoxLayout;
+    displayRow->addWidget(displayLabel);
+    displayRow->addWidget(m_display, 1);
+    auto *arrangementLayout = new QVBoxLayout(m_arrangementBox);
+    arrangementLayout->setContentsMargins(0, 0, 0, 0);
+    arrangementLayout->addWidget(dragHint);
+    arrangementLayout->addWidget(m_arrangement, 1);
+    arrangementLayout->addLayout(displayRow);
+
+    m_primaryBox = new QCheckBox(tr("&Use this device as the primary monitor."), page);
+    connect(m_primaryBox, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked && !m_preparing)
+            setPrimary();
+    });
+    m_extend = new QCheckBox(tr("&Extend my desktop onto this monitor."), page);
+    connect(m_extend, &QCheckBox::toggled, this, [this](bool checked) {
+        if (!m_preparing)
+            setExtended(checked);
+    });
 
     auto *area = new QGroupBox(tr("Desktop Area"), page);
     m_desktopArea = new QSlider(Qt::Horizontal, area);
@@ -723,7 +721,7 @@ QWidget *DisplayPropertiesDialog::createSettingsTab()
     m_areaLabel->setAlignment(Qt::AlignCenter);
     connect(m_desktopArea, &QSlider::valueChanged, this, [this] {
         updateRefreshList(selectedScreenMode().refresh);
-        changed();
+        screenControlChanged();
     });
     auto *sliderRow = new QHBoxLayout;
     sliderRow->addWidget(new QLabel(tr("Less"), area));
@@ -735,7 +733,8 @@ QWidget *DisplayPropertiesDialog::createSettingsTab()
 
     auto *refresh = new QGroupBox(tr("Refresh Frequency"), page);
     m_refresh = new QComboBox(refresh);
-    connect(m_refresh, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::changed);
+    connect(m_refresh, &QComboBox::currentIndexChanged, this,
+        &DisplayPropertiesDialog::screenControlChanged);
     auto *refreshLayout = new QVBoxLayout(refresh);
     refreshLayout->addWidget(m_refresh);
 
@@ -747,7 +746,8 @@ QWidget *DisplayPropertiesDialog::createSettingsTab()
     m_fontSize->addItem(tr("Large Fonts"), 1.5);
     m_customFontSize = new QPushButton(tr("&Custom..."), font);
     m_customFontSize->setMinimumSize(75, 23);
-    connect(m_fontSize, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::changed);
+    connect(m_fontSize, &QComboBox::currentIndexChanged, this,
+        &DisplayPropertiesDialog::screenControlChanged);
     connect(m_customFontSize, &QPushButton::clicked, this, [this] {
         CustomFontSizeDialog custom(this);
         custom.setPercent(qRound(selectedScale() * 100));
@@ -762,13 +762,17 @@ QWidget *DisplayPropertiesDialog::createSettingsTab()
     m_screenLabel->setWordWrap(true);
 
     auto *grid = new QGridLayout(page);
-    grid->addWidget(area, 0, 0);
-    grid->addWidget(font, 0, 1);
-    grid->addWidget(refresh, 1, 0);
-    grid->addWidget(m_screenLabel, 2, 0, 1, 2);
+    grid->addWidget(m_arrangementBox, 0, 0, 1, 2);
+    grid->addWidget(area, 1, 0);
+    grid->addWidget(font, 1, 1);
+    grid->addWidget(refresh, 2, 0);
+    grid->addWidget(m_primaryBox, 3, 0, 1, 2);
+    grid->addWidget(m_extend, 4, 0, 1, 2);
+    grid->addWidget(m_screenLabel, 5, 0, 1, 2);
     grid->setColumnStretch(0, 1);
     grid->setColumnStretch(1, 1);
-    grid->setRowStretch(3, 1);
+    grid->setRowStretch(0, 1);
+    grid->setRowStretch(6, 1);
     return page;
 }
 
@@ -860,68 +864,390 @@ void DisplayPropertiesDialog::selectScale(double scale)
     m_fontSize->setCurrentIndex(2);
 }
 
+void DisplayPropertiesDialog::prepareMonitors()
+{
+    const QString own = screenName();
+    QStringList names = m_screens ? m_screens->screens() : QStringList();
+    if (names.isEmpty())
+        names = { own };
+    m_monitors.clear();
+    for (const QString &name : std::as_const(names)) {
+        Monitor monitor;
+        monitor.name = name;
+        monitor.id = m_screens ? m_screens->identity(name) : name;
+        const double reported = m_screens ? m_screens->scale(name) : 0.0;
+        monitor.canChange = reported > 0;
+        monitor.scale = reported > 0  ? reported
+            : name == own && screen() ? screen()->devicePixelRatio()
+                                      : 1.0;
+        monitor.modes = m_screens ? m_screens->modes(name) : QList<ScreenMode>();
+        ScreenMode current = m_screens ? m_screens->currentMode(name) : ScreenMode();
+        if (!current.isValid()) {
+            for (const ScreenMode &mode : std::as_const(monitor.modes)) {
+                if (mode.preferred)
+                    current = mode;
+            }
+        }
+        monitor.mode = current;
+        monitor.enabled = names.size() == 1 || (m_screens && m_screens->isEnabled(name));
+        monitor.position = m_screens ? m_screens->position(name) : QPoint();
+        // A screen that is off has no mode yet: the one shown is asked for
+        // when it is switched on.
+        monitor.appliedMode = monitor.enabled ? monitor.mode : ScreenMode();
+        monitor.appliedScale = monitor.scale;
+        monitor.appliedEnabled = monitor.enabled;
+        monitor.appliedPosition = monitor.position;
+        m_monitors.append(monitor);
+    }
+
+    // The primary monitor: the one saved, else the one the taskbar is on.
+    const auto findId = [this](const QString &id) {
+        for (const Monitor &monitor : std::as_const(m_monitors)) {
+            if (monitor.enabled && monitor.id == id)
+                return true;
+        }
+        return false;
+    };
+    m_primary = m_settings ? m_settings->primaryOutput() : QString();
+    if (!findId(m_primary)) {
+        m_primary.clear();
+        const QScreen *primary = QGuiApplication::primaryScreen();
+        for (const Monitor &monitor : std::as_const(m_monitors)) {
+            if (monitor.enabled && m_primary.isEmpty())
+                m_primary = monitor.id;
+            if (monitor.enabled && primary && monitor.name == primary->name()) {
+                m_primary = monitor.id;
+                break;
+            }
+        }
+    }
+    m_appliedPrimary = m_primary;
+
+    const bool several = m_monitors.size() > 1;
+    m_arrangementBox->setVisible(several);
+    m_primaryBox->setVisible(several);
+    m_extend->setVisible(several);
+    m_display->clear();
+    for (int i = 0; i < m_monitors.size(); ++i) {
+        const Monitor &monitor = m_monitors.at(i);
+        m_display->addItem(tr("%1. %2").arg(i + 1).arg(
+            m_screens ? m_screens->description(monitor.name) : monitor.name));
+    }
+    m_arrangement->setDesktopColour(Style::schemeColour(QStringLiteral("Background")));
+    m_monitor = std::max(0, int(names.indexOf(own)));
+    showMonitor();
+    updateArrangement();
+}
+
+void DisplayPropertiesDialog::selectMonitor(int index)
+{
+    if (index < 0 || index >= m_monitors.size() || index == m_monitor)
+        return;
+    m_monitor = index;
+    showMonitor();
+}
+
+void DisplayPropertiesDialog::showMonitor()
+{
+    const bool preparing = m_preparing;
+    m_preparing = true;
+    const Monitor &monitor = m_monitors.at(m_monitor);
+    m_display->setCurrentIndex(m_monitor);
+    m_arrangement->setSelected(m_monitor);
+
+    while (m_fontSize->count() > 2)
+        m_fontSize->removeItem(2);
+    selectScale(monitor.scale);
+    m_modes = monitor.modes;
+    m_sizes.clear();
+    for (const ScreenMode &mode : std::as_const(m_modes)) {
+        if (mode.isValid() && !m_sizes.contains(mode.size))
+            m_sizes.append(mode.size);
+    }
+    // Less to more: by area, then width.
+    std::sort(m_sizes.begin(), m_sizes.end(), [](const QSize &a, const QSize &b) {
+        const qint64 areaA = qint64(a.width()) * a.height();
+        const qint64 areaB = qint64(b.width()) * b.height();
+        return areaA != areaB ? areaA < areaB : a.width() < b.width();
+    });
+    // A screen that is off keeps its settings until it is extended onto.
+    const bool canChange = monitor.canChange && monitor.enabled;
+    m_fontSize->setEnabled(canChange);
+    m_customFontSize->setEnabled(canChange);
+    const bool canMode = canChange && !m_sizes.isEmpty();
+    m_desktopArea->setEnabled(canMode);
+    m_refresh->setEnabled(canMode);
+    m_desktopArea->setRange(0, qMax(0, int(m_sizes.size()) - 1));
+    selectScreenMode(monitor.mode);
+    if (!canMode)
+        m_areaLabel->setText(tr("Not available"));
+
+    // NT's taskbar stays on one monitor, which cannot be switched off.
+    const bool primary = monitor.id == m_primary;
+    m_primaryBox->setChecked(primary);
+    m_primaryBox->setEnabled(monitor.canChange && monitor.enabled && !primary);
+    m_extend->setChecked(monitor.enabled);
+    m_extend->setEnabled(monitor.canChange && !primary);
+
+    const QString applies = m_monitors.size() > 1
+        ? tr("These settings apply to monitor %1 (%2) and are remembered for it.")
+              .arg(m_monitor + 1)
+              .arg(monitor.name)
+        : tr("These settings apply to this screen (%1) and are remembered for it.")
+              .arg(monitor.name);
+    m_screenLabel->setText(monitor.canChange
+            ? applies
+            : tr("The display settings cannot be changed in this session."));
+    m_preparing = preparing;
+}
+
+void DisplayPropertiesDialog::screenControlChanged()
+{
+    if (m_preparing || m_monitor >= m_monitors.size())
+        return;
+    Monitor &monitor = m_monitors[m_monitor];
+    const QSize before = monitorSize(monitor);
+    monitor.scale = selectedScale();
+    const ScreenMode mode = selectedScreenMode();
+    if (mode.isValid())
+        monitor.mode = mode;
+    const QSize after = monitorSize(monitor);
+    if (monitor.enabled && before.isValid() && after.isValid() && before != after) {
+        // The screens beyond its right and bottom edges move with them.
+        QList<int> indexes;
+        QList<QRect> rects;
+        for (int i = 0; i < m_monitors.size(); ++i) {
+            if (!m_monitors.at(i).enabled)
+                continue;
+            indexes.append(i);
+            rects.append(QRect(m_monitors.at(i).position,
+                i == m_monitor ? before : monitorSize(m_monitors.at(i))));
+        }
+        rects = resizeMonitor(rects, int(indexes.indexOf(m_monitor)), after);
+        for (int i = 0; i < indexes.size(); ++i)
+            m_monitors[indexes.at(i)].position = rects.at(i).topLeft();
+        normaliseMonitors();
+    }
+    updateArrangement();
+    changed();
+}
+
+void DisplayPropertiesDialog::setExtended(bool extend)
+{
+    Monitor &monitor = m_monitors[m_monitor];
+    if (monitor.enabled == extend)
+        return;
+    if (extend) {
+        // Beside the desktop, at its top right.
+        int right = 0;
+        for (const Monitor &other : std::as_const(m_monitors)) {
+            if (other.enabled)
+                right = std::max(right, other.position.x() + monitorSize(other).width());
+        }
+        monitor.position = QPoint(right, 0);
+    }
+    monitor.enabled = extend;
+    normaliseMonitors();
+    showMonitor();
+    updateArrangement();
+    changed();
+}
+
+void DisplayPropertiesDialog::setPrimary()
+{
+    m_primary = m_monitors.at(m_monitor).id;
+    showMonitor();
+    changed();
+}
+
+void DisplayPropertiesDialog::monitorMoved(int index, const QPoint &position)
+{
+    if (index < 0 || index >= m_monitors.size() || !m_monitors.at(index).enabled)
+        return;
+    m_monitors[index].position = position;
+    normaliseMonitors();
+    updateArrangement();
+    changed();
+}
+
+QSize DisplayPropertiesDialog::monitorSize(const Monitor &monitor) const
+{
+    QSize size
+        = m_screens ? m_screens->logicalSize(monitor.name, monitor.mode, monitor.scale) : QSize();
+    if (!size.isValid() || size.isEmpty())
+        size = QSize(1024, 768);
+    return size;
+}
+
+void DisplayPropertiesDialog::normaliseMonitors()
+{
+    QList<int> indexes;
+    QList<QRect> rects;
+    for (int i = 0; i < m_monitors.size(); ++i) {
+        if (!m_monitors.at(i).enabled)
+            continue;
+        indexes.append(i);
+        rects.append(QRect(m_monitors.at(i).position, monitorSize(m_monitors.at(i))));
+    }
+    rects = Daytona::normaliseMonitors(rects);
+    for (int i = 0; i < indexes.size(); ++i)
+        m_monitors[indexes.at(i)].position = rects.at(i).topLeft();
+}
+
+void DisplayPropertiesDialog::updateArrangement()
+{
+    QList<MonitorArrangement::Monitor> drawn;
+    for (int i = 0; i < m_monitors.size(); ++i) {
+        const Monitor &monitor = m_monitors.at(i);
+        drawn.append({ QString::number(i + 1), QRect(monitor.position, monitorSize(monitor)),
+            monitor.enabled });
+    }
+    const bool preparing = m_preparing;
+    m_preparing = true;
+    m_arrangement->setMonitors(drawn);
+    m_arrangement->setSelected(m_monitor);
+    m_preparing = preparing;
+}
+
 void DisplayPropertiesDialog::applyScreen()
 {
-    if (!m_screens)
+    if (!m_screens || m_monitors.isEmpty())
         return;
-    const double scale = selectedScale();
-    const ScreenMode mode = selectedScreenMode();
-    const bool newScale = !sameScale(scale, m_appliedScale);
-    const bool newMode = mode.isValid() && !mode.sameAs(m_appliedMode);
-    if (!newScale && !newMode)
+    // The taskbar moves at once; nothing to confirm.
+    if (m_settings && m_primary != m_appliedPrimary)
+        m_settings->setPrimaryOutput(m_primary);
+    m_appliedPrimary = m_primary;
+
+    int enabled = 0;
+    for (const Monitor &monitor : std::as_const(m_monitors))
+        enabled += monitor.enabled ? 1 : 0;
+    QList<ScreenChange> changes;
+    QList<ScreenChange> undo;
+    for (const Monitor &monitor : std::as_const(m_monitors)) {
+        if (!monitor.canChange)
+            continue;
+        ScreenChange change;
+        ScreenChange back;
+        change.screen = back.screen = monitor.name;
+        bool changed = false;
+        if (monitor.enabled != monitor.appliedEnabled) {
+            change.enabled = monitor.enabled;
+            back.enabled = monitor.appliedEnabled;
+            back.position = monitor.appliedPosition;
+            changed = true;
+        }
+        if (monitor.enabled) {
+            if (monitor.mode.isValid() && !monitor.mode.sameAs(monitor.appliedMode)) {
+                change.mode = monitor.mode;
+                back.mode = monitor.appliedMode;
+                changed = true;
+            }
+            if (!sameScale(monitor.scale, monitor.appliedScale)) {
+                change.scale = monitor.scale;
+                back.scale = monitor.appliedScale;
+                changed = true;
+            }
+            // A screen switched on is always told where to go.
+            if (enabled > 1
+                && (monitor.position != monitor.appliedPosition || !monitor.appliedEnabled)) {
+                change.position = monitor.position;
+                back.position = monitor.appliedPosition;
+                changed = true;
+            }
+        }
+        if (changed) {
+            changes.append(change);
+            undo.append(back);
+        }
+    }
+    if (changes.isEmpty())
         return;
-    const double previousScale = m_appliedScale;
-    const ScreenMode previousMode = m_appliedMode;
-    const QString name = screenName();
-    const QString id = m_screens->identity(name);
-    m_appliedScale = scale;
-    m_appliedMode = mode;
+
+    const QList<Monitor> before = m_monitors;
+    for (Monitor &monitor : m_monitors) {
+        monitor.appliedMode = monitor.mode;
+        monitor.appliedScale = monitor.scale;
+        monitor.appliedEnabled = monitor.enabled;
+        monitor.appliedPosition = monitor.position;
+    }
+    const QList<Monitor> after = m_monitors;
 
     QPointer<DisplayPropertiesDialog> self(this);
     // Back to the previous settings: in the compositor and in the tab.
-    const auto revert
-        = [self, name, previousScale, previousMode, newScale, newMode](bool tellCompositor) {
-              if (!self)
-                  return;
-              self->m_appliedScale = previousScale;
-              self->m_appliedMode = previousMode;
-              if (tellCompositor)
-                  self->m_screens->configure(
-                      name, newMode ? previousMode : ScreenMode(), newScale ? previousScale : 0.0);
-              const bool preparing = self->m_preparing;
-              self->m_preparing = true;
-              self->selectScale(previousScale);
-              self->selectScreenMode(previousMode);
-              self->m_preparing = preparing;
-          };
-    m_screens->configure(name, newMode ? mode : ScreenMode(), newScale ? scale : 0.0,
-        [self, id, scale, mode, newScale, newMode, revert](bool ok) {
-            if (!self)
-                return;
-            if (!ok) {
-                revert(false);
-                // Not modal: this runs inside the compositor's event.
-                auto *box = new QMessageBox(QMessageBox::Warning, tr("Display Properties"),
-                    tr("The display settings could not be changed."), QMessageBox::Ok, self);
-                box->setAttribute(Qt::WA_DeleteOnClose);
-                box->open();
-                return;
+    const auto revert = [self, before, undo](bool tellCompositor) {
+        if (!self)
+            return;
+        if (tellCompositor)
+            self->m_screens->change(undo, {});
+        for (const Monitor &previous : before) {
+            for (Monitor &monitor : self->m_monitors) {
+                if (monitor.name != previous.name)
+                    continue;
+                monitor.mode = monitor.appliedMode = previous.appliedMode;
+                monitor.scale = monitor.appliedScale = previous.appliedScale;
+                monitor.enabled = monitor.appliedEnabled = previous.appliedEnabled;
+                monitor.position = monitor.appliedPosition = previous.appliedPosition;
             }
-            self->confirmSettings([self, id, scale, mode, newScale, newMode, revert](bool keep) {
-                if (!self)
-                    return;
-                if (!keep) {
-                    revert(true);
-                    return;
+        }
+        // A primary monitor that was switched back off is no longer primary.
+        bool primaryOn = false;
+        for (const Monitor &monitor : std::as_const(self->m_monitors))
+            primaryOn |= monitor.enabled && monitor.id == self->m_primary;
+        if (!primaryOn) {
+            for (const Monitor &monitor : std::as_const(self->m_monitors)) {
+                if (monitor.enabled) {
+                    self->m_primary = self->m_appliedPrimary = monitor.id;
+                    if (self->m_settings)
+                        self->m_settings->setPrimaryOutput(monitor.id);
+                    break;
                 }
-                if (!self->m_settings)
-                    return;
-                if (newScale)
-                    self->m_settings->setOutputScale(id, scale);
-                if (newMode)
-                    self->m_settings->setOutputMode(id, mode);
-            });
+            }
+        }
+        self->showMonitor();
+        self->updateArrangement();
+    };
+    // What to remember once kept: what changed, and with more than one
+    // screen on, where every one of them is.
+    const auto save = [self, before, after, enabled] {
+        if (!self || !self->m_settings)
+            return;
+        Settings *settings = self->m_settings;
+        for (int i = 0; i < after.size() && i < before.size(); ++i) {
+            const Monitor &now = after.at(i);
+            const Monitor &was = before.at(i);
+            if (!now.canChange)
+                continue;
+            if (now.enabled != was.appliedEnabled)
+                settings->setOutputEnabled(now.id, now.enabled);
+            if (!now.enabled)
+                continue;
+            if (!sameScale(now.scale, was.appliedScale))
+                settings->setOutputScale(now.id, now.scale);
+            if (now.mode.isValid() && !now.mode.sameAs(was.appliedMode))
+                settings->setOutputMode(now.id, now.mode);
+            if (enabled > 1)
+                settings->setOutputPosition(now.id, now.position);
+        }
+    };
+    m_screens->change(changes, [self, revert, save](bool ok) {
+        if (!self)
+            return;
+        if (!ok) {
+            revert(false);
+            // Not modal: this runs inside the compositor's event.
+            auto *box = new QMessageBox(QMessageBox::Warning, tr("Display Properties"),
+                tr("The display settings could not be changed."), QMessageBox::Ok, self);
+            box->setAttribute(Qt::WA_DeleteOnClose);
+            box->open();
+            return;
+        }
+        self->confirmSettings([revert, save](bool keep) {
+            if (keep)
+                save();
+            else
+                revert(true);
         });
+    });
 }
 
 void DisplayPropertiesDialog::confirmSettings(const std::function<void(bool)> &done)

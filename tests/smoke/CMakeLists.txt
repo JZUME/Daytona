@@ -70,6 +70,17 @@ set_tests_properties(smoke_screen_scale PROPERTIES
     TIMEOUT 90
     ENVIRONMENT "DAYTONA_SMOKE_CONFIG=${CMAKE_CURRENT_SOURCE_DIR}/screen-scale.ini")
 
+# A saved monitor arrangement, switched-off screen and primary monitor are
+# restored at login, with three outputs.
+add_test(NAME smoke_screen_layout
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
+        ${CMAKE_CURRENT_SOURCE_DIR}/smoke_screen_layout.sh)
+set_tests_properties(smoke_screen_layout PROPERTIES
+    FIXTURES_REQUIRED smoke
+    LABELS smoke
+    TIMEOUT 90
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$ENV{PATH};DAYTONA_SMOKE_OUTPUTS=3;DAYTONA_SMOKE_CONFIG=${CMAKE_CURRENT_SOURCE_DIR}/screen-layout.ini")
+
 # XDG autostart: labwc's autostart runs dex once the shell's tray is up.
 find_program(DEX_EXECUTABLE dex)
 find_program(GDBUS_EXECUTABLE gdbus)

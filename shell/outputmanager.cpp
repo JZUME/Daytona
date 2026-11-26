@@ -4,7 +4,10 @@
 
 #include "settings.h"
 
+#include <QHash>
 #include <QLoggingCategory>
+#include <QRect>
+#include <algorithm>
 #include <cmath>
 #include <wayland-client-core.h>
 
@@ -64,6 +67,25 @@ QString outputIdentity(const OutputHead &head)
     return QStringList { head.make, head.model, head.serial }.join(QLatin1Char(' ')).simplified();
 }
 
+QSize logicalSize(const OutputHead &head)
+{
+    ScreenMode mode = head.currentMode;
+    for (const ScreenMode &candidate : head.modes) {
+        if (!mode.isValid() && candidate.preferred)
+            mode = candidate;
+    }
+    if (!mode.isValid() && !head.modes.isEmpty())
+        mode = head.modes.first();
+    if (!mode.isValid())
+        return {};
+    QSize size = mode.size;
+    // 90 and 270 degrees, flipped or not, turn the screen on its side.
+    if (head.transform % 2 == 1)
+        size.transpose();
+    const double scale = head.scale > 0 ? head.scale : 1.0;
+    return QSize(qRound(size.width() / scale), qRound(size.height() / scale));
+}
+
 class OutputHeadObject : public QtWayland::zwlr_output_head_v1
 {
 public:
@@ -119,6 +141,8 @@ protected:
         state.serial = serial;
     }
     void zwlr_output_head_v1_enabled(int32_t enabled) override { state.enabled = enabled != 0; }
+    void zwlr_output_head_v1_position(int32_t x, int32_t y) override { state.position = { x, y }; }
+    void zwlr_output_head_v1_transform(int32_t transform) override { state.transform = transform; }
     void zwlr_output_head_v1_scale(wl_fixed_t scale) override
     {
         state.scale = wl_fixed_to_double(scale);
@@ -159,8 +183,8 @@ void OutputModeObject::zwlr_output_mode_v1_finished()
     delete this;
 }
 
-// One configuration sent to the compositor: every head, with a new scale
-// for one of them.
+// One configuration sent to the compositor: every head, with the changes
+// asked for.
 class OutputConfiguration : public QtWayland::zwlr_output_configuration_v1
 {
 public:
@@ -229,6 +253,50 @@ OutputHeadObject *OutputManager::find(const QString &screen) const
     return nullptr;
 }
 
+QStringList OutputManager::screens() const
+{
+    QStringList result;
+    for (const OutputHeadObject *head : m_heads) {
+        if (!head->state.name.isEmpty())
+            result.append(head->state.name);
+    }
+    return result;
+}
+
+QString OutputManager::description(const QString &screen) const
+{
+    const OutputHeadObject *head = find(screen);
+    if (!head)
+        return screen;
+    const QString product
+        = QStringList { head->state.make, head->state.model }.join(QLatin1Char(' ')).simplified();
+    if (product.isEmpty() || product.compare(QLatin1String("headless"), Qt::CaseInsensitive) == 0)
+        return head->state.description.isEmpty() ? screen : head->state.description;
+    return QStringLiteral("%1 (%2)").arg(product, screen);
+}
+
+bool OutputManager::isEnabled(const QString &screen) const
+{
+    const OutputHeadObject *head = find(screen);
+    return head && head->state.enabled;
+}
+
+QPoint OutputManager::position(const QString &screen) const
+{
+    const OutputHeadObject *head = find(screen);
+    return head ? head->state.position : QPoint();
+}
+
+QSize OutputManager::logicalSize(const QString &screen, const ScreenMode &mode, double scale) const
+{
+    OutputHead head;
+    if (const OutputHeadObject *found = find(screen))
+        head.transform = found->state.transform;
+    head.modes = { mode };
+    head.scale = scale;
+    return Daytona::logicalSize(head);
+}
+
 double OutputManager::scale(const QString &screen) const
 {
     const OutputHeadObject *head = find(screen);
@@ -285,41 +353,111 @@ void OutputManager::restoreSavedSettings()
 {
     if (!m_settings)
         return;
+    QList<OutputHeadObject *> fresh;
     for (OutputHeadObject *head : std::as_const(m_heads)) {
-        if (head->restored || head->state.name.isEmpty() || !head->state.enabled)
-            continue;
+        if (!head->restored && !head->state.name.isEmpty())
+            fresh.append(head);
+    }
+    if (fresh.isEmpty())
+        return;
+    for (OutputHeadObject *head : std::as_const(fresh))
         head->restored = true;
-        const OutputHead state = head->snapshot();
+
+    // What each screen will be once restored.
+    QHash<OutputHeadObject *, ScreenChange> changes;
+    QHash<OutputHeadObject *, OutputHead> after;
+    int enabled = 0;
+    for (OutputHeadObject *head : std::as_const(m_heads)) {
+        after.insert(head, head->snapshot());
+        enabled += head->state.enabled ? 1 : 0;
+    }
+    // Screens switched off in Display Properties, as long as one stays on.
+    for (OutputHeadObject *head : std::as_const(fresh)) {
+        OutputHead &state = after[head];
+        if (!state.enabled || m_settings->outputEnabled(outputIdentity(state)) || enabled <= 1)
+            continue;
+        state.enabled = false;
+        --enabled;
+        changes[head].screen = state.name;
+        changes[head].enabled = false;
+    }
+    for (OutputHeadObject *head : std::as_const(fresh)) {
+        OutputHead &state = after[head];
+        if (!state.enabled)
+            continue;
         const QString id = outputIdentity(state);
         // A saved mode the screen no longer offers is left alone.
-        ScreenMode mode = matchMode(state.modes, m_settings->outputMode(id));
-        if (mode.isValid() && mode.sameAs(state.currentMode))
-            mode = {};
-        double scale = m_settings->outputScale(id);
-        if (scale > 0 && sameScale(scale, state.scale))
-            scale = 0;
-        if (mode.isValid() || scale > 0) {
-            qCInfo(lcOutputs) << "Restoring" << state.name << "mode"
-                              << (mode.isValid() ? modeKey(mode) : QStringLiteral("unchanged"))
-                              << "scale" << (scale > 0 ? scale : state.scale);
-            configure(state.name, mode, scale);
+        const ScreenMode mode = matchMode(state.modes, m_settings->outputMode(id));
+        if (mode.isValid() && !mode.sameAs(state.currentMode)) {
+            changes[head].screen = state.name;
+            changes[head].mode = mode;
+            state.currentMode = mode;
+        }
+        const double scale = m_settings->outputScale(id);
+        if (scale > 0 && !sameScale(scale, state.scale)) {
+            changes[head].screen = state.name;
+            changes[head].scale = scale;
+            state.scale = scale;
         }
     }
+    // The saved arrangement, when every screen that is on has a saved place
+    // and those places still fit together (a screen's size may differ now).
+    QHash<OutputHeadObject *, QPoint> places;
+    QList<QRect> placed;
+    bool complete = enabled > 1;
+    for (OutputHeadObject *head : std::as_const(m_heads)) {
+        const OutputHead &state = after[head];
+        if (!complete || !state.enabled)
+            continue;
+        const std::optional<QPoint> place = m_settings->outputPosition(outputIdentity(state));
+        const QRect rect = place ? QRect(*place, Daytona::logicalSize(state)) : QRect();
+        const bool overlaps = std::any_of(placed.begin(), placed.end(),
+            [&rect](const QRect &other) { return other.intersects(rect); });
+        if (!place || rect.isEmpty() || overlaps) {
+            complete = false;
+            continue;
+        }
+        placed.append(rect);
+        places.insert(head, *place);
+    }
+    if (complete) {
+        for (auto it = places.cbegin(); it != places.cend(); ++it) {
+            if (it.value() == it.key()->state.position && it.key()->state.enabled)
+                continue;
+            changes[it.key()].screen = after[it.key()].name;
+            changes[it.key()].position = it.value();
+        }
+    }
+    if (changes.isEmpty())
+        return;
+    QList<ScreenChange> list;
+    for (OutputHeadObject *head : std::as_const(m_heads)) {
+        if (!changes.contains(head))
+            continue;
+        const ScreenChange &one = changes.value(head);
+        qCInfo(lcOutputs) << "Restoring" << one.screen << "on" << one.enabled.value_or(true)
+                          << "mode"
+                          << (one.mode.isValid() ? modeKey(one.mode) : QStringLiteral("unchanged"))
+                          << "scale" << (one.scale > 0 ? one.scale : head->state.scale)
+                          << "position" << (one.position ? *one.position : head->state.position);
+        list.append(one);
+    }
+    change(list, {});
 }
 
-void OutputManager::configure(const QString &screen, const ScreenMode &mode, double scale,
-    const std::function<void(bool)> &done)
+void OutputManager::change(
+    const QList<ScreenChange> &changes, const std::function<void(bool)> &done)
 {
-    if (!find(screen)) {
-        qCWarning(lcOutputs) << "No screen named" << screen;
-        if (done)
-            done(false);
-        return;
+    for (const ScreenChange &one : changes) {
+        if (!find(one.screen)) {
+            qCWarning(lcOutputs) << "No screen named" << one.screen;
+            if (done)
+                done(false);
+            return;
+        }
     }
     Request request;
-    request.screen = screen;
-    request.mode = mode;
-    request.scale = scale;
+    request.changes = changes;
     request.done = done;
     m_queue.append(request);
     sendNext();
@@ -330,34 +468,53 @@ void OutputManager::sendNext()
     if (m_pending || m_queue.isEmpty() || !m_haveSerial || !isActive())
         return;
     const Request &request = m_queue.first();
-    OutputHeadObject *target = find(request.screen);
-    if (!target) {
-        finishRequest(false);
-        return;
-    }
-    OutputModeObject *mode = nullptr;
-    if (request.mode.isValid()) {
-        mode = target->modeFor(request.mode);
-        if (!mode) {
-            qCWarning(lcOutputs) << request.screen << "has no mode" << modeKey(request.mode);
+    QHash<OutputHeadObject *, const ScreenChange *> wanted;
+    QHash<OutputHeadObject *, OutputModeObject *> modes;
+    for (const ScreenChange &one : request.changes) {
+        OutputHeadObject *head = find(one.screen);
+        if (!head) {
             finishRequest(false);
             return;
         }
+        wanted.insert(head, &one);
+        if (!one.mode.isValid())
+            continue;
+        OutputModeObject *mode = head->modeFor(one.mode);
+        if (!mode) {
+            qCWarning(lcOutputs) << one.screen << "has no mode" << modeKey(one.mode);
+            finishRequest(false);
+            return;
+        }
+        modes.insert(head, mode);
     }
     m_queue.first().attempts++;
     m_pending = new OutputConfiguration(create_configuration(m_serial), this);
     // Every head must be listed; the others keep their state.
     for (OutputHeadObject *head : std::as_const(m_heads)) {
-        if (!head->state.enabled) {
+        const ScreenChange *one = wanted.value(head);
+        const bool enable = one && one->enabled ? *one->enabled : head->state.enabled;
+        if (!enable) {
             m_pending->disable_head(head->object());
             continue;
         }
         struct ::zwlr_output_configuration_head_v1 *config = m_pending->enable_head(head->object());
-        if (head == target && mode)
+        OutputModeObject *mode = modes.value(head);
+        if (!mode && !head->state.enabled) {
+            // Switched on: it needs a mode. Its preferred one, else its first.
+            for (OutputModeObject *candidate : std::as_const(head->modes)) {
+                if (candidate->state.preferred)
+                    mode = candidate;
+            }
+            if (!mode && !head->modes.isEmpty())
+                mode = head->modes.first();
+        }
+        if (mode)
             zwlr_output_configuration_head_v1_set_mode(config, mode->object());
-        if (head == target && request.scale > 0)
-            zwlr_output_configuration_head_v1_set_scale(
-                config, wl_fixed_from_double(request.scale));
+        if (one && one->scale > 0)
+            zwlr_output_configuration_head_v1_set_scale(config, wl_fixed_from_double(one->scale));
+        if (one && one->position)
+            zwlr_output_configuration_head_v1_set_position(
+                config, one->position->x(), one->position->y());
         // It has no events and no destructor; the compositor frees it with
         // the configuration.
         wl_proxy_destroy(reinterpret_cast<wl_proxy *>(config));
@@ -386,10 +543,13 @@ void OutputManager::finishRequest(bool ok)
     if (m_queue.isEmpty())
         return;
     const Request request = m_queue.takeFirst();
-    if (!ok)
-        qCWarning(lcOutputs) << "The compositor refused mode"
-                             << (request.mode.isValid() ? modeKey(request.mode) : QString())
-                             << "scale" << request.scale << "on" << request.screen;
+    if (!ok) {
+        QStringList names;
+        for (const ScreenChange &one : request.changes)
+            names.append(one.screen);
+        qCWarning(lcOutputs) << "The compositor refused the display settings for"
+                             << names.join(QStringLiteral(", "));
+    }
     if (request.done)
         request.done(ok);
     sendNext();

@@ -236,6 +236,34 @@ private Q_SLOTS:
         QCOMPARE(Settings(bad).outputMode(QStringLiteral("DP-1")).refresh, 0);
     }
 
+    void screenArrangement()
+    {
+        const QString file = path(QStringLiteral("arrangement.ini"));
+        {
+            Settings s(file);
+            QVERIFY(!s.outputPosition(QStringLiteral("eDP-1")));
+            QVERIFY(s.outputEnabled(QStringLiteral("eDP-1")));
+            QVERIFY(s.primaryOutput().isEmpty());
+            s.setOutputPosition(QStringLiteral("eDP-1"), QPoint(1280, -56));
+            s.setOutputEnabled(QStringLiteral("HDMI-1"), false);
+            QSignalSpy spy(&s, &Settings::changed);
+            s.setPrimaryOutput(QStringLiteral("Maker Model 123"));
+            QCOMPARE(spy.count(), 1);
+            QCOMPARE(spy.first().first().toString(), QStringLiteral("Display/PrimaryScreen"));
+        }
+        Settings s(file);
+        QCOMPARE(s.outputPosition(QStringLiteral("eDP-1")), QPoint(1280, -56));
+        QVERIFY(!s.outputEnabled(QStringLiteral("HDMI-1")));
+        QVERIFY(s.outputEnabled(QStringLiteral("eDP-1")));
+        QCOMPARE(s.primaryOutput(), QStringLiteral("Maker Model 123"));
+        const QString bad = path(QStringLiteral("badarrangement.ini"));
+        writeFile(bad, "[ScreenPosition]\neDP-1=left\nDP-1=\"10, 20\"\nDP-2=1,2,3\nDP-3=-5,6\n");
+        QVERIFY(!Settings(bad).outputPosition(QStringLiteral("eDP-1")));
+        QCOMPARE(Settings(bad).outputPosition(QStringLiteral("DP-1")), QPoint(10, 20));
+        QVERIFY(!Settings(bad).outputPosition(QStringLiteral("DP-2")));
+        QCOMPARE(Settings(bad).outputPosition(QStringLiteral("DP-3")), QPoint(-5, 6));
+    }
+
     void screenScales()
     {
         const QString file = path(QStringLiteral("scales.ini"));

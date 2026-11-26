@@ -9,6 +9,7 @@
 #include <QDialog>
 #include <QImage>
 #include <QList>
+#include <QPoint>
 #include <functional>
 #include <utility>
 
@@ -23,6 +24,7 @@ class QSpinBox;
 
 namespace Daytona {
 
+class MonitorArrangement;
 class ScreenSettings;
 
 // Image files directly in each directory (no subdirectories), sorted by
@@ -96,9 +98,11 @@ private:
 
 // NT's Display Properties, with the Background, Screen Saver, Appearance and
 // Settings tabs. The Screen Saver tab offers (None) and Blank Screen, the
-// wait and password protection. The Settings tab has NT's Font Size: Small
-// Fonts (100%), Large Fonts (150%; NT's was 125%) or a custom size, applied
-// as the scale of the screen the dialog is on and remembered for that screen.
+// wait and password protection. The Settings tab has NT's Desktop Area,
+// Refresh Frequency and Font Size: Small Fonts (100%), Large Fonts (150%;
+// NT's was 125%) or a custom size, applied to a screen and remembered for
+// it. With more than one screen it also has Windows 2000's monitor diagram,
+// Display list and the primary monitor and Extend check boxes.
 class DisplayPropertiesDialog : public QDialog
 {
     Q_OBJECT
@@ -119,7 +123,7 @@ public:
     // default a message box that reverts after 15 seconds.
     using Confirmation = std::function<void(const std::function<void(bool)> &done)>;
     void setScaleConfirmation(Confirmation confirm) { m_confirm = std::move(confirm); }
-    // The screen the Settings tab changes; the dialog's own by default.
+    // The screen the Settings tab shows first; the dialog's own by default.
     void setScreenName(const QString &name) { m_screenName = name; }
 
     QListWidget *wallpaperList() const { return m_wallpapers; }
@@ -128,6 +132,12 @@ public:
     QSlider *desktopAreaSlider() const { return m_desktopArea; }
     QLabel *desktopAreaLabel() const { return m_areaLabel; }
     QComboBox *refreshBox() const { return m_refresh; }
+    // With more than one screen: the diagram, the Display list (one entry
+    // per screen, in the diagram's order) and the check boxes.
+    MonitorArrangement *monitorArrangement() const { return m_arrangement; }
+    QComboBox *displayBox() const { return m_display; }
+    QCheckBox *primaryBox() const { return m_primaryBox; }
+    QCheckBox *extendBox() const { return m_extend; }
     // The mode the Desktop Area and Refresh Frequency choose.
     ScreenMode selectedScreenMode() const;
     void selectScreenMode(const ScreenMode &mode);
@@ -165,6 +175,32 @@ private:
     QWidget *createAppearanceTab();
     QWidget *createSettingsTab();
     QString screenName() const;
+    // A screen as the Settings tab shows it: as chosen, and as last applied.
+    struct Monitor
+    {
+        QString name;
+        QString id; // ScreenSettings::identity
+        bool canChange = false;
+        QList<ScreenMode> modes;
+        ScreenMode mode;
+        ScreenMode appliedMode;
+        double scale = 1.0;
+        double appliedScale = 1.0;
+        QPoint position;
+        QPoint appliedPosition;
+        bool enabled = true;
+        bool appliedEnabled = true;
+    };
+    void prepareMonitors();
+    void selectMonitor(int index);
+    void showMonitor();
+    void screenControlChanged();
+    void setExtended(bool extend);
+    void setPrimary();
+    void monitorMoved(int index, const QPoint &position);
+    QSize monitorSize(const Monitor &monitor) const;
+    void normaliseMonitors();
+    void updateArrangement();
     void applyScreen();
     void confirmSettings(const std::function<void(bool)> &done);
     void updateRefreshList(int keepRefresh);
@@ -194,15 +230,22 @@ private:
     Confirmation m_confirm;
     QString m_screenName;
     QLabel *m_screenLabel;
+    QWidget *m_arrangementBox;
+    MonitorArrangement *m_arrangement;
+    QComboBox *m_display;
+    QCheckBox *m_primaryBox;
+    QCheckBox *m_extend;
+    QList<Monitor> m_monitors;
+    int m_monitor = 0; // the one the controls show
+    QString m_primary; // identity
+    QString m_appliedPrimary;
     QComboBox *m_fontSize;
     QPushButton *m_customFontSize;
-    double m_appliedScale = 1.0;
     QSlider *m_desktopArea;
     QLabel *m_areaLabel;
     QComboBox *m_refresh;
     QList<ScreenMode> m_modes;
     QList<QSize> m_sizes;
-    ScreenMode m_appliedMode;
     QString m_appliedScheme; // what the combo showed when last prepared or applied
     bool m_preparing = false;
 };

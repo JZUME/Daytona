@@ -9,6 +9,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <algorithm>
+#include <cstdlib>
 
 Q_LOGGING_CATEGORY(lcSettings, "daytona.settings", QtInfoMsg)
 
@@ -496,6 +497,61 @@ void Settings::setOutputScale(const QString &screen, double scale)
     if (screen.isEmpty())
         return;
     write(scaleKey(screen), QString::number(qBound(MinScreenScale, scale, MaxScreenScale), 'g', 6));
+}
+
+std::optional<QPoint> Settings::outputPosition(const QString &screen) const
+{
+    const QString key = screenKey(QStringLiteral("ScreenPosition"), screen);
+    if (screen.isEmpty() || !m_settings.contains(key))
+        return std::nullopt;
+    // Written unquoted, QSettings reads "x,y" as a list of two.
+    const QVariant value = m_settings.value(key);
+    const QStringList parts = value.typeId() == QMetaType::QStringList
+        ? value.toStringList()
+        : value.toString().split(QLatin1Char(','));
+    bool okX = false;
+    bool okY = false;
+    const int x = parts.value(0).trimmed().toInt(&okX);
+    const int y = parts.value(1).trimmed().toInt(&okY);
+    // Compositors keep the desktop within 32-bit coordinates.
+    constexpr int Limit = 1 << 20;
+    if (parts.size() != 2 || !okX || !okY || std::abs(x) > Limit || std::abs(y) > Limit) {
+        qCWarning(lcSettings) << "Invalid value for" << key << "- ignoring it";
+        return std::nullopt;
+    }
+    return QPoint(x, y);
+}
+
+void Settings::setOutputPosition(const QString &screen, const QPoint &position)
+{
+    if (screen.isEmpty())
+        return;
+    write(screenKey(QStringLiteral("ScreenPosition"), screen),
+        QStringLiteral("%1,%2").arg(position.x()).arg(position.y()));
+}
+
+bool Settings::outputEnabled(const QString &screen) const
+{
+    if (screen.isEmpty())
+        return true;
+    return readBool(screenKey(QStringLiteral("ScreenEnabled"), screen), true);
+}
+
+void Settings::setOutputEnabled(const QString &screen, bool enabled)
+{
+    if (screen.isEmpty())
+        return;
+    write(screenKey(QStringLiteral("ScreenEnabled"), screen), enabled);
+}
+
+QString Settings::primaryOutput() const
+{
+    return m_settings.value(QStringLiteral("Display/PrimaryScreen")).toString().trimmed();
+}
+
+void Settings::setPrimaryOutput(const QString &screen)
+{
+    write(QStringLiteral("Display/PrimaryScreen"), screen);
 }
 
 } // namespace Daytona

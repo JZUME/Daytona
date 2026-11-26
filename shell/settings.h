@@ -7,12 +7,14 @@
 #include "xcursor.h"
 
 #include <QObject>
+#include <QPoint>
 #include <QSettings>
+#include <QString>
+#include <QStringList>
+#include <optional>
 
 class QFileSystemWatcher;
 class QTimer;
-#include <QString>
-#include <QStringList>
 
 namespace Daytona {
 
@@ -134,6 +136,18 @@ public:
     // same way; invalid when none is saved.
     ScreenMode outputMode(const QString &screen) const;
     void setOutputMode(const QString &screen, const ScreenMode &mode);
+    // Where a screen sits on the desktop (its top left, in logical pixels),
+    // filed the same way; nothing when none is saved.
+    std::optional<QPoint> outputPosition(const QString &screen) const;
+    void setOutputPosition(const QString &screen, const QPoint &position);
+    // Whether a screen is on (Windows 2000's "Extend my desktop onto this
+    // monitor"); true unless it was switched off.
+    bool outputEnabled(const QString &screen) const;
+    void setOutputEnabled(const QString &screen, bool enabled);
+    // The screen that holds the taskbar (Windows 2000's primary monitor),
+    // filed the same way; empty to leave it to the compositor's first.
+    QString primaryOutput() const;
+    void setPrimaryOutput(const QString &screen);
 
     // Follows changes other programs make to the file, such as
     // daytona-themetool recording a new wallpaper.

@@ -313,6 +313,7 @@ Accepted configuration, Display Properties equivalents:
 * wallpaper
 * the Start button logo: the operating system's or Daytona's
 * desktop area (resolution) and refresh frequency, per screen, on the Settings tab as in NT (applied through wlr-output-management, confirmed by a 15-second keep-or-revert prompt instead of NT's Test button, and remembered per screen like the font size)
+* monitor arrangement, on the Settings tab with more than one monitor, as Windows 2000 had it: the numbered monitor diagram (drag to arrange, snapping edge to edge), the Display list, "Use this device as the primary monitor" (the taskbar's monitor) and "Extend my desktop onto this monitor" (on/off). Applied through wlr-output-management with the same keep-or-revert prompt and remembered per screen. Mirroring and a taskbar per monitor are out of scope. See `docs/multi-monitor.md`.
 * clock format (follows the system locale)
 * the screen saver, on NT's Screen Saver tab: (None) or Blank Screen, Wait 1-60 minutes, and Password protected (default Blank Screen, 15 minutes, not protected). Animated screen savers and NT's other savers are out of scope.
 * high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% rather than NT's 125%, as the more useful size on today's high-density screens, with 125% still available under Custom..., custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
@@ -477,7 +478,7 @@ Implementation constraints (no new dependencies):
 * Dragging relies on the standard Wayland implicit pointer grab: after a button press on the taskbar, motion events keep arriving at the taskbar surface even outside its bounds. The nearest edge is computed from that position and the output geometry Qt reports. Verify this behaviour in labwc before building on it; if it does not hold, stop and report rather than adding a workaround.
 * Layout direction is switched with standard Qt layouts (`QBoxLayout::setDirection`), not separate horizontal and vertical widget trees.
 * "Always on top" maps to the layer-shell `top` layer, otherwise `bottom`. "Auto hide" sets the exclusive zone to zero and shrinks the surface to a thin strip that expands on pointer entry.
-* The taskbar stays on its own output. Moving it between monitors is out of scope until multi-monitor work begins.
+* The taskbar stays on its own output: the primary monitor chosen in Display Properties (see `docs/multi-monitor.md`). Dragging it to another monitor is out of scope.
 
 ---
 

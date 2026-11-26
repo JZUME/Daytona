@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "displayproperties.h"
+#include "monitorlayout.h"
 #include "outputmanager.h"
 #include "settings.h"
 
@@ -13,6 +14,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSet>
 #include <QSignalSpy>
 #include <QSlider>
 #include <QSpinBox>
@@ -23,36 +25,64 @@ using namespace Daytona;
 
 namespace {
 
-// Stands in for the compositor: records mode and scale requests and
-// answers them at once, applying them when it accepts.
+// Stands in for the compositor: records requests and answers them at once,
+// applying them when it accepts. DP-1 has screenModes; with screenList set,
+// HDMI-1 is a second, smaller screen.
 class FakeScaler : public ScreenSettings
 {
 public:
+    QStringList screens() const override { return screenList; }
+    QString description(const QString &screen) const override
+    {
+        return QStringLiteral("Maker Model (%1)").arg(screen);
+    }
+    bool isEnabled(const QString &screen) const override { return !disabled.contains(screen); }
+    QPoint position(const QString &screen) const override { return positions.value(screen); }
     double scale(const QString &screen) const override { return scales.value(screen); }
     QList<ScreenMode> modes(const QString &screen) const override
     {
-        return screen == QStringLiteral("DP-1") ? screenModes : QList<ScreenMode>();
+        if (screen == QStringLiteral("DP-1"))
+            return screenModes;
+        if (screen == QStringLiteral("HDMI-1"))
+            return { mode(1280, 1024, 60000, true), mode(1024, 768, 60000) };
+        return {};
     }
     ScreenMode currentMode(const QString &screen) const override
     {
-        return screen == QStringLiteral("DP-1") ? current : ScreenMode();
+        if (disabled.contains(screen))
+            return {};
+        if (screen == QStringLiteral("DP-1"))
+            return current;
+        if (screen == QStringLiteral("HDMI-1"))
+            return hdmiCurrent;
+        return {};
     }
     QString identity(const QString &screen) const override
     {
         return QStringLiteral("Maker Model ") + screen;
     }
-    void configure(const QString &screen, const ScreenMode &mode, double scale,
-        const std::function<void(bool)> &done) override
+    void change(const QList<ScreenChange> &changes, const std::function<void(bool)> &done) override
     {
-        if (scale > 0)
-            requests.append({ screen, scale });
-        if (mode.isValid())
-            modeRequests.append(modeKey(mode));
-        if (accept) {
-            if (scale > 0)
-                scales.insert(screen, scale);
-            if (mode.isValid())
-                current = mode;
+        batches.append(changes);
+        for (const ScreenChange &one : changes) {
+            if (one.scale > 0)
+                requests.append({ one.screen, one.scale });
+            if (one.mode.isValid())
+                modeRequests.append(modeKey(one.mode));
+            if (!accept)
+                continue;
+            if (one.scale > 0)
+                scales.insert(one.screen, one.scale);
+            if (one.mode.isValid() && one.screen == QStringLiteral("DP-1"))
+                current = one.mode;
+            if (one.mode.isValid() && one.screen == QStringLiteral("HDMI-1"))
+                hdmiCurrent = one.mode;
+            if (one.position)
+                positions.insert(one.screen, *one.position);
+            if (one.enabled && *one.enabled)
+                disabled.remove(one.screen);
+            else if (one.enabled)
+                disabled.insert(one.screen);
         }
         if (done)
             done(accept);
@@ -67,13 +97,27 @@ public:
         return m;
     }
 
+    // Two screens: DP-1 (1920x1080) with HDMI-1 (1280x1024) on its right.
+    void addSecondScreen()
+    {
+        screenList = { QStringLiteral("DP-1"), QStringLiteral("HDMI-1") };
+        scales.insert(QStringLiteral("HDMI-1"), 1.0);
+        positions.insert(QStringLiteral("DP-1"), QPoint(0, 0));
+        positions.insert(QStringLiteral("HDMI-1"), QPoint(1920, 0));
+    }
+
+    QStringList screenList;
     QHash<QString, double> scales { { QStringLiteral("DP-1"), 1.0 } };
+    QHash<QString, QPoint> positions;
+    QSet<QString> disabled;
     QList<ScreenMode> screenModes { mode(1920, 1080, 60000, true), mode(1920, 1080, 59940),
         mode(1920, 1080, 144000), mode(1024, 768, 75000), mode(1024, 768, 60000),
         mode(800, 600, 60000) };
     ScreenMode current = mode(1920, 1080, 60000, true);
+    ScreenMode hdmiCurrent = mode(1280, 1024, 60000, true);
     QList<QPair<QString, double>> requests; // scale requests
     QStringList modeRequests;
+    QList<QList<ScreenChange>> batches; // every request, as sent
     bool accept = true;
 };
 
@@ -439,6 +483,277 @@ private Q_SLOTS:
         QCOMPARE(dialog.desktopAreaLabel()->text(), QStringLiteral("1920 by 1080 pixels"));
         QVERIFY(!settings.outputMode(QStringLiteral("Maker Model DP-1")).isValid());
         QVERIFY(!dialog.applyButton()->isEnabled());
+    }
+
+    void snapMonitorEdgeToEdge()
+    {
+        const QRect main(0, 0, 1920, 1080);
+        // Dropped a little away from the right edge: touches it, tops lined up.
+        QCOMPARE(snapMonitor(QRect(1950, 20, 1280, 1024), { main }, 40), QPoint(1920, 0));
+        // Further down, it keeps its height but shares part of the edge.
+        QCOMPARE(snapMonitor(QRect(1950, 300, 1280, 1024), { main }, 40), QPoint(1920, 300));
+        // Bottoms line up when close.
+        QCOMPARE(snapMonitor(QRect(1950, 70, 1280, 1024), { main }, 40), QPoint(1920, 56));
+        // Dropped on top of it, towards the left: goes to its left.
+        QCOMPARE(snapMonitor(QRect(-900, 0, 1280, 1024), { main }, 40), QPoint(-1280, 0));
+        // Below it, left edges lined up.
+        QCOMPARE(snapMonitor(QRect(10, 1500, 1280, 1024), { main }, 40), QPoint(0, 1080));
+        // Far below and to the side: still kept touching, sharing an edge.
+        const QPoint far = snapMonitor(QRect(5000, 5000, 1280, 1024), { main }, 40);
+        const QRect placed(far, QSize(1280, 1024));
+        QVERIFY(!placed.intersects(main));
+        QVERIFY(placed.adjusted(-1, -1, 1, 1).intersects(main));
+        // Never on top of another.
+        const QRect right(1920, 0, 1280, 1024);
+        const QPoint third = snapMonitor(QRect(1900, 10, 800, 600), { main, right }, 40);
+        QVERIFY(!QRect(third, QSize(800, 600)).intersects(main));
+        QVERIFY(!QRect(third, QSize(800, 600)).intersects(right));
+        // Nothing to touch: stays put.
+        QCOMPARE(snapMonitor(QRect(30, 40, 800, 600), {}, 40), QPoint(30, 40));
+    }
+
+    void resizeAndNormaliseMonitors()
+    {
+        const QList<QRect> row
+            = { QRect(0, 0, 1920, 1080), QRect(1920, 0, 1280, 1024), QRect(3200, 0, 800, 600) };
+        // The first gets smaller: the others follow its right edge.
+        const QList<QRect> smaller = resizeMonitor(row, 0, QSize(1024, 768));
+        QCOMPARE(smaller.at(0), QRect(0, 0, 1024, 768));
+        QCOMPARE(smaller.at(1).topLeft(), QPoint(1024, 0));
+        QCOMPARE(smaller.at(2).topLeft(), QPoint(2304, 0));
+        // Stacked: the lower one follows the bottom edge.
+        const QList<QRect> stacked = resizeMonitor(
+            { QRect(0, 0, 1920, 1080), QRect(0, 1080, 1280, 1024) }, 0, QSize(1920, 1200));
+        QCOMPARE(stacked.at(1).topLeft(), QPoint(0, 1200));
+        // Normalised: the top left at 0,0.
+        const QList<QRect> moved
+            = normaliseMonitors({ QRect(0, 0, 1920, 1080), QRect(-1280, 56, 1280, 1024) });
+        QCOMPARE(moved.at(0).topLeft(), QPoint(1280, 0));
+        QCOMPARE(moved.at(1).topLeft(), QPoint(0, 56));
+    }
+
+    void monitorDiagramDrag()
+    {
+        MonitorArrangement arrangement;
+        arrangement.resize(360, 140);
+        arrangement.setMonitors({ { QStringLiteral("1"), QRect(0, 0, 1920, 1080), true },
+            { QStringLiteral("2"), QRect(1920, 0, 1280, 1024), true },
+            { QStringLiteral("3"), QRect(0, 0, 1024, 768), false } });
+        QSignalSpy selected(&arrangement, &MonitorArrangement::selectedChanged);
+        QSignalSpy moved(&arrangement, &MonitorArrangement::monitorMoved);
+        // Drawn side by side, to scale; the switched-off one below them.
+        const QRect one = arrangement.monitorRect(0);
+        const QRect two = arrangement.monitorRect(1);
+        QVERIFY(one.right() < two.left());
+        QVERIFY(one.width() > two.width());
+        QVERIFY(arrangement.monitorRect(2).top() > one.bottom());
+
+        // A click selects without moving.
+        QTest::mouseClick(&arrangement, Qt::LeftButton, {}, two.center());
+        QCOMPARE(arrangement.selected(), 1);
+        QCOMPARE(selected.size(), 1);
+        QCOMPARE(moved.size(), 0);
+
+        // Dragged over to the left of the first: it lands edge to edge there.
+        const QPoint start = two.center();
+        const QPoint end(one.left() - two.width() / 2 + 4, two.center().y() + 2);
+        QTest::mousePress(&arrangement, Qt::LeftButton, {}, start);
+        QTest::mouseMove(&arrangement, (start + end) / 2);
+        QTest::mouseMove(&arrangement, end);
+        QTest::mouseRelease(&arrangement, Qt::LeftButton, {}, end);
+        QCOMPARE(moved.size(), 1);
+        QCOMPARE(moved.first().at(0).toInt(), 1);
+        QCOMPARE(moved.first().at(1).toPoint(), QPoint(-1280, 0));
+
+        // A switched-off monitor can be selected but not dragged.
+        const QRect three = arrangement.monitorRect(2);
+        QTest::mousePress(&arrangement, Qt::LeftButton, {}, three.center());
+        QTest::mouseMove(&arrangement, three.center() + QPoint(40, -60));
+        QTest::mouseRelease(&arrangement, Qt::LeftButton, {}, three.center() + QPoint(40, -60));
+        QCOMPARE(arrangement.selected(), 2);
+        QCOMPARE(moved.size(), 1);
+    }
+
+    void oneScreenHasNoArrangement()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        dialog.prepare();
+        // NT's own Settings tab.
+        QVERIFY(dialog.monitorArrangement()->isHidden()
+            || dialog.monitorArrangement()->parentWidget()->isHidden());
+        QVERIFY(dialog.primaryBox()->isHidden());
+        QVERIFY(dialog.extendBox()->isHidden());
+    }
+
+    void twoScreensArrangement()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        scaler.addSecondScreen();
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        int asked = 0;
+        dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
+            ++asked;
+            done(true);
+        });
+        dialog.prepare();
+
+        QVERIFY(!dialog.monitorArrangement()->parentWidget()->isHidden());
+        QVERIFY(!dialog.primaryBox()->isHidden());
+        QCOMPARE(dialog.displayBox()->count(), 2);
+        QCOMPARE(dialog.displayBox()->itemText(0), QStringLiteral("1. Maker Model (DP-1)"));
+        QCOMPARE(dialog.displayBox()->itemText(1), QStringLiteral("2. Maker Model (HDMI-1)"));
+        const QList<MonitorArrangement::Monitor> drawn = dialog.monitorArrangement()->monitors();
+        QCOMPARE(drawn.size(), 2);
+        QCOMPARE(drawn.at(0).geometry, QRect(0, 0, 1920, 1080));
+        QCOMPARE(drawn.at(1).geometry, QRect(1920, 0, 1280, 1024));
+        // The first is primary (the test has no screen of either name), so it
+        // stays extended.
+        QCOMPARE(dialog.displayBox()->currentIndex(), 0);
+        QVERIFY(dialog.primaryBox()->isChecked());
+        QVERIFY(!dialog.primaryBox()->isEnabled());
+        QVERIFY(dialog.extendBox()->isChecked());
+        QVERIFY(!dialog.extendBox()->isEnabled());
+
+        // Choosing the second shows its own settings.
+        dialog.displayBox()->setCurrentIndex(1);
+        QCOMPARE(dialog.monitorArrangement()->selected(), 1);
+        QCOMPARE(dialog.desktopAreaLabel()->text(), QStringLiteral("1280 by 1024 pixels"));
+        QVERIFY(!dialog.primaryBox()->isChecked());
+        QVERIFY(dialog.primaryBox()->isEnabled());
+        QVERIFY(dialog.extendBox()->isEnabled());
+        QVERIFY(!dialog.applyButton()->isEnabled());
+
+        // Dragged to the left of the first: both move, so the desktop starts
+        // at 0,0, and are saved once kept.
+        Q_EMIT dialog.monitorArrangement()->monitorMoved(1, QPoint(-1280, 0));
+        QVERIFY(dialog.applyButton()->isEnabled());
+        dialog.apply();
+        QCOMPARE(asked, 1);
+        QCOMPARE(scaler.batches.size(), 1);
+        QCOMPARE(scaler.positions.value(QStringLiteral("HDMI-1")), QPoint(0, 0));
+        QCOMPARE(scaler.positions.value(QStringLiteral("DP-1")), QPoint(1280, 0));
+        QCOMPARE(settings.outputPosition(QStringLiteral("Maker Model HDMI-1")), QPoint(0, 0));
+        QCOMPARE(settings.outputPosition(QStringLiteral("Maker Model DP-1")), QPoint(1280, 0));
+        QVERIFY(scaler.modeRequests.isEmpty());
+        QVERIFY(scaler.requests.isEmpty());
+
+        // A smaller Desktop Area on the left one (HDMI-1, still selected)
+        // pulls the right one along.
+        dialog.desktopAreaSlider()->setValue(0);
+        QCOMPARE(dialog.monitorArrangement()->monitors().at(1).geometry, QRect(0, 0, 1024, 768));
+        QCOMPARE(dialog.monitorArrangement()->monitors().at(0).geometry.topLeft(), QPoint(1024, 0));
+    }
+
+    void arrangementRevertsWhenNotConfirmed()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        scaler.addSecondScreen();
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        dialog.setScaleConfirmation([](const std::function<void(bool)> &done) { done(false); });
+        dialog.prepare();
+
+        Q_EMIT dialog.monitorArrangement()->monitorMoved(1, QPoint(0, 1080));
+        dialog.apply();
+        QCOMPARE(scaler.batches.size(), 2);
+        QCOMPARE(scaler.positions.value(QStringLiteral("HDMI-1")), QPoint(1920, 0));
+        QCOMPARE(scaler.positions.value(QStringLiteral("DP-1")), QPoint(0, 0));
+        QCOMPARE(dialog.monitorArrangement()->monitors().at(1).geometry.topLeft(), QPoint(1920, 0));
+        QVERIFY(!settings.outputPosition(QStringLiteral("Maker Model HDMI-1")));
+        QVERIFY(!dialog.applyButton()->isEnabled());
+    }
+
+    void extendTurnsScreenOff()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        scaler.addSecondScreen();
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("HDMI-1"));
+        dialog.setScaleConfirmation([](const std::function<void(bool)> &done) { done(true); });
+        dialog.prepare();
+        QCOMPARE(dialog.displayBox()->currentIndex(), 1);
+
+        dialog.extendBox()->setChecked(false);
+        // Its settings cannot be changed while it is off.
+        QVERIFY(!dialog.desktopAreaSlider()->isEnabled());
+        QVERIFY(!dialog.fontSizeBox()->isEnabled());
+        QVERIFY(!dialog.primaryBox()->isEnabled());
+        QVERIFY(!dialog.monitorArrangement()->monitors().at(1).enabled);
+        dialog.apply();
+        QCOMPARE(scaler.batches.size(), 1);
+        QCOMPARE(scaler.batches.first().size(), 1);
+        QCOMPARE(scaler.batches.first().first().screen, QStringLiteral("HDMI-1"));
+        QCOMPARE(scaler.batches.first().first().enabled, std::optional<bool>(false));
+        QVERIFY(scaler.disabled.contains(QStringLiteral("HDMI-1")));
+        QVERIFY(!settings.outputEnabled(QStringLiteral("Maker Model HDMI-1")));
+        QVERIFY(settings.outputEnabled(QStringLiteral("Maker Model DP-1")));
+
+        // Back on: beside the desktop, in its preferred mode.
+        dialog.prepare();
+        dialog.displayBox()->setCurrentIndex(1);
+        QVERIFY(!dialog.extendBox()->isChecked());
+        dialog.extendBox()->setChecked(true);
+        QVERIFY(dialog.desktopAreaSlider()->isEnabled());
+        dialog.apply();
+        const ScreenChange on = scaler.batches.last().last();
+        QCOMPARE(on.screen, QStringLiteral("HDMI-1"));
+        QCOMPARE(on.enabled, std::optional<bool>(true));
+        QCOMPARE(modeKey(on.mode), QStringLiteral("1280x1024@60000"));
+        QCOMPARE(on.position, std::optional<QPoint>(QPoint(1920, 0)));
+        QVERIFY(settings.outputEnabled(QStringLiteral("Maker Model HDMI-1")));
+    }
+
+    void primaryMonitor()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        scaler.addSecondScreen();
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        int asked = 0;
+        dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
+            ++asked;
+            done(true);
+        });
+        dialog.prepare();
+
+        dialog.displayBox()->setCurrentIndex(1);
+        dialog.primaryBox()->setChecked(true);
+        // Now primary: it cannot be unticked or switched off.
+        QVERIFY(!dialog.primaryBox()->isEnabled());
+        QVERIFY(!dialog.extendBox()->isEnabled());
+        QVERIFY(dialog.applyButton()->isEnabled());
+        dialog.apply();
+        QCOMPARE(settings.primaryOutput(), QStringLiteral("Maker Model HDMI-1"));
+        // Nothing for the compositor to do, so nothing to confirm.
+        QCOMPARE(scaler.batches.size(), 0);
+        QCOMPARE(asked, 0);
+        // The other one can now be switched off.
+        dialog.displayBox()->setCurrentIndex(0);
+        QVERIFY(!dialog.primaryBox()->isChecked());
+        QVERIFY(dialog.extendBox()->isEnabled());
+
+        // Remembered next time.
+        dialog.prepare();
+        dialog.displayBox()->setCurrentIndex(1);
+        QVERIFY(dialog.primaryBox()->isChecked());
     }
 
     void customFontSizeDialog()

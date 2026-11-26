@@ -43,6 +43,7 @@
 #include <QLoggingCategory>
 #include <QScreen>
 #include <QSignalBlocker>
+#include <QTimer>
 #include <QWindow>
 #include <cstdio>
 #include <cstring>
@@ -177,8 +178,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Screen scales (Display Properties > Settings > Font Size), restored
-    // for each screen when it appears.
+    // Screen modes, scales and arrangement (Display Properties > Settings),
+    // restored for each screen when it appears.
     Daytona::OutputManager outputs;
     outputs.setSettings(&settings);
     if (!Daytona::compositorHasGlobal("zwlr_output_manager_v1")) {
@@ -203,13 +204,43 @@ int main(int argc, char *argv[])
     Daytona::InputLocales inputLocales(&settings, Daytona::labwcConfigDir());
     inputLocales.start();
     taskbar.notificationArea()->setInputLocales(&inputLocales);
-    // One taskbar, on the primary output, as in NT 4.0.
+    // One taskbar, on the primary monitor, as in NT 4.0: the one chosen in
+    // Display Properties while it is on, else the compositor's first.
+    const auto taskbarScreen = [&outputs, &settings]() -> QScreen * {
+        const QString primary = settings.primaryOutput();
+        if (!primary.isEmpty()) {
+            for (const Daytona::OutputHead &head : outputs.heads()) {
+                if (!head.enabled || Daytona::outputIdentity(head) != primary)
+                    continue;
+                for (QScreen *screen : QGuiApplication::screens()) {
+                    if (screen->name() == head.name)
+                        return screen;
+                }
+            }
+        }
+        return QGuiApplication::primaryScreen();
+    };
     taskbar.winId();
-    taskbar.windowHandle()->setScreen(QGuiApplication::primaryScreen());
+    taskbar.windowHandle()->setScreen(taskbarScreen());
     taskbar.attachToLayerShell();
     taskbar.show();
-    QObject::connect(qApp, &QGuiApplication::primaryScreenChanged, &taskbar,
-        [&taskbar](QScreen *screen) { taskbar.moveToScreen(screen); });
+    // Looked at again once screens or the choice change, after Qt and the
+    // output manager have both caught up.
+    QTimer placeTaskbar;
+    placeTaskbar.setSingleShot(true);
+    placeTaskbar.setInterval(0);
+    QObject::connect(&placeTaskbar, &QTimer::timeout, &taskbar,
+        [&taskbar, taskbarScreen] { taskbar.moveToScreen(taskbarScreen()); });
+    const auto moveTaskbar = [&placeTaskbar] { placeTaskbar.start(); };
+    QObject::connect(qApp, &QGuiApplication::primaryScreenChanged, &placeTaskbar, moveTaskbar);
+    QObject::connect(qApp, &QGuiApplication::screenAdded, &placeTaskbar, moveTaskbar);
+    QObject::connect(qApp, &QGuiApplication::screenRemoved, &placeTaskbar, moveTaskbar);
+    QObject::connect(&outputs, &Daytona::OutputManager::changed, &placeTaskbar, moveTaskbar);
+    QObject::connect(
+        &settings, &Daytona::Settings::changed, &placeTaskbar, [moveTaskbar](const QString &key) {
+            if (key.isEmpty() || key == QLatin1String("Display/PrimaryScreen"))
+                moveTaskbar();
+        });
 
     // The Start menu: its own layer surface, so it has no parent window.
     settings.watchFile();

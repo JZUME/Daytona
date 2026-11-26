@@ -20,6 +20,9 @@
 # created it (no size or scale is set), as the test is about what the shell
 # does with that configuration.
 #
+# DAYTONA_SMOKE_OUTPUTS (default 1) is how many headless outputs the session
+# has (HEADLESS-1, HEADLESS-2...).
+#
 # DAYTONA_SMOKE_AUTOSTART names a directory of XDG autostart entries for the
 # session: its config/autostart is copied to the user's autostart directory,
 # and its xdg directory is the only system configuration directory
@@ -56,7 +59,7 @@ fi
 export WLR_BACKENDS=headless
 export WLR_RENDERER=pixman
 export WLR_LIBINPUT_NO_DEVICES=1
-export WLR_HEADLESS_OUTPUTS=1
+export WLR_HEADLESS_OUTPUTS="${DAYTONA_SMOKE_OUTPUTS:-1}"
 export XDG_DATA_DIRS="$prefix/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export PATH="$prefix/bin:$PATH"
 export QT_QPA_PLATFORM=wayland
