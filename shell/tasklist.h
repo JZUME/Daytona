@@ -45,6 +45,7 @@ private:
     void add(quint32 id);
     void change(quint32 id);
     void remove(quint32 id);
+    void sync();
     void buttonClicked(TaskButton *button);
     void showWindowMenu(TaskButton *button, const QPoint &globalPos);
     void showActivePage();

@@ -40,6 +40,8 @@ protected:
 private:
     friend class ToplevelHandle;
     void handleClosed(quint32 id);
+    // 0 for null or a handle this manager does not know.
+    quint32 idForHandle(struct ::zwlr_foreign_toplevel_handle_v1 *object) const;
 
     ToplevelList m_list;
     QHash<quint32, ToplevelHandle *> m_handles;

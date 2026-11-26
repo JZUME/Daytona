@@ -51,47 +51,62 @@ void TaskList::setManager(ToplevelManager *manager)
     connect(&list, &ToplevelList::added, this, &TaskList::add);
     connect(&list, &ToplevelList::changed, this, &TaskList::change);
     connect(&list, &ToplevelList::removed, this, &TaskList::remove);
-    for (const Toplevel &t : list.toplevels())
-        add(t.id);
+    sync();
+    showActivePage();
+    relayout();
 }
 
-void TaskList::add(quint32 id)
+void TaskList::add(quint32 /*id*/)
 {
-    const Toplevel *toplevel = m_manager->list().find(id);
-    if (!toplevel)
-        return;
-    auto *button = new TaskButton(id, this);
-    button->update(*toplevel);
-    connect(button, &TaskButton::clicked, this, [this, button] { buttonClicked(button); });
-    connect(button, &TaskButton::windowMenuRequested, this,
-        [this, button](const QPoint &pos) { showWindowMenu(button, pos); });
-    m_buttons.append(button);
+    sync();
     showActivePage();
     relayout();
 }
 
 void TaskList::change(quint32 id)
 {
+    sync();
     const Toplevel *toplevel = m_manager->list().find(id);
-    for (TaskButton *button : std::as_const(m_buttons)) {
-        if (button->id() == id && toplevel) {
-            button->update(*toplevel);
-            if (toplevel->activated)
-                showActivePage();
-        }
-    }
+    if (toplevel && toplevel->activated)
+        showActivePage();
     relayout();
 }
 
-void TaskList::remove(quint32 id)
+void TaskList::remove(quint32 /*id*/)
 {
-    for (int i = 0; i < m_buttons.size(); ++i) {
-        if (m_buttons[i]->id() == id) {
-            delete m_buttons.takeAt(i);
-            break;
-        }
-    }
+    sync();
     relayout();
+}
+
+void TaskList::sync()
+{
+    // NT gives only owner windows a button; a dialog's owner stands for it,
+    // shown pressed while the dialog is active. A window can gain or lose
+    // its parent at any time, so rebuild the row in launch order.
+    const ToplevelList &list = m_manager->list();
+    const quint32 activeOwner = list.activeOwner();
+    QList<TaskButton *> old = m_buttons;
+    m_buttons.clear();
+    for (quint32 id : list.owners()) {
+        TaskButton *button = nullptr;
+        for (int i = 0; i < old.size(); ++i) {
+            if (old[i]->id() == id) {
+                button = old.takeAt(i);
+                break;
+            }
+        }
+        if (!button) {
+            button = new TaskButton(id, this);
+            connect(button, &TaskButton::clicked, this, [this, button] { buttonClicked(button); });
+            connect(button, &TaskButton::windowMenuRequested, this,
+                [this, button](const QPoint &pos) { showWindowMenu(button, pos); });
+        }
+        Toplevel shown = *list.find(id);
+        shown.activated = id == activeOwner;
+        button->update(shown);
+        m_buttons.append(button);
+    }
+    qDeleteAll(old);
 }
 
 void TaskList::buttonClicked(TaskButton *button)
@@ -100,8 +115,10 @@ void TaskList::buttonClicked(TaskButton *button)
     if (!toplevel)
         return;
     // NT: clicking the active window's button minimises it; any other
-    // click brings the window forward, restoring it if minimised.
-    if (toplevel->activated && !toplevel->minimized)
+    // click brings the window forward, restoring it if minimised. An owner
+    // counts as active while one of its dialogs is.
+    const bool active = m_manager->list().activeOwner() == toplevel->id;
+    if (active && !toplevel->minimized)
         m_manager->setMinimized(toplevel->id, true);
     else
         m_manager->activate(toplevel->id);
@@ -118,7 +135,7 @@ void TaskList::showWindowMenu(TaskButton *button, const QPoint &globalPos)
 
     // NT brings the window forward when its button is right-clicked, unless
     // it is minimised, which leaves it minimised behind the menu.
-    if (!minimized && !toplevel->activated)
+    if (!minimized && m_manager->list().activeOwner() != id)
         m_manager->activate(id);
 
     const WindowMenuState state = windowMenuState(*toplevel);

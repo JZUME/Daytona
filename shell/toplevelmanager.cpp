@@ -39,6 +39,11 @@ protected:
         m_manager->m_list.setState(
             m_id, QByteArray(static_cast<const char *>(state->data), int(state->size)));
     }
+    void zwlr_foreign_toplevel_handle_v1_parent(
+        struct ::zwlr_foreign_toplevel_handle_v1 *parent) override
+    {
+        m_manager->m_list.setParentToplevel(m_id, m_manager->idForHandle(parent));
+    }
     void zwlr_foreign_toplevel_handle_v1_done() override { m_manager->m_list.done(m_id); }
     void zwlr_foreign_toplevel_handle_v1_closed() override { m_manager->handleClosed(m_id); }
 
@@ -58,7 +63,8 @@ ToplevelManager::ToplevelManager(QObject *parent)
     connect(&m_list, &ToplevelList::changed, this, [this](quint32 id) {
         const Toplevel *t = m_list.find(id);
         qCDebug(lcToplevels) << "changed" << id << t->title << "activated" << t->activated
-                             << "minimized" << t->minimized << "maximized" << t->maximized;
+                             << "minimized" << t->minimized << "maximized" << t->maximized
+                             << "parent" << t->parent;
     });
     connect(&m_list, &ToplevelList::removed, this,
         [](quint32 id) { qCDebug(lcToplevels) << "removed" << id; });
@@ -87,6 +93,17 @@ void ToplevelManager::handleClosed(quint32 id)
 {
     m_list.close(id);
     delete m_handles.take(id);
+}
+
+quint32 ToplevelManager::idForHandle(struct ::zwlr_foreign_toplevel_handle_v1 *object) const
+{
+    if (!object)
+        return 0;
+    for (auto it = m_handles.cbegin(); it != m_handles.cend(); ++it) {
+        if ((*it)->object() == object)
+            return it.key();
+    }
+    return 0;
 }
 
 void ToplevelManager::activate(quint32 id)

@@ -61,6 +61,13 @@ void ToplevelList::setState(quint32 id, const QByteArray &states)
     }
 }
 
+void ToplevelList::setParentToplevel(quint32 id, quint32 parentId)
+{
+    auto it = m_pending.find(id);
+    if (it != m_pending.end())
+        it->parent = parentId == id ? 0 : parentId;
+}
+
 void ToplevelList::done(quint32 id)
 {
     auto pending = m_pending.constFind(id);
@@ -84,6 +91,19 @@ void ToplevelList::close(quint32 id)
         m_order.removeOne(id);
         Q_EMIT removed(id);
     }
+    // A closed window cannot stay a parent. wlroots clears the parent of
+    // such windows itself before the close, so this normally finds nothing.
+    for (Toplevel &pending : m_pending) {
+        if (pending.parent == id)
+            pending.parent = 0;
+    }
+    for (quint32 childId : std::as_const(m_order)) {
+        Toplevel &child = m_current[childId];
+        if (child.parent == id) {
+            child.parent = 0;
+            Q_EMIT changed(childId);
+        }
+    }
 }
 
 QList<Toplevel> ToplevelList::toplevels() const
@@ -99,6 +119,40 @@ const Toplevel *ToplevelList::find(quint32 id) const
 {
     auto it = m_current.constFind(id);
     return it == m_current.constEnd() ? nullptr : &*it;
+}
+
+QList<quint32> ToplevelList::owners() const
+{
+    QList<quint32> result;
+    for (quint32 id : m_order) {
+        if (m_current.value(id).parent == 0)
+            result.append(id);
+    }
+    return result;
+}
+
+quint32 ToplevelList::rootOwner(quint32 id) const
+{
+    if (!m_current.contains(id))
+        return 0;
+    // Bounded, as the parent links come from the compositor and a loop
+    // must not hang the shell.
+    for (qsizetype steps = 0; steps < m_order.size(); ++steps) {
+        const quint32 parent = m_current.value(id).parent;
+        if (parent == 0 || !m_current.contains(parent))
+            break;
+        id = parent;
+    }
+    return id;
+}
+
+quint32 ToplevelList::activeOwner() const
+{
+    for (quint32 id : m_order) {
+        if (m_current.value(id).activated)
+            return rootOwner(id);
+    }
+    return 0;
 }
 
 } // namespace Daytona

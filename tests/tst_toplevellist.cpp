@@ -17,6 +17,16 @@ QByteArray states(std::initializer_list<quint32> values)
     return bytes;
 }
 
+// An owner window (1) with a dialog (2), both announced.
+void openOwnerAndDialog(ToplevelList &list)
+{
+    list.create(1);
+    list.done(1);
+    list.create(2);
+    list.setParentToplevel(2, 1);
+    list.done(2);
+}
+
 } // namespace
 
 class TestToplevelList : public QObject
@@ -155,6 +165,144 @@ private Q_SLOTS:
         list.done(7);
         list.close(7);
         QVERIFY(list.toplevels().isEmpty());
+    }
+
+    void childIsHidden()
+    {
+        ToplevelList list;
+        openOwnerAndDialog(list);
+        QCOMPARE(list.toplevels().size(), 2);
+        QCOMPARE(list.find(2)->parent, 1u);
+        QCOMPARE(list.find(1)->parent, 0u);
+        QCOMPARE(list.owners(), (QList<quint32> { 1 }));
+        QCOMPARE(list.rootOwner(2), 1u);
+        QCOMPARE(list.rootOwner(1), 1u);
+    }
+
+    void parentSetAfterChildAppeared()
+    {
+        ToplevelList list;
+        list.create(1);
+        list.done(1);
+        list.create(2);
+        list.done(2);
+        QSignalSpy changed(&list, &ToplevelList::changed);
+        list.setParentToplevel(2, 1);
+        QCOMPARE(list.find(2)->parent, 0u); // not yet
+        list.done(2);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(changed.at(0).at(0).toUInt(), 2u);
+        QCOMPARE(list.owners(), (QList<quint32> { 1 }));
+    }
+
+    void childAnnouncedBeforeParent()
+    {
+        // The child's handle can be announced before its parent's.
+        ToplevelList list;
+        list.create(1);
+        list.done(1);
+        QCOMPARE(list.owners(), (QList<quint32> { 1 }));
+        list.create(2);
+        list.done(2);
+        list.setParentToplevel(1, 2);
+        list.done(1);
+        QCOMPARE(list.owners(), (QList<quint32> { 2 }));
+        QCOMPARE(list.rootOwner(1), 2u);
+    }
+
+    void parentCleared()
+    {
+        ToplevelList list;
+        openOwnerAndDialog(list);
+        QSignalSpy changed(&list, &ToplevelList::changed);
+        list.setParentToplevel(2, 0);
+        list.done(2);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(list.find(2)->parent, 0u);
+        // Back in launch order.
+        QCOMPARE(list.owners(), (QList<quint32> { 1, 2 }));
+    }
+
+    void childOfClosedParentBecomesOwner()
+    {
+        ToplevelList list;
+        openOwnerAndDialog(list);
+        QSignalSpy changed(&list, &ToplevelList::changed);
+        list.close(1);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(changed.at(0).at(0).toUInt(), 2u);
+        QCOMPARE(list.find(2)->parent, 0u);
+        QCOMPARE(list.owners(), (QList<quint32> { 2 }));
+        // A later done must not bring back the closed parent.
+        list.setTitle(2, QStringLiteral("Save As"));
+        list.done(2);
+        QCOMPARE(list.find(2)->parent, 0u);
+    }
+
+    void pendingChildOfClosedParentLosesParent()
+    {
+        ToplevelList list;
+        list.create(1);
+        list.done(1);
+        list.create(2);
+        list.setParentToplevel(2, 1);
+        list.close(1);
+        list.done(2);
+        QCOMPARE(list.find(2)->parent, 0u);
+        QCOMPARE(list.owners(), (QList<quint32> { 2 }));
+    }
+
+    void ownerIsActiveWhileItsDialogIs()
+    {
+        ToplevelList list;
+        openOwnerAndDialog(list);
+        list.create(3);
+        list.setParentToplevel(3, 2); // a message box from the dialog
+        list.done(3);
+        QCOMPARE(list.activeOwner(), 0u);
+        list.setState(3, states({ ToplevelList::Activated }));
+        list.done(3);
+        QCOMPARE(list.rootOwner(3), 1u);
+        QCOMPARE(list.activeOwner(), 1u);
+        list.setState(3, states({}));
+        list.done(3);
+        list.setState(1, states({ ToplevelList::Activated }));
+        list.done(1);
+        QCOMPARE(list.activeOwner(), 1u);
+    }
+
+    void parentLoopsDoNotHang()
+    {
+        ToplevelList list;
+        list.create(1);
+        list.create(2);
+        list.setParentToplevel(1, 2);
+        list.setParentToplevel(2, 1);
+        list.done(1);
+        list.done(2);
+        list.create(3);
+        list.setParentToplevel(3, 3); // its own parent: ignored
+        list.done(3);
+        QCOMPARE(list.find(3)->parent, 0u);
+        QCOMPARE(list.owners(), (QList<quint32> { 3 }));
+        const quint32 root = list.rootOwner(1);
+        QVERIFY(root == 1 || root == 2);
+    }
+
+    void unknownParentHidesUntilCleared()
+    {
+        // A parent that has not been announced yet still makes the window
+        // a child.
+        ToplevelList list;
+        list.create(1);
+        list.create(2);
+        list.setParentToplevel(2, 1);
+        list.done(2);
+        QVERIFY(list.owners().isEmpty());
+        QCOMPARE(list.rootOwner(2), 2u);
+        list.done(1);
+        QCOMPARE(list.owners(), (QList<quint32> { 1 }));
+        QCOMPARE(list.rootOwner(2), 1u);
     }
 };
 
