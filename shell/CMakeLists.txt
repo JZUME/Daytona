@@ -49,6 +49,8 @@ add_library(daytona-shell-core STATIC
     notificationservice.h
     outputmanager.cpp
     outputmanager.h
+    printscreen.cpp
+    printscreen.h
     recentdocuments.cpp
     recentdocuments.h
     rundialog.cpp

@@ -63,7 +63,8 @@ The packages:
   runtime it needs. It recommends WirePlumber, for the volume keys, pavucontrol-qt, the
   mixer that the speaker icon opens and the Control Panel lists, UPower, for the battery icon,
   and brightnessctl, for the brightness keys (members of the `video` group can change the
-  backlight; Debian's installer adds the first user to it).
+  backlight; Debian's installer adds the first user to it), and grim and wl-clipboard, for Print
+  Screen.
 - `daytona-chicago95` holds the Chicago95 GTK theme, icons and cursors, built from the pinned
   submodule.
 
@@ -160,7 +161,7 @@ Smoke tests run a real headless labwc session against an install of the build an
 sudo apt install labwc grim wlr-randr qt6-wayland qt6-svg-plugins dbus
 ```
 
-The pointer tests also need `wlrctl`, and the autostart test `dex` and `gdbus` (`libglib2.0-bin`).
+The pointer tests also need `wlrctl`, the autostart test `dex` and `gdbus` (`libglib2.0-bin`), and the Print Screen test `wl-clipboard`.
 
 Run only the smoke tests with:
 

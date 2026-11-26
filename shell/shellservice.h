@@ -39,18 +39,27 @@ public:
     static bool requestLock();
     // Asks a running shell to start the screen saver (swayidle's timeout).
     static bool requestScreenSaver();
+    // Asks a running shell to capture every screen, or the active window's
+    // screen, to file (an absolute path), or to the clipboard when file is
+    // empty. Returns once the capture is done, false if it failed.
+    static bool requestPrintScreen(bool activeWindow, const QString &file);
 
 public Q_SLOTS:
     Q_SCRIPTABLE void ToggleStartMenu();
     // Replies once the session is locked.
     Q_SCRIPTABLE void Lock();
     Q_SCRIPTABLE void StartScreenSaver();
+    // Replies once the capture is done, with an error if it failed.
+    Q_SCRIPTABLE void PrintScreen(bool activeWindow, const QString &file);
 
 Q_SIGNALS:
     void toggleStartMenuRequested();
     // done must be called once the session is locked (or locking failed).
     void lockRequested(const std::function<void()> &done);
     void screenSaverRequested();
+    // done must be called with whether the capture succeeded.
+    void printScreenRequested(
+        bool activeWindow, const QString &file, const std::function<void(bool)> &done);
 };
 
 } // namespace Daytona

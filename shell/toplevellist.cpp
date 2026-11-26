@@ -68,6 +68,20 @@ void ToplevelList::setParentToplevel(quint32 id, quint32 parentId)
         it->parent = parentId == id ? 0 : parentId;
 }
 
+void ToplevelList::outputEnter(quint32 id, const QString &output)
+{
+    auto it = m_pending.find(id);
+    if (it != m_pending.end() && !output.isEmpty() && !it->outputs.contains(output))
+        it->outputs.append(output);
+}
+
+void ToplevelList::outputLeave(quint32 id, const QString &output)
+{
+    auto it = m_pending.find(id);
+    if (it != m_pending.end())
+        it->outputs.removeAll(output);
+}
+
 void ToplevelList::done(quint32 id)
 {
     auto pending = m_pending.constFind(id);
@@ -153,6 +167,16 @@ quint32 ToplevelList::activeOwner() const
             return rootOwner(id);
     }
     return 0;
+}
+
+QString ToplevelList::activeOutput() const
+{
+    for (quint32 id : m_order) {
+        const Toplevel &toplevel = m_current[id];
+        if (toplevel.activated)
+            return toplevel.outputs.value(0);
+    }
+    return {};
 }
 
 } // namespace Daytona

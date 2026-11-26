@@ -78,6 +78,7 @@ Before writing a component, check whether an established Linux component already
 * idle timeout, lock before sleep and on logind's `Lock`: **swayidle** (the lock screen itself is Daytona's `daytona-lock`, as no existing locker can show NT's dialogs)
 * sound server and volume keys: **PipeWire** (through pipewire-pulse) and **WirePlumber**'s `wpctl`
 * sound mixer (Control Panel applet, Open Volume Control): **pavucontrol-qt**
+* Print Screen capture and the clipboard: **grim** and **wl-clipboard**'s `wl-copy`
 * suspend, hibernate, lid and power button: **systemd-logind**; battery state: **UPower**; brightness keys: **brightnessctl**
 * file manager, terminal, editor, etc.: existing lightweight applications
 
@@ -422,6 +423,15 @@ Laptop support from Windows 98 and 2000, on top of logind and UPower:
 
 ---
 
+## Print Screen
+
+* **Print Screen** copies every screen to the clipboard as a PNG at device resolution, as NT did: no dialog, no file. **Alt+Print Screen** copies the screen the active window is on (every screen when no window is active). NT copied only the active window, but labwc 0.8.3 gives clients neither window geometry (foreign-toplevel has none) nor a way to capture one window (that needs wlroots 0.19's toplevel capture source); revisit when Daytona moves to a labwc that offers it.
+* Both are labwc keybindings running `daytona-shell --print-screen` / `--print-window`. The running shell knows which screen the active window is on (foreign-toplevel's `output_enter`), runs `grim`, and passes the image to `wl-copy` only once grim has succeeded, so a failed capture leaves the clipboard alone.
+* For scripts (diagnostics, documentation screenshots), both take an optional file name and save the PNG there instead; the command returns once the image is in place and fails if it could not be captured.
+* Not provided: a screenshot application, region selection, or saving key-press captures to a folder.
+
+---
+
 ## Desktop
 
 The desktop is a background layer-shell surface on each output showing the wallpaper or desktop colour, plus a right-click menu containing **Properties**, which opens Display Properties. NT's other desktop menu items (Arrange Icons, Line up Icons, Paste, Paste Shortcut, New) act on desktop icons and are omitted while icons are out of scope.
@@ -486,7 +496,9 @@ Dependencies must earn their place. Current expected dependencies:
 * libpulse and libpulse-mainloop-glib (the notification area's volume control; talks to PipeWire through pipewire-pulse, or to PulseAudio)
 * Chicago95 (git submodule; GTK theme, icons and cursors)
 
-Development and test only: wayvnc, noVNC, grim.
+Runtime, recommended: grim and wl-clipboard (Print Screen).
+
+Development and test only: wayvnc, noVNC.
 
 Before adding a dependency:
 

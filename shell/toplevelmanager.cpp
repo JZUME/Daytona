@@ -4,7 +4,9 @@
 
 #include <QGuiApplication>
 #include <QLoggingCategory>
+#include <QScreen>
 #include <QtGui/qguiapplication_platform.h>
+#include <QtGui/qscreen_platform.h>
 
 Q_LOGGING_CATEGORY(lcToplevels, "daytona.toplevels", QtInfoMsg)
 
@@ -44,10 +46,32 @@ protected:
     {
         m_manager->m_list.setParentToplevel(m_id, m_manager->idForHandle(parent));
     }
+    void zwlr_foreign_toplevel_handle_v1_output_enter(struct ::wl_output *output) override
+    {
+        m_manager->m_list.outputEnter(m_id, screenName(output));
+    }
+    void zwlr_foreign_toplevel_handle_v1_output_leave(struct ::wl_output *output) override
+    {
+        m_manager->m_list.outputLeave(m_id, screenName(output));
+    }
     void zwlr_foreign_toplevel_handle_v1_done() override { m_manager->m_list.done(m_id); }
     void zwlr_foreign_toplevel_handle_v1_closed() override { m_manager->handleClosed(m_id); }
 
 private:
+    // The name Qt gives the screen for output (the compositor's output
+    // name, as grim -o takes), or an empty string for an output Qt has not
+    // added as a screen.
+    static QString screenName(struct ::wl_output *output)
+    {
+        const QList<QScreen *> screens = QGuiApplication::screens();
+        for (QScreen *screen : screens) {
+            auto *wayland = screen->nativeInterface<QNativeInterface::QWaylandScreen>();
+            if (wayland && wayland->output() == output)
+                return screen->name();
+        }
+        return {};
+    }
+
     quint32 m_id;
     ToplevelManager *m_manager;
 };

@@ -107,6 +107,15 @@
     <keybind key="W-l">
       <action name="Execute" command="daytona-shell --lock" />
     </keybind>
+    <!-- Print Screen copies the screen to the clipboard, as in NT. Alt+Print
+         Screen copies the active window's screen: labwc gives no way to
+         capture one window. The shell runs grim and wl-copy. -->
+    <keybind key="Print">
+      <action name="Execute" command="daytona-shell --print-screen" />
+    </keybind>
+    <keybind key="A-Print">
+      <action name="Execute" command="daytona-shell --print-window" />
+    </keybind>
     <!-- Volume keys, through WirePlumber (Debian 13's PipeWire session
          manager). Raising stops at 100%, as NT's volume control did. The
          speaker in the notification area follows the change. -->

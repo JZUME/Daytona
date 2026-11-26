@@ -4,6 +4,9 @@ daytona-shell \- Windows NT 4.0-style desktop shell for labwc
 .SH SYNOPSIS
 .B daytona-shell
 [\fB\-\-start\-menu\fR | \fB\-\-lock\fR | \fB\-\-screen\-saver\fR | \fB\-\-version\fR]
+.br
+.B daytona-shell
+\fB\-\-print\-screen\fR | \fB\-\-print\-window\fR [\fIFILE\fR]
 .SH DESCRIPTION
 .B daytona-shell
 draws the Daytona desktop on a Wayland compositor with the layer-shell
@@ -31,6 +34,17 @@ shell starts, before the computer sleeps and for \fBloginctl lock-session\fR.
 Ask the running shell to start the screen saver chosen in Display Properties.
 \fBswayidle\fR(1) runs this after the screen saver's wait.
 .TP
+.BR \-\-print\-screen " [\fIFILE\fR]"
+Ask the running shell to capture every screen at device resolution, as a PNG
+image, and copy it to the clipboard, or save it to \fIFILE\fR. labwc runs this
+for Print Screen. It returns once the image is in place, and fails if
+\fBgrim\fR(1) or \fBwl-copy\fR(1) is missing or the capture fails.
+.TP
+.BR \-\-print\-window " [\fIFILE\fR]"
+As \fB\-\-print\-screen\fR, but only the screen the active window is on (every
+screen when no window is active). labwc runs this for Alt+Print Screen. NT
+copied only the active window; labwc gives no way to capture one window.
+.TP
 .B \-\-version
 Print the version and exit.
 .SH FILES
@@ -43,5 +57,7 @@ The colour scheme, written by \fBdaytona-themetool\fR(1).
 .SH SEE ALSO
 .BR daytona-session (1),
 .BR daytona-themetool (1),
+.BR grim (1),
 .BR labwc (1),
-.BR swayidle (1)
+.BR swayidle (1),
+.BR wl-copy (1)

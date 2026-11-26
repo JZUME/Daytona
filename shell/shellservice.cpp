@@ -36,21 +36,27 @@ ShellService::Registration ShellService::registerOnSessionBus()
 
 namespace {
 
-    bool callShell(const char *method, int timeoutMs)
+    constexpr const char *PrintScreenFailed = "org.daytona.Shell.Error.PrintScreenFailed";
+
+    bool callShell(const char *method, int timeoutMs, const QVariantList &arguments = {})
     {
         QDBusConnection bus = QDBusConnection::sessionBus();
         if (!bus.isConnected()) {
             std::fprintf(stderr, "daytona-shell: no D-Bus session bus\n");
             return false;
         }
-        const QDBusMessage call
+        QDBusMessage call
             = QDBusMessage::createMethodCall(QString::fromLatin1(ShellService::ServiceName),
                 QString::fromLatin1(ShellService::ObjectPath),
                 QString::fromLatin1(ShellService::ServiceName), QString::fromLatin1(method));
+        call.setArguments(arguments);
         const QDBusMessage reply = bus.call(call, QDBus::Block, timeoutMs);
         if (reply.type() == QDBusMessage::ErrorMessage) {
-            std::fprintf(
-                stderr, "daytona-shell: no running shell: %s\n", qPrintable(reply.errorMessage()));
+            if (reply.errorName() == QLatin1String(PrintScreenFailed))
+                std::fprintf(stderr, "daytona-shell: %s\n", qPrintable(reply.errorMessage()));
+            else
+                std::fprintf(stderr, "daytona-shell: no running shell: %s\n",
+                    qPrintable(reply.errorMessage()));
             return false;
         }
         return true;
@@ -73,6 +79,26 @@ bool ShellService::requestLock()
 bool ShellService::requestScreenSaver()
 {
     return callShell("StartScreenSaver", 2000);
+}
+
+bool ShellService::requestPrintScreen(bool activeWindow, const QString &file)
+{
+    return callShell("PrintScreen", 10000, { activeWindow, file });
+}
+
+void ShellService::PrintScreen(bool activeWindow, const QString &file)
+{
+    qCDebug(lcService) << "Print Screen requested over D-Bus" << activeWindow << file;
+    std::function<void(bool)> done = [](bool) { };
+    if (calledFromDBus()) {
+        setDelayedReply(true);
+        done = [bus = connection(), call = message()](bool ok) mutable {
+            bus.send(ok ? call.createReply()
+                        : call.createErrorReply(QString::fromLatin1(PrintScreenFailed),
+                              QStringLiteral("the screen could not be captured")));
+        };
+    }
+    Q_EMIT printScreenRequested(activeWindow, file, done);
 }
 
 void ShellService::Lock()

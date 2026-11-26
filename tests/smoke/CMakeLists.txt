@@ -106,3 +106,11 @@ if(WLRCTL_EXECUTABLE AND SWAYIDLE_EXECUTABLE)
 else()
     message(STATUS "wlrctl or swayidle not found: screen saver smoke test disabled")
 endif()
+
+# Print Screen, through grim and wl-clipboard.
+find_program(WL_PASTE_EXECUTABLE wl-paste)
+if(WL_PASTE_EXECUTABLE)
+    daytona_add_smoke_test(smoke_printscreen smoke_printscreen.sh)
+else()
+    message(STATUS "wl-paste not found: Print Screen smoke test disabled")
+endif()

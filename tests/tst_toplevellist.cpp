@@ -304,6 +304,46 @@ private Q_SLOTS:
         QCOMPARE(list.owners(), (QList<quint32> { 1 }));
         QCOMPARE(list.rootOwner(2), 1u);
     }
+
+    void outputsFollowEnterAndLeave()
+    {
+        ToplevelList list;
+        list.create(1);
+        list.outputEnter(1, QStringLiteral("DP-1"));
+        list.outputEnter(1, QStringLiteral("HDMI-A-1"));
+        list.outputEnter(1, QStringLiteral("DP-1")); // already on it
+        list.outputEnter(1, QString()); // a screen Qt does not know
+        list.done(1);
+        QCOMPARE(list.find(1)->outputs, QStringList({ "DP-1", "HDMI-A-1" }));
+        QSignalSpy changed(&list, &ToplevelList::changed);
+        list.outputLeave(1, QStringLiteral("DP-1"));
+        list.done(1);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(list.find(1)->outputs, QStringList({ "HDMI-A-1" }));
+    }
+
+    void activeOutputIsTheActiveWindowsFirstOutput()
+    {
+        ToplevelList list;
+        QCOMPARE(list.activeOutput(), QString());
+        list.create(1);
+        list.outputEnter(1, QStringLiteral("DP-1"));
+        list.done(1);
+        list.create(2);
+        list.outputEnter(2, QStringLiteral("HDMI-A-1"));
+        list.outputEnter(2, QStringLiteral("DP-1"));
+        list.done(2);
+        QCOMPARE(list.activeOutput(), QString()); // nothing active
+        list.setState(2, states({ ToplevelList::Activated }));
+        list.done(2);
+        QCOMPARE(list.activeOutput(), QStringLiteral("HDMI-A-1"));
+        list.create(3); // active, but not yet on any output
+        list.setState(2, states({}));
+        list.done(2);
+        list.setState(3, states({ ToplevelList::Activated }));
+        list.done(3);
+        QCOMPARE(list.activeOutput(), QString());
+    }
 };
 
 QTEST_GUILESS_MAIN(TestToplevelList)

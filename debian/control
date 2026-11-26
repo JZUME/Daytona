@@ -53,12 +53,14 @@ Depends:
 Recommends:
  brightnessctl,
  dex,
+ grim,
  libglib2.0-bin,
  lxqt-policykit,
  pavucontrol-qt | pavucontrol,
  swayidle,
  upower,
  wireplumber,
+ wl-clipboard,
  xdg-utils,
  xwayland,
 Suggests:

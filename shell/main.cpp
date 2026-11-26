@@ -14,6 +14,7 @@
 #include "notificationqueue.h"
 #include "notificationservice.h"
 #include "outputmanager.h"
+#include "printscreen.h"
 #include "rundialog.h"
 #include "screenlock.h"
 #include "screensaverservice.h"
@@ -35,6 +36,7 @@
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QFile>
+#include <QFileInfo>
 #include <QLoggingCategory>
 #include <QScreen>
 #include <QSignalBlocker>
@@ -46,13 +48,31 @@ Q_LOGGING_CATEGORY(lcShell, "daytona.shell", QtInfoMsg)
 
 namespace {
 
-bool hasArgument(int argc, char *argv[], const char *name)
+// The index of name in argv, or 0 if it is not there.
+int argumentIndex(int argc, char *argv[], const char *name)
 {
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], name) == 0)
-            return true;
+            return i;
     }
-    return false;
+    return 0;
+}
+
+bool hasArgument(int argc, char *argv[], const char *name)
+{
+    return argumentIndex(argc, argv, name) != 0;
+}
+
+// --print-screen [FILE] and --print-window [FILE]: Print Screen and
+// Alt+Print Screen, done by the running shell. Without FILE the image goes
+// to the clipboard.
+int printScreen(int argc, char *argv[], int index, bool activeWindow)
+{
+    QCoreApplication app(argc, argv);
+    QString file;
+    if (index + 1 < argc && argv[index + 1][0] != '-')
+        file = QFileInfo(QString::fromLocal8Bit(argv[index + 1])).absoluteFilePath();
+    return Daytona::ShellService::requestPrintScreen(activeWindow, file) ? 0 : 1;
 }
 
 } // namespace
@@ -78,6 +98,10 @@ int main(int argc, char *argv[])
         QCoreApplication app(argc, argv);
         return Daytona::ShellService::requestScreenSaver() ? 0 : 1;
     }
+    if (const int index = argumentIndex(argc, argv, "--print-screen"))
+        return printScreen(argc, argv, index, false);
+    if (const int index = argumentIndex(argc, argv, "--print-window"))
+        return printScreen(argc, argv, index, true);
 
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("daytona-shell"));
@@ -240,6 +264,17 @@ int main(int argc, char *argv[])
     taskbar.setKeepShown([&startMenu] { return startMenu.isVisible(); });
     QObject::connect(
         &startMenu, &Daytona::StartMenu::closed, &taskbar, &Daytona::Taskbar::collapseLater);
+
+    // Print Screen and Alt+Print Screen (labwc key bindings).
+    Daytona::PrintScreen printScreen;
+    QObject::connect(&service, &Daytona::ShellService::printScreenRequested, &printScreen,
+        [&printScreen, &toplevels](
+            bool activeWindow, const QString &file, const std::function<void(bool)> &done) {
+            // With no active window (or none on a known screen), every
+            // screen.
+            const QString output = activeWindow ? toplevels.list().activeOutput() : QString();
+            printScreen.capture(output, file, done);
+        });
 
     // Locking (daytona-lock) and the screen saver (swayidle's timeout).
     Daytona::ScreenLocker locker;

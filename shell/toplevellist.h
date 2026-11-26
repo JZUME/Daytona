@@ -7,6 +7,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 namespace Daytona {
 
@@ -23,13 +24,16 @@ struct Toplevel
     // The window that owns this one (a dialog's main window), or 0 for an
     // owner window. NT gives only owner windows a taskbar button.
     quint32 parent = 0;
+    // Names of the outputs (screens) the window is on, in the order it
+    // entered them.
+    QStringList outputs;
 
     bool operator==(const Toplevel &other) const
     {
         return id == other.id && title == other.title && appId == other.appId
             && activated == other.activated && minimized == other.minimized
             && maximized == other.maximized && fullscreen == other.fullscreen
-            && parent == other.parent;
+            && parent == other.parent && outputs == other.outputs;
     }
 };
 
@@ -68,6 +72,9 @@ public:
     void setState(quint32 id, const QByteArray &states);
     // parentId is 0 when the window has no parent.
     void setParentToplevel(quint32 id, quint32 parentId);
+    // output is the screen's name; empty names are ignored.
+    void outputEnter(quint32 id, const QString &output);
+    void outputLeave(quint32 id, const QString &output);
     void done(quint32 id);
     void close(quint32 id);
 
@@ -84,6 +91,9 @@ public:
     // The root owner of the active window, or 0 if no window is active. NT
     // shows this owner's button pressed while one of its dialogs is active.
     quint32 activeOwner() const;
+    // The first output the active window is on, or an empty string if no
+    // window is active or the compositor has not said where it is.
+    QString activeOutput() const;
 
 Q_SIGNALS:
     void added(quint32 id);
