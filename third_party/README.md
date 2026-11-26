@@ -7,10 +7,19 @@ into Daytona's own tree; update the submodule pin instead, as its own change.
 
 - Source: https://github.com/grassmunk/Chicago95
 - Pinned to: tag `v3.0.1` (commit `149a54c`)
-- Installed by Daytona:
-  - GTK2/3 theme: `Theme/Chicago95` → `share/themes/Chicago95`
-  - Icon theme: `Icons/Chicago95` → `share/icons/Chicago95`
-  - Cursor theme: `Cursors/Chicago95 Standard Cursors` → `share/icons/Chicago95 Standard Cursors`
+- Installed by Daytona, after `scripts/stage-chicago95.py` stages them in the
+  build tree:
+  - GTK2/3 theme: `Theme/Chicago95` → `share/themes/Chicago95`, without the
+    start-button images in `misc/` and `gnome-shell/assets/start.png` (the
+    Windows logo)
+  - Icon theme: `Icons/Chicago95` → `share/icons/Chicago95`, system icons
+    only: without the Windows logo (start-here, distributor-logo, panel menu,
+    Windows Update and .exe icons) and without icons that replace an
+    application's own icon (every non-generic name in `apps/`, reverse-DNS
+    application IDs and application tray icons). Applications keep the icon
+    their developer gave them. `tests/check_chicago95.py` checks the result.
+  - Cursors: generated from `Cursors/Chicago95 Standard Cursors` as
+    "Daytona Cursors" (see `themetool/xcursor.h`)
 
 ### Licence
 

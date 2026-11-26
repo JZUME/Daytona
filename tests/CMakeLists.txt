@@ -116,3 +116,9 @@ add_executable(tst_screenlock tst_screenlock.cpp)
 target_link_libraries(tst_screenlock PRIVATE Qt6::Test daytona-shell-core)
 add_test(NAME tst_screenlock COMMAND dbus-run-session -- $<TARGET_FILE:tst_screenlock>)
 set_tests_properties(tst_screenlock PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+
+# The staged Chicago95 theme and icons: no Windows logo or application icons.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME check_chicago95
+    COMMAND Python3::Interpreter -I "${CMAKE_CURRENT_SOURCE_DIR}/check_chicago95.py"
+        "${CMAKE_BINARY_DIR}/chicago95")

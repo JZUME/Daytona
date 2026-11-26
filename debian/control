@@ -16,6 +16,7 @@ Build-Depends:
  libwayland-bin,
  dbus-daemon,
  meson,
+ python3:any,
  libwlroots-0.18-dev,
  wayland-protocols,
  libxkbcommon-dev,
