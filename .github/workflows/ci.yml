@@ -93,8 +93,10 @@ jobs:
       - name: Lintian
         run: lintian --fail-on error --info daytona_*.deb daytona-chicago95_*.deb
 
+      # The debug symbols go with the packages (and so into the apt
+      # repository), for readable backtraces of the shell and labwc.
       - name: Collect
-        run: mkdir dist && mv daytona_*.deb daytona-chicago95_*.deb dist/
+        run: mkdir dist && mv daytona_*.deb daytona-chicago95_*.deb daytona-dbgsym_*.deb dist/
 
       - uses: actions/upload-artifact@v4
         with:

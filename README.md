@@ -40,7 +40,9 @@ Then install:
 sudo apt update && sudo apt install daytona
 ```
 
-Updates then come with `sudo apt update && sudo apt upgrade`. Log out and back in after an update
+Updates then come with `sudo apt update && sudo apt upgrade`. To report a crash, also install
+`daytona-dbgsym` (debug symbols for the shell and Daytona's labwc) so backtraces show function
+names. Log out and back in after an update
 of Daytona; your settings (colour scheme, wallpaper, taskbar) are kept.
 
 The packages can also be installed by hand: download them from a GitHub release, or from the

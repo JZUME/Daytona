@@ -17,6 +17,22 @@ export GTK_THEME=Daytona
 export QT_STYLE_OVERRIDE=daytona
 export XCURSOR_THEME="Chicago95 Standard Cursors"
 
+# VMware's virtual GPU (vmwgfx) cannot free the handles of imported GPU
+# buffers through the standard call: it always fails with EINVAL. wlroots
+# 0.18 takes that as a bad buffer and disconnects the client, so every
+# GPU-drawn app (GTK 4, and Xwayland, taking the session with it) is thrown
+# out as soon as it shows a window. Drawing with the software renderer
+# offers no GPU buffers, so apps use shared memory instead. Set WLR_RENDERER
+# yourself to override this.
+if [ -z "${WLR_RENDERER:-}" ]; then
+    for driver in /sys/class/drm/card*/device/driver; do
+        if [ "$(basename "$(readlink -f "$driver")")" = vmwgfx ]; then
+            export WLR_RENDERER=pixman
+            break
+        fi
+    done
+fi
+
 # Daytona's patched labwc (bevelled NT window frames), installed next to this
 # script's prefix; the system's labwc if it was built without it.
 labwc="$(dirname "$(readlink -f "$0")")/../libexec/daytona/labwc"
