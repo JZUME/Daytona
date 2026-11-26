@@ -5,6 +5,8 @@
 #include "colours.h"
 
 #include <QByteArray>
+#include <QList>
+#include <QPair>
 #include <QString>
 
 namespace Daytona {
@@ -36,6 +38,13 @@ QString gtkSettingsPath();
 // else in it. The first time Daytona changes an existing file, the original
 // is kept next to it as settings.ini.daytona-backup.
 bool setGtkSettings(const QString &path, const QString &iconTheme, const QString &cursorTheme,
+    QString *error = nullptr);
+// Sets the cursor theme and size in a GTK settings.ini in the same way.
+bool setGtkCursorSettings(
+    const QString &path, const QString &cursorTheme, int size, QString *error = nullptr);
+// Sets the given keys in a GTK settings.ini's [Settings] group in the same
+// way. A file that already has these values is not written.
+bool setGtkSettingValues(const QString &path, const QList<QPair<QByteArray, QByteArray>> &values,
     QString *error = nullptr);
 
 } // namespace Daytona

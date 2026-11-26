@@ -66,6 +66,7 @@ set_tests_properties(smoke_screen_scale PROPERTIES
 find_program(WLRCTL_EXECUTABLE wlrctl)
 if(WLRCTL_EXECUTABLE)
     daytona_add_smoke_test(smoke_startmenu_hover smoke_startmenu_hover.sh)
+    daytona_add_smoke_test(smoke_pointer smoke_pointer.sh)
 else()
     message(STATUS "wlrctl not found: pointer smoke tests disabled")
 endif()

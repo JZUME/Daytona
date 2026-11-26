@@ -33,6 +33,8 @@ add_library(daytona-shell-core STATIC
     notificationarea.h
     notificationqueue.cpp
     notificationqueue.h
+    mouseproperties.cpp
+    mouseproperties.h
     notificationservice.cpp
     notificationservice.h
     outputmanager.cpp

@@ -39,10 +39,11 @@ export WLR_RENDERER=pixman
 export WLR_LIBINPUT_NO_DEVICES=1
 # DAYTONA_OUTPUTS (default 1) headless outputs, side by side.
 export WLR_HEADLESS_OUTPUTS="${DAYTONA_OUTPUTS:-1}"
-# As daytona-session sets them.
+# As daytona-session sets them (the standard pointer scheme).
 export GTK_THEME=Daytona
 export QT_STYLE_OVERRIDE=daytona
-export XCURSOR_THEME="Chicago95 Standard Cursors"
+export XCURSOR_THEME="Daytona Cursors"
+export XCURSOR_SIZE=32
 
 pids=()
 cleanup() {
@@ -69,6 +70,8 @@ prefix="$repo/build/prefix"
 if [[ -x "$prefix/bin/daytona-shell" ]]; then
     export PATH="$prefix/bin:$PATH"
     export XDG_DATA_DIRS="$prefix/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    # Cursor themes are not looked up through XDG_DATA_DIRS.
+    export XCURSOR_PATH="$prefix/share/icons:${XCURSOR_PATH:-$HOME/.local/share/icons:$HOME/.icons:/usr/share/icons:/usr/share/pixmaps}"
     plugins=$(find "$prefix/lib" -maxdepth 3 -type d -path '*/qt6/plugins' 2>/dev/null | head -n 1)
     if [[ -n "$plugins" ]]; then
         export QT_PLUGIN_PATH="$plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
@@ -138,7 +141,9 @@ export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export QT_PLUGIN_PATH="${QT_PLUGIN_PATH:-}"
 export GTK_THEME=Daytona
 export QT_STYLE_OVERRIDE=daytona
-export XCURSOR_THEME="Chicago95 Standard Cursors"
+export XCURSOR_THEME="Daytona Cursors"
+export XCURSOR_SIZE=32
+export XCURSOR_PATH="${XCURSOR_PATH:-}"
 ENV
 
 cat <<MSG

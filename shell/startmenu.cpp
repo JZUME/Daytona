@@ -139,19 +139,16 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
     m_controlPanel
         = m_settingsMenu->addAction(themeIcon("preferences-system"), tr("&Control Panel"), this,
             [this] { runCommand(m_settings->controlPanelCommand(), tr("Control Panel")); });
-    QAction *taskbar = m_settingsMenu->addAction(themeIcon("preferences-system-windows"),
-        tr("&Taskbar..."), this, &StartMenu::taskbarPropertiesRequested);
-    QAction *display = m_settingsMenu->addAction(themeIcon("preferences-desktop-display"),
-        tr("&Display..."), this, &StartMenu::displayPropertiesRequested);
+    m_settingsMenu->addAction(themeIcon("preferences-system-windows"), tr("&Taskbar..."), this,
+        &StartMenu::taskbarPropertiesRequested);
+    m_settingsMenu->addAction(themeIcon("preferences-desktop-display"), tr("&Display..."), this,
+        &StartMenu::displayPropertiesRequested);
+    m_settingsMenu->addAction(
+        themeIcon("input-mouse"), tr("&Mouse..."), this, &StartMenu::mousePropertiesRequested);
 
     m_findMenu = new QMenu(this);
     m_find = m_findMenu->addAction(themeIcon("folder-open"), tr("&Files or Folders..."), this,
         [this] { runCommand(m_settings->findCommand(), tr("Find")); });
-
-    // The dialogs behind these items are separate pieces of work; until they
-    // exist the items are shown disabled rather than doing nothing.
-    taskbar->setEnabled(false);
-    display->setEnabled(false);
 
     m_items = {
         { themeIcon("applications-other"), tr("&Programs"), m_programs, {}, true, false },

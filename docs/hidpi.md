@@ -28,6 +28,20 @@ to another port. Otherwise the size belongs to the connector (for example
 does, so a size set with `wlr-randr` or kanshi is replaced by the saved one
 only at the next login or when the screen next appears.
 
+## The mouse pointer
+
+Daytona's cursor theme ("Daytona Cursors") has every cursor at each screen
+scale and pointer scheme, so the pointer is NT's size at every font size:
+the session sets the scheme's size (`XCURSOR_SIZE` 32, 64 or 96) and labwc
+and applications multiply it by the screen scale. Chicago95's own cursors
+come in one size only (32 pixels), so at 200% they were drawn at half size;
+`smoke_pointer` checks this no longer happens.
+
+Mouse Properties (Start > Settings > Mouse...) chooses the scheme: Standard,
+Standard (large) or Standard (extra large), from the next log on. Larger
+sizes are redrawn as Windows' large cursors were, with the body enlarged and
+the outline left 1 pixel thin, instead of every pixel becoming a block.
+
 ## Running at another scale
 
 The dev session takes the output size in device pixels and a scale:

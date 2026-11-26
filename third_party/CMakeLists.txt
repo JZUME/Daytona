@@ -17,9 +17,7 @@ install(DIRECTORY "${CHICAGO95_DIR}/Theme/Chicago95"
 install(DIRECTORY "${CHICAGO95_DIR}/Icons/Chicago95"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/icons")
 
-# "Standard Cursors" is the Windows 95 cursor set Chicago95 recommends. Only the
-# built cursor theme is installed, not its sources.
-install(DIRECTORY "${CHICAGO95_DIR}/Cursors/Chicago95 Standard Cursors"
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons"
-    PATTERN "build" EXCLUDE
-    PATTERN "src" EXCLUDE)
+# "Standard Cursors", the Windows 95 cursor set Chicago95 recommends, is not
+# installed as it is: themetool/ generates Daytona's cursor theme ("Daytona
+# Cursors") from it at every size, without the cursors that show a parody
+# of the Windows logo.

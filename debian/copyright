@@ -63,9 +63,12 @@ License: GPL-3+ or Expat
 Comment:
  Chicago95 v3.0.1 has no licence file. Its README.md ("Code and license")
  states "License: GPL-3.0+/MIT" without saying which parts are under which
- licence, so both are given here. Daytona installs only Theme/Chicago95,
- Icons/Chicago95 and "Cursors/Chicago95 Standard Cursors" (in the
- daytona-chicago95 package, with CREDITS and README.md as documentation).
+ licence, so both are given here. Daytona installs only Theme/Chicago95 and
+ Icons/Chicago95, and the "Daytona Cursors" theme generated at build time
+ from "Cursors/Chicago95 Standard Cursors" (rescaled to every pointer scheme
+ and screen scale, without the cursors that show a parody of the Windows
+ logo), in the daytona-chicago95 package with CREDITS and README.md as
+ documentation.
  The licence files under Lightdm/ and the LibreOffice icon set belong to
  parts that are not installed.
 

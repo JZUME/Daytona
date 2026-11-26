@@ -31,6 +31,8 @@ namespace {
     const QString KeyScheme = QStringLiteral("Appearance/ColourScheme");
     const QString KeyThemeFiles = QStringLiteral("Appearance/ThemeFiles");
     const QString KeySystemLogo = QStringLiteral("Appearance/SystemStartLogo");
+    // Read by daytona-session too, which sets the cursor size from it.
+    const QString KeyPointerScheme = QStringLiteral("Mouse/PointerScheme");
 
     const QString DefaultScheme = QStringLiteral("Windows Standard");
 
@@ -286,6 +288,26 @@ WallpaperMode Settings::wallpaperMode() const
 void Settings::setWallpaperMode(WallpaperMode mode)
 {
     write(KeyWallpaperMode, modeName(mode));
+}
+
+PointerScheme Settings::pointerScheme() const
+{
+    const QString text = m_settings.value(KeyPointerScheme).toString().trimmed().toLower();
+    if (text == QLatin1String("large"))
+        return PointerScheme::Large;
+    if (text == QLatin1String("extralarge"))
+        return PointerScheme::ExtraLarge;
+    if (!text.isEmpty() && text != QLatin1String("standard"))
+        qCWarning(lcSettings) << "Invalid value for" << KeyPointerScheme << "- using standard";
+    return PointerScheme::Standard;
+}
+
+void Settings::setPointerScheme(PointerScheme scheme)
+{
+    write(KeyPointerScheme,
+        scheme == PointerScheme::Large            ? QStringLiteral("large")
+            : scheme == PointerScheme::ExtraLarge ? QStringLiteral("extralarge")
+                                                  : QStringLiteral("standard"));
 }
 
 bool Settings::systemStartLogo() const

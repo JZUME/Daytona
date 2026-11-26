@@ -90,6 +90,7 @@ Q_SIGNALS:
     void shutDownRequested();
     void taskbarPropertiesRequested();
     void displayPropertiesRequested();
+    void mousePropertiesRequested();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

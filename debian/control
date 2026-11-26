@@ -76,5 +76,7 @@ Description: Chicago95 GTK theme, icons and cursors for Daytona
  themes. Daytona uses its icons and cursors throughout and applies its GTK 3
  theme, in the current Daytona colour scheme, to GTK 3 applications.
  .
- This package contains the Chicago95 GTK 2/3 theme, the Chicago95 icon theme
- and the "Chicago95 Standard Cursors" cursor theme, as pinned by Daytona.
+ This package contains the Chicago95 GTK 2/3 theme and the Chicago95 icon
+ theme, as pinned by Daytona, and the "Daytona Cursors" cursor theme: the
+ Chicago95 Standard cursors redrawn for each pointer scheme (standard, large
+ and extra large) and screen scale.

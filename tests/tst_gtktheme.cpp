@@ -3,8 +3,10 @@
 #include "colourscheme.h"
 #include "gtktheme.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -96,6 +98,23 @@ private Q_SLOTS:
         QVERIFY(setGtkSettings(path, QStringLiteral("Chicago95"), QStringLiteral("C95b")));
         QCOMPARE(readAll(path + QStringLiteral(".daytona-backup")), original);
         QVERIFY(readAll(path).contains("gtk-cursor-theme-name=C95b\n"));
+    }
+
+    void cursorSettings()
+    {
+        QTemporaryDir config;
+        const QString path = config.filePath(QStringLiteral("settings.ini"));
+        writeAll(path, "[Settings]\ngtk-cursor-theme-name=Old\n");
+        QVERIFY(setGtkCursorSettings(path, QStringLiteral("Daytona Cursors"), 64));
+        QCOMPARE(readAll(path),
+            QByteArray("[Settings]\ngtk-cursor-theme-name=Daytona Cursors\n"
+                       "gtk-cursor-theme-size=64\n"));
+        // Unchanged values leave the file alone (it is checked at each log on).
+        const QDateTime written = QFileInfo(path).lastModified();
+        QFile::remove(path + QStringLiteral(".daytona-backup"));
+        QVERIFY(setGtkCursorSettings(path, QStringLiteral("Daytona Cursors"), 64));
+        QVERIFY(!QFile::exists(path + QStringLiteral(".daytona-backup")));
+        QCOMPARE(QFileInfo(path).lastModified(), written);
     }
 
     void settingsGroupAdded()

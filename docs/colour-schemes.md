@@ -33,9 +33,11 @@ Built-in schemes: Windows Standard, High Contrast Black and High Contrast White.
   that session are affected. GTK applications pick up the change when they
   next start. Chicago95's images (check boxes, scroll arrows) keep their
   Windows Standard colours.
-- **GTK icons and cursors:** sets `gtk-icon-theme-name=Chicago95` and
-  `gtk-cursor-theme-name=Chicago95 Standard Cursors` in
-  `$XDG_CONFIG_HOME/gtk-3.0/settings.ini`, keeping the rest of the file. The
+- **GTK icons and cursors:** sets `gtk-icon-theme-name=Chicago95`,
+  `gtk-cursor-theme-name=Daytona Cursors` and `gtk-cursor-theme-size` (the
+  pointer scheme's size) in `$XDG_CONFIG_HOME/gtk-3.0/settings.ini`, keeping
+  the rest of the file. Once that file names a cursor theme, the shell keeps
+  its cursor size in step with Mouse Properties at each log on. The
   first time it changes an existing file, the original is kept as
   `settings.ini.daytona-backup`. On systems with GNOME's
   `org.gnome.desktop.interface` settings schema installed, GTK on Wayland can read those

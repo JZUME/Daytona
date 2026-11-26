@@ -80,6 +80,24 @@ private Q_SLOTS:
         QVERIFY(!actions.first()->isEnabled());
     }
 
+    void settingsMenuOpensDialogs()
+    {
+        StartMenu menu(nullptr, nullptr);
+        QMenu *settingsMenu = menu.items()[2].submenu;
+        QStringList enabled;
+        for (QAction *action : settingsMenu->actions()) {
+            if (action->isEnabled())
+                enabled << action->text();
+        }
+        // Control Panel is greyed out without a command; the dialogs work.
+        QCOMPARE(enabled,
+            QStringList({ QStringLiteral("&Taskbar..."), QStringLiteral("&Display..."),
+                QStringLiteral("&Mouse...") }));
+        QSignalSpy mouse(&menu, &StartMenu::mousePropertiesRequested);
+        settingsMenu->actions().last()->trigger();
+        QCOMPARE(mouse.count(), 1);
+    }
+
     void commandItemsFollowSettings()
     {
         Settings settings(m_dir.filePath(QStringLiteral("daytona.ini")));

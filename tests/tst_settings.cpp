@@ -8,6 +8,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+using Daytona::PointerScheme;
 using Daytona::Settings;
 using Daytona::TaskbarEdge;
 using Daytona::WallpaperMode;
@@ -135,6 +136,27 @@ private Q_SLOTS:
         QCOMPARE(s.smallStartMenuIcons(), true); // case-insensitive "true" is valid
         QCOMPARE(s.wallpaperMode(), WallpaperMode::Centre);
         QCOMPARE(s.colourScheme(), QStringLiteral("Windows Standard"));
+    }
+
+    void pointerScheme()
+    {
+        const QString file = path(QStringLiteral("pointer.ini"));
+        {
+            Settings s(file);
+            QCOMPARE(s.pointerScheme(), PointerScheme::Standard);
+            s.setPointerScheme(PointerScheme::ExtraLarge);
+        }
+        QCOMPARE(Settings(file).pointerScheme(), PointerScheme::ExtraLarge);
+        // daytona-session reads these exact words.
+        QFile f(file);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QVERIFY(f.readAll().contains("[Mouse]\nPointerScheme=extralarge"));
+        Settings(file).setPointerScheme(PointerScheme::Large);
+        QCOMPARE(Settings(file).pointerScheme(), PointerScheme::Large);
+
+        const QString bad = path(QStringLiteral("badpointer.ini"));
+        writeFile(bad, "[Mouse]\nPointerScheme=huge\n");
+        QCOMPARE(Settings(bad).pointerScheme(), PointerScheme::Standard);
     }
 
     void systemStartLogo()

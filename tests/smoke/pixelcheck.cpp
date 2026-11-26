@@ -4,6 +4,7 @@
 //
 // Usage: daytona-pixelcheck IMAGE X Y #RRGGBB [X Y #RRGGBB ...]
 //        daytona-pixelcheck --frame IMAGE SCALE
+//        daytona-pixelcheck --pointer IMAGE X Y SCALE
 // Exits 0 if every pixel matches exactly, 1 if any differ (reported on
 // stderr), 2 on bad arguments or an unreadable image.
 //
@@ -12,9 +13,15 @@
 // outside in, light grey, white, then face grey on the top and left side, and
 // black, dark grey, then face grey on the bottom and right, each line SCALE
 // device pixels wide.
+//
+// --pointer measures the mouse pointer whose hotspot is at logical X, Y over
+// a plain background, and checks it is NT's size in logical pixels (the
+// arrow is about 20 tall) whatever the output SCALE: a pointer drawn from
+// too small an image comes out SCALE times smaller.
 
 #include <QColor>
 #include <QImage>
+#include <QRect>
 #include <QString>
 #include <cstdio>
 
@@ -79,8 +86,52 @@ int checkFrame(const QImage &image, int scale)
 
 } // namespace
 
+int checkPointer(const QImage &image, int x, int y, int scale)
+{
+    const QPoint origin(x * scale, y * scale);
+    const QRgb background = image.pixel(origin - QPoint(4 * scale, 4 * scale));
+    int left = image.width(), right = -1, top = image.height(), bottom = -1;
+    const QRect area = QRect(origin - QPoint(2 * scale, 2 * scale), QSize(40 * scale, 40 * scale))
+                           .intersected(image.rect());
+    for (int py = area.top(); py <= area.bottom(); ++py) {
+        for (int px = area.left(); px <= area.right(); ++px) {
+            if (image.pixel(px, py) == background)
+                continue;
+            left = qMin(left, px);
+            right = qMax(right, px);
+            top = qMin(top, py);
+            bottom = qMax(bottom, py);
+        }
+    }
+    if (right < 0) {
+        std::fprintf(stderr, "no pointer near %d,%d\n", x, y);
+        return 1;
+    }
+    const double width = double(right - left + 1) / scale;
+    const double height = double(bottom - top + 1) / scale;
+    std::fprintf(stderr, "pointer %.1fx%.1f logical pixels\n", width, height);
+    if (height < 16 || height > 26) {
+        std::fprintf(stderr, "the pointer should be about 20 logical pixels tall\n");
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
+    if (argc == 6 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--pointer")) {
+        const QImage image
+            = QImage(QString::fromLocal8Bit(argv[2])).convertToFormat(QImage::Format_RGB32);
+        bool okX = false, okY = false, okScale = false;
+        const int x = QString::fromLocal8Bit(argv[3]).toInt(&okX);
+        const int y = QString::fromLocal8Bit(argv[4]).toInt(&okY);
+        const int scale = QString::fromLocal8Bit(argv[5]).toInt(&okScale);
+        if (image.isNull() || !okX || !okY || !okScale || scale < 1) {
+            std::fprintf(stderr, "usage: %s --pointer IMAGE X Y SCALE\n", argv[0]);
+            return 2;
+        }
+        return checkPointer(image, x, y, scale);
+    }
     if (argc == 4 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--frame")) {
         const QImage image
             = QImage(QString::fromLocal8Bit(argv[2])).convertToFormat(QImage::Format_RGB32);

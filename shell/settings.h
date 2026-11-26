@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "xcursor.h"
+
 #include <QObject>
 #include <QSettings>
 
@@ -75,6 +77,11 @@ public:
     void setWallpaperPath(const QString &path);
     WallpaperMode wallpaperMode() const;
     void setWallpaperMode(WallpaperMode mode);
+    // Mouse Properties' pointer scheme. daytona-session sets the cursor
+    // size from it at log on (large: 64, extralarge: 96, else 32).
+    PointerScheme pointerScheme() const;
+    void setPointerScheme(PointerScheme scheme);
+
     // Whether the Start button shows the operating system's logo (true) or
     // Daytona's own.
     bool systemStartLogo() const;

@@ -58,6 +58,7 @@ set_tests_properties(themetool_apply PROPERTIES
     PASS_REGULAR_EXPRESSION "Applied colour scheme 'High Contrast Black' to [^\n]*/themetool-apply/daytona/colors.ini")
 daytona_add_test(tst_labwctheme daytona-theme-core)
 daytona_add_test(tst_gtktheme daytona-theme-core)
+daytona_add_test(tst_xcursor daytona-theme-core)
 
 # Applying a .theme file: the wallpaper is copied and recorded, and what
 # Daytona does not support is listed.
@@ -85,6 +86,11 @@ set_tests_properties(tst_notifications PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=of
 daytona_add_test(tst_taskbarplacement daytona-shell-core)
 set_tests_properties(tst_taskbarplacement PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_displayproperties daytona-shell-core)
+daytona_add_test(tst_mouseproperties daytona-shell-core)
+add_dependencies(tst_mouseproperties daytona-cursor-theme)
+target_compile_definitions(tst_mouseproperties PRIVATE
+    DAYTONA_CURSOR_ICONS="${CMAKE_BINARY_DIR}/icons")
+set_tests_properties(tst_mouseproperties PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 target_compile_definitions(tst_displayproperties PRIVATE
     DAYTONA_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data"
     DAYTONA_THEMETOOL="$<TARGET_FILE:daytona-themetool>")

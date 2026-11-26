@@ -3,6 +3,7 @@
 #include "colourscheme.h"
 #include "gtktheme.h"
 #include "labwctheme.h"
+#include "xcursor.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -71,7 +72,7 @@ void applyWallpaper(const Daytona::ColourScheme &scheme)
 }
 
 // GTK 3 applications: the Daytona GTK theme in the scheme's colours, and the
-// Chicago95 icon and cursor themes in settings.ini.
+// Chicago95 icon theme and Daytona's cursor theme in settings.ini.
 void applyGtk(const Daytona::ColourScheme &scheme, bool standard)
 {
     QString error;
@@ -83,7 +84,15 @@ void applyGtk(const Daytona::ColourScheme &scheme, bool standard)
         std::fprintf(stderr, "GTK colours not changed: %s\n", qPrintable(error));
     const QString settings = Daytona::gtkSettingsPath();
     if (!Daytona::setGtkSettings(settings, QStringLiteral("Chicago95"),
-            QStringLiteral("Chicago95 Standard Cursors"), &error))
+            QString::fromLatin1(Daytona::CursorThemeName), &error))
+        std::fprintf(stderr, "GTK settings not changed: %s\n", qPrintable(error));
+    // The pointer scheme's size, as daytona-session set it.
+    bool sizeSet = false;
+    const int size = qEnvironmentVariableIntValue("XCURSOR_SIZE", &sizeSet);
+    if (!Daytona::setGtkCursorSettings(settings, QString::fromLatin1(Daytona::CursorThemeName),
+            sizeSet && size > 0 ? size
+                                : Daytona::pointerSchemeSize(Daytona::PointerScheme::Standard),
+            &error))
         std::fprintf(stderr, "GTK settings not changed: %s\n", qPrintable(error));
 }
 

@@ -51,6 +51,10 @@ export WLR_HEADLESS_OUTPUTS=1
 export XDG_DATA_DIRS="$prefix/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export PATH="$prefix/bin:$PATH"
 export QT_QPA_PLATFORM=wayland
+# Daytona's cursors at the standard size, as daytona-session sets them.
+export XCURSOR_THEME="Daytona Cursors"
+export XCURSOR_SIZE=32
+export XCURSOR_PATH="$prefix/share/icons:/usr/share/icons"
 export DAYTONA_SCREENSHOT_SIZE="${width}x${height}"
 
 labwc_pid=""

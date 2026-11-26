@@ -149,6 +149,7 @@ Reading other projects for reference (lxqt-panel, Selkies desktop, Chicago95) is
 * **Chicago95** provides the GTK2/3 theme, icons and cursors. It is included as a **git submodule** at `third_party/Chicago95`, pinned to a release tag or commit. Its files are never copied into Daytona's own tree; the build and packaging install them from the submodule.
 * Updating the Chicago95 pin is its own change, never part of an unrelated task.
 * Daytona ships no Microsoft artwork, fonts, sounds or trademarks.
+* Cursors are **Daytona Cursors**, generated at build time from Chicago95's Standard cursors (`themetool/xcursor.*`, `daytona-cursorgen`): each cursor at every pointer scheme and screen scale, larger sizes redrawn in the manner of Windows' large cursors (the body enlarged, the outline kept 1 pixel thin) rather than enlarged block by block. Chicago95's cursor theme itself is not installed, and the Chicago95 cursors that show a parody of the Windows logo (`X_cursor` and X11's novelty cursors) are replaced by the arrow.
 * The Start button shows the operating system's own logo, as NT's Start button showed NT's, chosen automatically: the icon named by os-release's `LOGO` field, else a logo file the distribution is known to install (Debian sets no `LOGO`; its red `emblem-debian.svg` from desktop-base or `debian-logo.png` from debconf is used). Only a distribution's own names and files are used, never a theme's generic `distributor-logo` or `start-here`, and a derivative is never given its parent's logo. Daytona ships no distribution's logo; it shows what the system has. Without one, or when the user turns it off (Display Properties > Appearance, an approved exception), the button shows Daytona's original logo (`artwork/start-logo.svg`).
 
 ---
@@ -301,6 +302,10 @@ Accepted configuration, Display Properties equivalents:
 * clock format (follows the system locale)
 * high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% (see approved exceptions), custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
 
+Accepted configuration, Mouse Properties equivalents (NT's Control Panel applet, approved as a dialog):
+
+* the pointer scheme on the Pointers tab: Standard, Standard (large) and Standard (extra large), as NT offered for Windows Standard. It is applied at the next log on (daytona-session sets `XCURSOR_SIZE` 32, 64 or 96). NT's Buttons, Motion and General tabs are not offered.
+
 Accepted configuration, Taskbar Properties equivalents:
 
 * taskbar edge (set by dragging, not by a setting in a dialog)
@@ -329,7 +334,7 @@ Top to bottom, matching NT 4.0:
 
 * **Programs**: cascading submenus built from `.desktop` files, grouped by freedesktop main categories, alphabetical within each. Entries with `NoDisplay=true`, `Hidden=true`, or `OnlyShowIn`/`NotShowIn` excluding Daytona are omitted.
 * **Documents**: the 15 most recent items from `~/.local/share/recently-used.xbel`.
-* **Settings**: Control Panel (launches a command set in Daytona's INI file; greyed out if unset), Taskbar... (Taskbar Properties), Display... (Display Properties, colours/wallpaper/`.theme`).
+* **Settings**: Control Panel (launches a command set in Daytona's INI file; greyed out if unset), Taskbar... (Taskbar Properties), Display... (Display Properties, colours/wallpaper/`.theme`), Mouse... (Mouse Properties, pointer scheme).
 * **Find**: launches a file-search command set in Daytona's INI file; greyed out if unset.
 * **Run...**: Daytona's Run dialog.
 * separator

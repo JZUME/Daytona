@@ -15,7 +15,19 @@ export GTK_THEME=Daytona
 # Qt 6 applications use the Daytona style (Qt 5 ones cannot load it; see
 # docs/third-party-apps.md).
 export QT_STYLE_OVERRIDE=daytona
-export XCURSOR_THEME="Chicago95 Standard Cursors"
+# Daytona's cursors (Chicago95's, at every size) in the pointer scheme chosen
+# in Mouse Properties: its size, which labwc and applications multiply by
+# the screen scale. Kept in step with PointerScheme in the shell.
+export XCURSOR_THEME="Daytona Cursors"
+daytona_ini="${XDG_CONFIG_HOME:-$HOME/.config}/daytona/daytona.ini"
+pointer_scheme=$(sed -n '/^\[Mouse\]/,/^\[/s/^PointerScheme[[:space:]]*=[[:space:]]*//p' \
+    "$daytona_ini" 2>/dev/null | head -n 1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+case "$pointer_scheme" in
+large) XCURSOR_SIZE=64 ;;
+extralarge) XCURSOR_SIZE=96 ;;
+*) XCURSOR_SIZE=32 ;;
+esac
+export XCURSOR_SIZE
 
 # VMware's virtual GPU (vmwgfx) cannot free the handles of imported GPU
 # buffers through the standard call: it always fails with EINVAL. wlroots

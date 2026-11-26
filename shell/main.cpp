@@ -5,6 +5,8 @@
 #include "daytonastyle.h"
 #include "desktop.h"
 #include "displayproperties.h"
+#include "gtktheme.h"
+#include "mouseproperties.h"
 #include "notificationarea.h"
 #include "notificationqueue.h"
 #include "notificationservice.h"
@@ -26,6 +28,7 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDBusConnection>
+#include <QFile>
 #include <QLoggingCategory>
 #include <QScreen>
 #include <QSignalBlocker>
@@ -102,6 +105,23 @@ int main(int argc, char *argv[])
     }
 
     Daytona::Settings settings(Daytona::Settings::defaultFilePath());
+
+    // GTK 3 applications use the cursor theme and size in their settings.ini
+    // once a theme is set there (the theme tool sets it with a colour
+    // scheme); otherwise they follow XCURSOR_THEME and XCURSOR_SIZE. Keep
+    // that file in step with the pointer scheme.
+    {
+        QFile gtk(Daytona::gtkSettingsPath());
+        if (gtk.open(QIODevice::ReadOnly) && gtk.size() < 1024 * 1024
+            && gtk.readAll().contains("gtk-cursor-theme-name")) {
+            gtk.close();
+            QString error;
+            if (!Daytona::setGtkCursorSettings(gtk.fileName(),
+                    QString::fromLatin1(Daytona::CursorThemeName),
+                    Daytona::pointerSchemeSize(settings.pointerScheme()), &error))
+                qCWarning(lcShell) << "Cannot update the GTK cursor settings:" << error;
+        }
+    }
 
     // Screen scales (Display Properties > Settings > Font Size), restored
     // for each screen when it appears.
@@ -188,6 +208,16 @@ int main(int argc, char *argv[])
         &displayProperties, showDisplayProperties);
     QObject::connect(&desktops, &Daytona::DesktopManager::propertiesRequested, &displayProperties,
         showDisplayProperties);
+
+    // Mouse Properties, from Start > Settings > Mouse....
+    Daytona::MousePropertiesDialog mouseProperties(&settings);
+    QObject::connect(&startMenu, &Daytona::StartMenu::mousePropertiesRequested, &mouseProperties,
+        [&mouseProperties] {
+            mouseProperties.prepare();
+            mouseProperties.show();
+            mouseProperties.raise();
+            mouseProperties.activateWindow();
+        });
 
     // Taskbar Properties, from Start > Settings > Taskbar... and the
     // taskbar's own menu.

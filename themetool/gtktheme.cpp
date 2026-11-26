@@ -146,6 +146,23 @@ QString gtkSettingsPath()
 bool setGtkSettings(
     const QString &path, const QString &iconTheme, const QString &cursorTheme, QString *error)
 {
+    return setGtkSettingValues(path,
+        { { "gtk-icon-theme-name", iconTheme.toUtf8() },
+            { "gtk-cursor-theme-name", cursorTheme.toUtf8() } },
+        error);
+}
+
+bool setGtkCursorSettings(const QString &path, const QString &cursorTheme, int size, QString *error)
+{
+    return setGtkSettingValues(path,
+        { { "gtk-cursor-theme-name", cursorTheme.toUtf8() },
+            { "gtk-cursor-theme-size", QByteArray::number(size) } },
+        error);
+}
+
+bool setGtkSettingValues(
+    const QString &path, const QList<QPair<QByteArray, QByteArray>> &wanted, QString *error)
+{
     QByteArray original;
     QFile in(path);
     if (in.exists()) {
@@ -157,9 +174,6 @@ bool setGtkSettings(
         }
         original = in.readAll();
         in.close();
-        const QString backup = path + QStringLiteral(".daytona-backup");
-        if (!QFileInfo::exists(backup) && !writeFile(backup, original, error))
-            return false;
     } else if (!QDir().mkpath(QFileInfo(path).absolutePath())) {
         if (error)
             *error = QStringLiteral("Cannot create %1").arg(QFileInfo(path).absolutePath());
@@ -167,10 +181,6 @@ bool setGtkSettings(
     }
 
     // Edit the [Settings] group line by line so comments and other keys stay.
-    const QList<QPair<QByteArray, QByteArray>> wanted = {
-        { "gtk-icon-theme-name", iconTheme.toUtf8() },
-        { "gtk-cursor-theme-name", cursorTheme.toUtf8() },
-    };
     QList<QByteArray> lines = original.split('\n');
     if (!lines.isEmpty() && lines.last().isEmpty())
         lines.removeLast();
@@ -213,7 +223,14 @@ bool setGtkSettings(
             ++settingsEnd;
         }
     }
-    return writeFile(path, lines.join('\n') + '\n', error);
+    const QByteArray updated = lines.join('\n') + '\n';
+    if (updated == original)
+        return true; // nothing to change; leave the file alone
+    const QString backup = path + QStringLiteral(".daytona-backup");
+    if (QFileInfo::exists(path) && !QFileInfo::exists(backup)
+        && !writeFile(backup, original, error))
+        return false;
+    return writeFile(path, updated, error);
 }
 
 } // namespace Daytona
