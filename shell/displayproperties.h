@@ -9,6 +9,7 @@
 #include <QImage>
 #include <functional>
 
+class QCheckBox;
 class QComboBox;
 class QLabel;
 class QListWidget;
@@ -122,6 +123,7 @@ public:
     // Selects scale in the font size list, adding a custom entry if needed.
     void selectScale(double scale);
     QComboBox *schemeBox() const { return m_schemes; }
+    QCheckBox *systemLogoBox() const { return m_systemLogo; }
     QPushButton *applyButton() const { return m_apply; }
     QString selectedWallpaper() const;
     WallpaperMode selectedMode() const;
@@ -159,6 +161,7 @@ private:
     QRadioButton *m_centre;
     AppearancePreview *m_appearancePreview;
     QComboBox *m_schemes;
+    QCheckBox *m_systemLogo;
     QPushButton *m_apply;
     ScreenScaler *m_scaler = nullptr;
     Confirmation m_confirm;

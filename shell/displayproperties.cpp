@@ -6,8 +6,10 @@
 #include "colourscheme.h"
 #include "daytonastyle.h"
 #include "outputmanager.h"
+#include "systemlogo.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
@@ -362,6 +364,11 @@ QWidget *DisplayPropertiesDialog::createAppearanceTab()
         changed();
     });
 
+    // Not in NT: the Start button shows the operating system's logo, and
+    // this turns it off for Daytona's own (AGENT.md, approved exceptions).
+    m_systemLogo = new QCheckBox(tr("Use the operating system's &logo on the Start button"), page);
+    connect(m_systemLogo, &QCheckBox::toggled, this, &DisplayPropertiesDialog::changed);
+
     auto *row = new QHBoxLayout;
     row->addWidget(m_schemes, 1);
     row->addWidget(load);
@@ -369,6 +376,7 @@ QWidget *DisplayPropertiesDialog::createAppearanceTab()
     layout->addWidget(m_appearancePreview, 0, Qt::AlignHCenter);
     layout->addWidget(label);
     layout->addLayout(row);
+    layout->addWidget(m_systemLogo);
     layout->addStretch();
     return page;
 }
@@ -402,6 +410,9 @@ void DisplayPropertiesDialog::prepare()
     const int index = m_schemes->findText(current);
     m_schemes->setCurrentIndex(index >= 0 ? index : 0);
     m_appliedScheme = m_schemes->currentText();
+    m_systemLogo->setChecked(m_settings ? m_settings->systemStartLogo() : true);
+    // Nothing to choose between when the system has no logo.
+    m_systemLogo->setEnabled(!systemLogo().isNull());
 
     // Settings: the font size of the screen the dialog is on.
     const QString name = screenName();
@@ -516,6 +527,7 @@ void DisplayPropertiesDialog::apply()
         // Wallpaper: written directly; the desktop follows the settings.
         m_settings->setWallpaperMode(selectedMode());
         m_settings->setWallpaperPath(selectedWallpaper());
+        m_settings->setSystemStartLogo(m_systemLogo->isChecked());
     }
 
     // Colour scheme: the theme tool writes colors.ini and the labwc and GTK

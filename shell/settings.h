@@ -75,6 +75,10 @@ public:
     void setWallpaperPath(const QString &path);
     WallpaperMode wallpaperMode() const;
     void setWallpaperMode(WallpaperMode mode);
+    // Whether the Start button shows the operating system's logo (true) or
+    // Daytona's own.
+    bool systemStartLogo() const;
+    void setSystemStartLogo(bool use);
     QString colourScheme() const;
     void setColourScheme(const QString &name);
     // .theme files loaded in Display Properties, listed with the schemes.

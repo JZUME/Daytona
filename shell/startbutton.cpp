@@ -2,6 +2,8 @@
 
 #include "startbutton.h"
 
+#include "systemlogo.h"
+
 #include <QLoggingCategory>
 
 Q_LOGGING_CATEGORY(lcStartButton, "daytona.startbutton", QtInfoMsg)
@@ -31,14 +33,31 @@ StartButton::StartButton(QWidget *parent)
     bold.setBold(true);
     setFont(bold);
 
-    const QIcon logo(QStringLiteral(":/daytona/start-logo.svg"));
-    if (logo.availableSizes().isEmpty() && logo.pixmap(LogoSize).isNull())
-        qCWarning(lcStartButton) << "Start logo could not be loaded; is qt6-svg-plugins installed?";
-    setIcon(logo);
+    // The operating system's own logo, as NT's Start button showed NT's.
+    m_systemLogo = systemLogo();
+    setUseSystemLogo(true);
     setIconSize(QSize(LogoSize, LogoSize));
     setFixedHeight(ButtonHeight);
 
     connect(this, &QPushButton::toggled, this, &StartButton::startMenuRequested);
+}
+
+void StartButton::setUseSystemLogo(bool use)
+{
+    // Daytona's when the system has no logo or it is turned off.
+    QIcon logo = use ? m_systemLogo : QIcon();
+    if (logo.isNull()) {
+        logo = daytonaLogo();
+        if (logo.pixmap(LogoSize).isNull())
+            qCWarning(lcStartButton)
+                << "Start logo could not be loaded; is qt6-svg-plugins installed?";
+    }
+    setIcon(logo);
+}
+
+QIcon StartButton::daytonaLogo()
+{
+    return QIcon(QStringLiteral(":/daytona/start-logo.svg"));
 }
 
 QSize StartButton::sizeHint() const

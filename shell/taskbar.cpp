@@ -88,6 +88,7 @@ void Taskbar::setSettings(Settings *settings)
     m_collapsed = m_autoHide;
     setShowClock(settings->showClock());
     setEdge(settings->taskbarEdge());
+    m_startButton->setUseSystemLogo(settings->systemStartLogo());
     // Taskbar Properties (or daytona.ini edited by hand) take effect at once.
     connect(settings, &Settings::changed, this, [this](const QString &key) {
         if (!m_settings)
@@ -100,6 +101,8 @@ void Taskbar::setSettings(Settings *settings)
             setShowClock(m_settings->showClock());
         if (key.isEmpty() || key == QLatin1String("Taskbar/Locked"))
             setLocked(m_settings->taskbarLocked());
+        if (key.isEmpty() || key == QLatin1String("Appearance/SystemStartLogo"))
+            m_startButton->setUseSystemLogo(m_settings->systemStartLogo());
         if ((key.isEmpty() || key == QLatin1String("Taskbar/Edge"))
             && m_settings->taskbarEdge() != m_edge && !m_dragging)
             setEdge(m_settings->taskbarEdge());

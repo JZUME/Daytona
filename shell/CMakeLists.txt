@@ -45,6 +45,8 @@ add_library(daytona-shell-core STATIC
     settings.h
     shutdowndialog.cpp
     shutdowndialog.h
+    systemlogo.cpp
+    systemlogo.h
     shellservice.cpp
     shellservice.h
     startbutton.cpp

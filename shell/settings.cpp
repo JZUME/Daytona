@@ -30,6 +30,7 @@ namespace {
     const QString KeyWallpaperMode = QStringLiteral("Appearance/WallpaperMode");
     const QString KeyScheme = QStringLiteral("Appearance/ColourScheme");
     const QString KeyThemeFiles = QStringLiteral("Appearance/ThemeFiles");
+    const QString KeySystemLogo = QStringLiteral("Appearance/SystemStartLogo");
 
     const QString DefaultScheme = QStringLiteral("Windows Standard");
 
@@ -285,6 +286,16 @@ WallpaperMode Settings::wallpaperMode() const
 void Settings::setWallpaperMode(WallpaperMode mode)
 {
     write(KeyWallpaperMode, modeName(mode));
+}
+
+bool Settings::systemStartLogo() const
+{
+    return readBool(KeySystemLogo, true);
+}
+
+void Settings::setSystemStartLogo(bool use)
+{
+    write(KeySystemLogo, use);
 }
 
 QString Settings::colourScheme() const

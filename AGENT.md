@@ -148,7 +148,8 @@ Reading other projects for reference (lxqt-panel, Selkies desktop, Chicago95) is
 * Daytona is licensed **GPL-3.0-or-later**. New source files carry an SPDX header: `// SPDX-License-Identifier: GPL-3.0-or-later`.
 * **Chicago95** provides the GTK2/3 theme, icons and cursors. It is included as a **git submodule** at `third_party/Chicago95`, pinned to a release tag or commit. Its files are never copied into Daytona's own tree; the build and packaging install them from the submodule.
 * Updating the Chicago95 pin is its own change, never part of an unrelated task.
-* Daytona ships no Microsoft artwork, fonts, sounds or trademarks. The Start button logo is original Daytona artwork.
+* Daytona ships no Microsoft artwork, fonts, sounds or trademarks.
+* The Start button shows the operating system's own logo, as NT's Start button showed NT's, chosen automatically: the icon named by os-release's `LOGO` field, else a logo file the distribution is known to install (Debian sets no `LOGO`; its red `emblem-debian.svg` from desktop-base or `debian-logo.png` from debconf is used). Only a distribution's own names and files are used, never a theme's generic `distributor-logo` or `start-here`, and a derivative is never given its parent's logo. Daytona ships no distribution's logo; it shows what the system has. Without one, or when the user turns it off (Display Properties > Appearance, an approved exception), the button shows Daytona's original logo (`artwork/start-logo.svg`).
 
 ---
 
@@ -182,7 +183,7 @@ Daytona
 ├── themetool/    .theme converter (CLI)
 ├── labwc/        labwc rc.xml, menu.xml, autostart and default theme
 ├── session/      wayland-session .desktop file and launcher script
-├── artwork/      original Daytona artwork (Start button logo)
+├── artwork/      original Daytona artwork (fallback Start button logo)
 ├── third_party/  git submodules only (Chicago95)
 ├── tests/        Qt Test suites and headless smoke tests
 └── .devcontainer/ Codespaces / dev container definition
@@ -288,6 +289,7 @@ The rule: **if Windows NT 4.0's shell did not offer it, Daytona does not offer i
 * **Lock the taskbar** (Windows XP). It makes the NT-era drag-to-edge behaviour safe to leave enabled.
 * **Notification balloons** (Windows 2000). Linux applications send desktop notifications and expect them to be shown; balloons are the closest era-appropriate presentation.
 * **Large Fonts is 150%**, not NT's 125% (120 DPI). 150% is the more useful size on today's high-density screens; 125% remains available under Custom....
+* **Start button logo choice** (Display Properties > Appearance, "Use the operating system's logo on the Start button", on by default). NT had no such option; it lets users whose distribution logo looks poor at 16 pixels use Daytona's own logo instead.
 
 No other post-NT features are accepted without explicit approval.
 
@@ -295,6 +297,7 @@ Accepted configuration, Display Properties equivalents:
 
 * colour scheme and fonts (normally applied via `.theme` files)
 * wallpaper
+* the Start button logo: the operating system's or Daytona's (approved exception)
 * clock format (follows the system locale)
 * high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% (see approved exceptions), custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
 

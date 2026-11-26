@@ -4,6 +4,7 @@
 #include "outputmanager.h"
 #include "settings.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QFile>
@@ -116,6 +117,21 @@ private Q_SLOTS:
         const int count = dialog.schemeBox()->count();
         dialog.loadThemeFile(theme); // not twice
         QCOMPARE(dialog.schemeBox()->count(), count);
+    }
+
+    void systemLogoSetting()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        DisplayPropertiesDialog dialog(&settings);
+        QVERIFY(dialog.systemLogoBox()->isChecked());
+        QVERIFY(!dialog.applyButton()->isEnabled());
+        dialog.systemLogoBox()->setChecked(false);
+        QVERIFY(dialog.applyButton()->isEnabled());
+        dialog.apply();
+        QCOMPARE(settings.systemStartLogo(), false);
+        dialog.prepare();
+        QVERIFY(!dialog.systemLogoBox()->isChecked());
     }
 
     void fontSizeChoices()

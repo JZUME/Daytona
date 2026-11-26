@@ -30,6 +30,19 @@ private Q_SLOTS:
         StartButton button;
         QVERIFY2(
             !button.icon().pixmap(16).isNull(), "needs the Qt SVG icon plugin (qt6-svg-plugins)");
+        // Daytona's own, for systems without a logo.
+        QVERIFY2(!StartButton::daytonaLogo().pixmap(16).isNull(),
+            "needs the Qt SVG icon plugin (qt6-svg-plugins)");
+    }
+
+    void systemLogoCanBeTurnedOff()
+    {
+        StartButton button;
+        const QImage daytona = StartButton::daytonaLogo().pixmap(16).toImage();
+        button.setUseSystemLogo(false);
+        QCOMPARE(button.icon().pixmap(16).toImage(), daytona);
+        button.setUseSystemLogo(true);
+        QVERIFY(!button.icon().pixmap(16).isNull());
     }
 
     void toggleRequestsTheMenu()

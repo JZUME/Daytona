@@ -137,6 +137,20 @@ private Q_SLOTS:
         QCOMPARE(s.colourScheme(), QStringLiteral("Windows Standard"));
     }
 
+    void systemStartLogo()
+    {
+        const QString file = path(QStringLiteral("logo.ini"));
+        {
+            Settings s(file);
+            QCOMPARE(s.systemStartLogo(), true); // on unless turned off
+            QSignalSpy spy(&s, &Settings::changed);
+            s.setSystemStartLogo(false);
+            QCOMPARE(spy.count(), 1);
+            QCOMPARE(spy.first().first().toString(), QStringLiteral("Appearance/SystemStartLogo"));
+        }
+        QCOMPARE(Settings(file).systemStartLogo(), false);
+    }
+
     void screenScales()
     {
         const QString file = path(QStringLiteral("scales.ini"));
