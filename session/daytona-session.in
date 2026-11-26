@@ -47,6 +47,25 @@ fi
 
 # Daytona's patched labwc (bevelled NT window frames), installed next to this
 # script's prefix; the system's labwc if it was built without it.
-labwc="$(dirname "$(readlink -f "$0")")/../libexec/daytona/labwc"
+bindir="$(dirname "$(readlink -f "$0")")"
+labwc="$bindir/../libexec/daytona/labwc"
 [ -x "$labwc" ] || labwc=labwc
-exec "$labwc" --config-dir "@DAYTONA_LABWC_DIR@" "$@"
+
+# labwc reads its configuration from a directory of the session's own: the
+# installed files, linked, plus an environment file with the keyboard
+# layouts (Keyboard Properties, else the system's, /etc/default/keyboard).
+# The shell rewrites that file and has labwc reload it when the layouts
+# change, so they apply at once.
+labwc_config="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/daytona-labwc"
+(umask 077 && mkdir -p "$labwc_config")
+for file in "@DAYTONA_LABWC_DIR@"/*; do
+    [ -e "$file" ] && ln -sfn "$file" "$labwc_config/"
+done
+shell="$bindir/daytona-shell"
+[ -x "$shell" ] || shell=daytona-shell
+if ! "$shell" --labwc-environment >"$labwc_config/environment" 2>/dev/null; then
+    rm -f "$labwc_config/environment"
+fi
+export DAYTONA_LABWC_CONFIG="$labwc_config"
+
+exec "$labwc" --config-dir "$labwc_config" "$@"

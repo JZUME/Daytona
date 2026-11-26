@@ -5,6 +5,7 @@
 #include "batteryicon.h"
 #include "bevel.h"
 #include "clock.h"
+#include "inputlocaleicon.h"
 #include "statusnotifierhost.h"
 #include "statusnotifieritem.h"
 #include "trayicon.h"
@@ -61,8 +62,20 @@ void NotificationArea::setBatteryMonitor(BatteryMonitor *monitor)
     m_layout->insertWidget(m_layout->indexOf(next), m_batteryIcon);
 }
 
+void NotificationArea::setInputLocales(InputLocales *locales)
+{
+    delete m_localeIcon;
+    m_localeIcon = nullptr;
+    // Left of the shell's other icons, as Windows 2000 showed it.
+    QWidget *next = firstOwnIcon();
+    m_localeIcon = new InputLocaleIcon(locales, this);
+    m_layout->insertWidget(m_layout->indexOf(next), m_localeIcon);
+}
+
 QWidget *NotificationArea::firstOwnIcon() const
 {
+    if (m_localeIcon)
+        return m_localeIcon;
     if (m_batteryIcon)
         return m_batteryIcon;
     if (m_volumeIcon)

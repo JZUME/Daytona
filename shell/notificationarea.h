@@ -11,6 +11,8 @@ namespace Daytona {
 class BatteryIcon;
 class BatteryMonitor;
 class Clock;
+class InputLocaleIcon;
+class InputLocales;
 class StatusNotifierHost;
 class StatusNotifierItem;
 class TrayIcon;
@@ -42,6 +44,11 @@ public:
     void setBatteryMonitor(BatteryMonitor *monitor);
     BatteryIcon *batteryIcon() const { return m_batteryIcon; }
 
+    // Shows the input locale indicator for locales, left of the shell's
+    // other icons, while more than one locale is installed.
+    void setInputLocales(InputLocales *locales);
+    InputLocaleIcon *inputLocaleIcon() const { return m_localeIcon; }
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 
@@ -56,6 +63,7 @@ private:
 
     VolumeIcon *m_volumeIcon = nullptr;
     BatteryIcon *m_batteryIcon = nullptr;
+    InputLocaleIcon *m_localeIcon = nullptr;
 };
 
 } // namespace Daytona

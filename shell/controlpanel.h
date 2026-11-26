@@ -25,6 +25,7 @@ struct ControlPanelApplet
     {
         None, // an application, from entry
         Display,
+        Keyboard,
         Mouse,
         Taskbar
     };
@@ -86,6 +87,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void displayPropertiesRequested();
+    void keyboardPropertiesRequested();
     void mousePropertiesRequested();
     void taskbarPropertiesRequested();
 

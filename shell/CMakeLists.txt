@@ -27,6 +27,14 @@ add_library(daytona-shell-core STATIC
     desktop.h
     displayproperties.cpp
     displayproperties.h
+    inputlocaleicon.cpp
+    inputlocaleicon.h
+    inputlocales.cpp
+    inputlocales.h
+    keyboardlayout.cpp
+    keyboardlayout.h
+    keyboardproperties.cpp
+    keyboardproperties.h
     statusnotifierhost.cpp
     statusnotifierhost.h
     statusnotifieritem.cpp
@@ -106,7 +114,7 @@ target_include_directories(daytona-shell-core PUBLIC
 target_link_libraries(daytona-shell-core PUBLIC
     Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient LayerShellQt::Interface
     daytona-style daytona-theme-core)
-target_link_libraries(daytona-shell-core PRIVATE PkgConfig::PulseAudio)
+target_link_libraries(daytona-shell-core PRIVATE PkgConfig::PulseAudio PkgConfig::WaylandClient)
 qt_generate_wayland_protocol_client_sources(daytona-shell-core
     FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml
           ${PROJECT_SOURCE_DIR}/protocols/wlr-output-management-unstable-v1.xml)

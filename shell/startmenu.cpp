@@ -142,6 +142,8 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
         &StartMenu::taskbarPropertiesRequested);
     m_settingsMenu->addAction(themeIcon("preferences-desktop-display"), tr("&Display..."), this,
         &StartMenu::displayPropertiesRequested);
+    m_settingsMenu->addAction(themeIcon("input-keyboard"), tr("&Keyboard..."), this,
+        &StartMenu::keyboardPropertiesRequested);
     m_settingsMenu->addAction(
         themeIcon("input-mouse"), tr("&Mouse..."), this, &StartMenu::mousePropertiesRequested);
 

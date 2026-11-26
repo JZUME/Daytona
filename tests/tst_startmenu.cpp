@@ -91,13 +91,17 @@ private Q_SLOTS:
         }
         QCOMPARE(enabled,
             QStringList({ QStringLiteral("&Control Panel"), QStringLiteral("&Taskbar..."),
-                QStringLiteral("&Display..."), QStringLiteral("&Mouse...") }));
+                QStringLiteral("&Display..."), QStringLiteral("&Keyboard..."),
+                QStringLiteral("&Mouse...") }));
         QSignalSpy controlPanel(&menu, &StartMenu::controlPanelRequested);
         settingsMenu->actions().first()->trigger();
         QCOMPARE(controlPanel.count(), 1);
         QSignalSpy mouse(&menu, &StartMenu::mousePropertiesRequested);
         settingsMenu->actions().last()->trigger();
         QCOMPARE(mouse.count(), 1);
+        QSignalSpy keyboard(&menu, &StartMenu::keyboardPropertiesRequested);
+        settingsMenu->actions().at(3)->trigger();
+        QCOMPARE(keyboard.count(), 1);
     }
 
     void commandItemsFollowSettings()

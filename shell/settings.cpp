@@ -36,6 +36,8 @@ namespace {
     const QString KeyScreenSaverPassword = QStringLiteral("ScreenSaver/PasswordProtected");
     // Read by daytona-session too, which sets the cursor size from it.
     const QString KeyPointerScheme = QStringLiteral("Mouse/PointerScheme");
+    const QString KeyKeyboardLayouts = QStringLiteral("Keyboard/Layouts");
+    const QString KeyLayoutHotkey = QStringLiteral("Keyboard/Hotkey");
 
     const QString DefaultScheme = QStringLiteral("Windows Standard");
 
@@ -315,6 +317,43 @@ void Settings::setPointerScheme(PointerScheme scheme)
         scheme == PointerScheme::Large            ? QStringLiteral("large")
             : scheme == PointerScheme::ExtraLarge ? QStringLiteral("extralarge")
                                                   : QStringLiteral("standard"));
+}
+
+QStringList Settings::keyboardLayouts() const
+{
+    QStringList codes;
+    for (const QString &code : m_settings.value(KeyKeyboardLayouts).toStringList()) {
+        if (InputLocale::fromCode(code).isValid())
+            codes << code.trimmed();
+        else
+            qCWarning(lcSettings) << "Ignoring invalid keyboard layout" << code;
+    }
+    return codes;
+}
+
+void Settings::setKeyboardLayouts(const QStringList &codes)
+{
+    write(KeyKeyboardLayouts, codes);
+}
+
+LayoutHotkey Settings::layoutHotkey() const
+{
+    const QString text = m_settings.value(KeyLayoutHotkey).toString().trimmed().toLower();
+    if (text == QLatin1String("ctrlshift"))
+        return LayoutHotkey::CtrlShift;
+    if (text == QLatin1String("none"))
+        return LayoutHotkey::None;
+    if (!text.isEmpty() && text != QLatin1String("leftaltshift"))
+        qCWarning(lcSettings) << "Invalid value for" << KeyLayoutHotkey << "- using leftaltshift";
+    return LayoutHotkey::LeftAltShift;
+}
+
+void Settings::setLayoutHotkey(LayoutHotkey hotkey)
+{
+    write(KeyLayoutHotkey,
+        hotkey == LayoutHotkey::CtrlShift  ? QStringLiteral("ctrlshift")
+            : hotkey == LayoutHotkey::None ? QStringLiteral("none")
+                                           : QStringLiteral("leftaltshift"));
 }
 
 ScreenSaver Settings::screenSaver() const

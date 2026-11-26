@@ -62,13 +62,14 @@ Recommends:
  wireplumber,
  wl-clipboard,
  xdg-utils,
+ xkb-data,
  xwayland,
 Suggests:
  systemd,
 Description: Windows NT 4.0-style desktop shell for labwc
  Daytona recreates the Windows NT 4.0 desktop on Wayland: a taskbar with
  Start button, Start menu, window buttons, notification area (tray icons,
- volume control, battery and balloons) and clock, a desktop with NT
+ volume control, battery, input locale and balloons) and clock, a desktop with NT
  wallpaper modes, and NT's Run, Shut Down (with Stand by and Hibernate),
  Taskbar Properties and Display Properties dialogs, and a screen saver
  and NT's Workstation Locked screen through swayidle and Daytona's own

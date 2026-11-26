@@ -63,6 +63,8 @@ QList<ControlPanelApplet> controlPanelApplets(const QList<DesktopEntry> &entries
         { tr("Display"),
             tr("Changes your desktop's colours, wallpaper, screen area and font size."),
             QStringLiteral("preferences-desktop-display"), B::Display, {} },
+        { tr("Keyboard"), tr("Changes the keyboard layouts and how to switch between them."),
+            QStringLiteral("input-keyboard"), B::Keyboard, {} },
         { tr("Mouse"), tr("Changes the mouse pointer scheme."), QStringLiteral("input-mouse"),
             B::Mouse, {} },
         { tr("Taskbar"), tr("Changes how the taskbar and Start menu look and behave."),
@@ -336,6 +338,9 @@ void ControlPanel::openApplet(const ControlPanelApplet &applet)
     switch (applet.builtin) {
     case B::Display:
         Q_EMIT displayPropertiesRequested();
+        return;
+    case B::Keyboard:
+        Q_EMIT keyboardPropertiesRequested();
         return;
     case B::Mouse:
         Q_EMIT mousePropertiesRequested();

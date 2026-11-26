@@ -9,6 +9,9 @@
 #include "desktop.h"
 #include "displayproperties.h"
 #include "gtktheme.h"
+#include "inputlocaleicon.h"
+#include "inputlocales.h"
+#include "keyboardproperties.h"
 #include "mouseproperties.h"
 #include "notificationarea.h"
 #include "notificationqueue.h"
@@ -93,6 +96,17 @@ int main(int argc, char *argv[])
     if (hasArgument(argc, argv, "--lock")) {
         QCoreApplication app(argc, argv);
         return Daytona::ShellService::requestLock() ? 0 : 1;
+    }
+    // The keyboard layouts for labwc's environment file, which
+    // daytona-session writes at log on.
+    if (hasArgument(argc, argv, "--labwc-environment")) {
+        QCoreApplication app(argc, argv);
+        const Daytona::Settings settings(Daytona::Settings::defaultFilePath());
+        const QByteArray text = Daytona::labwcEnvironment(
+            Daytona::sessionKeyboard(&settings, Daytona::systemKeyboard()));
+        return std::fwrite(text.constData(), 1, size_t(text.size()), stdout) == size_t(text.size())
+            ? 0
+            : 1;
     }
     if (hasArgument(argc, argv, "--screen-saver")) {
         QCoreApplication app(argc, argv);
@@ -184,6 +198,11 @@ int main(int argc, char *argv[])
     Daytona::VolumeControl volume;
     if (volume.start())
         taskbar.notificationArea()->setVolumeControl(&volume);
+    // The input locale indicator, while more than one keyboard layout is
+    // installed.
+    Daytona::InputLocales inputLocales(&settings, Daytona::labwcConfigDir());
+    inputLocales.start();
+    taskbar.notificationArea()->setInputLocales(&inputLocales);
     // One taskbar, on the primary output, as in NT 4.0.
     taskbar.winId();
     taskbar.windowHandle()->setScreen(QGuiApplication::primaryScreen());
@@ -337,6 +356,23 @@ int main(int argc, char *argv[])
     QObject::connect(&startMenu, &Daytona::StartMenu::mousePropertiesRequested, &mouseProperties,
         showMouseProperties);
 
+    // Keyboard Properties, from Start > Settings > Keyboard..., the Control
+    // Panel and the input locale indicator.
+    Daytona::KeyboardPropertiesDialog keyboardProperties(&settings);
+    QObject::connect(&keyboardProperties, &Daytona::KeyboardPropertiesDialog::applied,
+        &inputLocales, &Daytona::InputLocales::reload);
+    const auto showKeyboardProperties = [&keyboardProperties] {
+        keyboardProperties.prepare();
+        keyboardProperties.show();
+        keyboardProperties.raise();
+        keyboardProperties.activateWindow();
+    };
+    QObject::connect(&startMenu, &Daytona::StartMenu::keyboardPropertiesRequested,
+        &keyboardProperties, showKeyboardProperties);
+    QObject::connect(taskbar.notificationArea()->inputLocaleIcon(),
+        &Daytona::InputLocaleIcon::propertiesRequested, &keyboardProperties,
+        showKeyboardProperties);
+
     // Taskbar Properties, from Start > Settings > Taskbar..., the taskbar's
     // own menu and the Control Panel.
     Daytona::TaskbarPropertiesDialog taskbarProperties(&settings);
@@ -403,6 +439,8 @@ int main(int argc, char *argv[])
         });
     QObject::connect(&controlPanel, &Daytona::ControlPanel::displayPropertiesRequested,
         &displayProperties, showDisplayProperties);
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::keyboardPropertiesRequested,
+        &keyboardProperties, showKeyboardProperties);
     QObject::connect(&controlPanel, &Daytona::ControlPanel::mousePropertiesRequested,
         &mouseProperties, showMouseProperties);
     QObject::connect(&controlPanel, &Daytona::ControlPanel::taskbarPropertiesRequested,

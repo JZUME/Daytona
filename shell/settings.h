@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "keyboardlayout.h"
 #include "screenmode.h"
 #include "xcursor.h"
 
@@ -90,6 +91,16 @@ public:
     // size from it at log on (large: 64, extralarge: 96, else 32).
     PointerScheme pointerScheme() const;
     void setPointerScheme(PointerScheme scheme);
+
+    // Keyboard Properties' input locales, as InputLocale codes ("gb",
+    // "de(nodeadkeys)"), the default first; empty when none was chosen, and
+    // the system's keyboard is used. daytona-session passes them to labwc
+    // at log on (daytona-shell --labwc-environment).
+    QStringList keyboardLayouts() const;
+    void setKeyboardLayouts(const QStringList &codes);
+    // The hot key that switches between them.
+    LayoutHotkey layoutHotkey() const;
+    void setLayoutHotkey(LayoutHotkey hotkey);
 
     // Display Properties' Screen Saver tab: the screen saver, its wait in
     // minutes (MinScreenSaverWait to MaxScreenSaverWait, as NT's spin box)

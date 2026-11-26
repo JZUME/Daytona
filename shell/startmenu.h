@@ -92,6 +92,7 @@ Q_SIGNALS:
     void controlPanelRequested();
     void displayPropertiesRequested();
     void mousePropertiesRequested();
+    void keyboardPropertiesRequested();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

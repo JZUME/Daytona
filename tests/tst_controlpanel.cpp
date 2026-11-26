@@ -58,12 +58,14 @@ private Q_SLOTS:
             got << applet.name;
         // Daytona's own dialogs first, then the applications, each by name.
         QCOMPARE(got,
-            QStringList({ QStringLiteral("Display"), QStringLiteral("Mouse"),
-                QStringLiteral("Taskbar"), QStringLiteral("Printers"), QStringLiteral("Sound") }));
+            QStringList({ QStringLiteral("Display"), QStringLiteral("Keyboard"),
+                QStringLiteral("Mouse"), QStringLiteral("Taskbar"), QStringLiteral("Printers"),
+                QStringLiteral("Sound") }));
         QCOMPARE(applets.at(0).builtin, ControlPanelApplet::Builtin::Display);
-        QCOMPARE(applets.at(3).builtin, ControlPanelApplet::Builtin::None);
-        QCOMPARE(applets.at(3).comment, QStringLiteral("Printers settings"));
-        QCOMPARE(applets.at(3).entry.id, QStringLiteral("printers.desktop"));
+        QCOMPARE(applets.at(1).builtin, ControlPanelApplet::Builtin::Keyboard);
+        QCOMPARE(applets.at(4).builtin, ControlPanelApplet::Builtin::None);
+        QCOMPARE(applets.at(4).comment, QStringLiteral("Printers settings"));
+        QCOMPARE(applets.at(4).entry.id, QStringLiteral("printers.desktop"));
     }
 
     void builtinsOnly()
@@ -71,12 +73,12 @@ private Q_SLOTS:
         ControlPanel panel(nullptr);
         QCOMPARE(panel.windowTitle(), QStringLiteral("Control Panel"));
         QCOMPARE(names(panel.builtinView()),
-            QStringList(
-                { QStringLiteral("Display"), QStringLiteral("Mouse"), QStringLiteral("Taskbar") }));
+            QStringList({ QStringLiteral("Display"), QStringLiteral("Keyboard"),
+                QStringLiteral("Mouse"), QStringLiteral("Taskbar") }));
         QCOMPARE(panel.applicationView()->count(), 0);
         // With no applications, their heading is not shown.
         QVERIFY(panel.applicationHeading()->isHidden());
-        QCOMPARE(panel.statusText()->text(), QStringLiteral("3 object(s)"));
+        QCOMPARE(panel.statusText()->text(), QStringLiteral("4 object(s)"));
         QVERIFY(!panel.openAction()->isEnabled());
     }
 
@@ -84,11 +86,12 @@ private Q_SLOTS:
     {
         ControlPanel panel(nullptr);
         QSignalSpy display(&panel, &ControlPanel::displayPropertiesRequested);
+        QSignalSpy keyboard(&panel, &ControlPanel::keyboardPropertiesRequested);
         QSignalSpy mouse(&panel, &ControlPanel::mousePropertiesRequested);
         QSignalSpy taskbar(&panel, &ControlPanel::taskbarPropertiesRequested);
 
         QListWidget *view = panel.builtinView();
-        view->setCurrentRow(1);
+        view->setCurrentRow(2);
         QCOMPARE(panel.statusText()->text(), QStringLiteral("Changes the mouse pointer scheme."));
         QVERIFY(panel.openAction()->isEnabled());
         panel.openAction()->trigger();
@@ -97,8 +100,10 @@ private Q_SLOTS:
         // Double-clicking (or Enter) activates an item.
         Q_EMIT view->itemActivated(view->item(0));
         QCOMPARE(display.count(), 1);
-        Q_EMIT view->itemActivated(view->item(2));
+        Q_EMIT view->itemActivated(view->item(3));
         QCOMPARE(taskbar.count(), 1);
+        Q_EMIT view->itemActivated(view->item(1));
+        QCOMPARE(keyboard.count(), 1);
     }
 
     void applicationsFromIndex()
@@ -126,7 +131,7 @@ private Q_SLOTS:
         ControlPanel panel(&index);
         QCOMPARE(names(panel.applicationView()), QStringList({ QStringLiteral("Printers") }));
         QVERIFY(!panel.applicationHeading()->isHidden());
-        QCOMPARE(panel.statusText()->text(), QStringLiteral("4 object(s)"));
+        QCOMPARE(panel.statusText()->text(), QStringLiteral("5 object(s)"));
 
         // One selection across both groups.
         panel.builtinView()->setCurrentRow(0);
@@ -152,7 +157,7 @@ private Q_SLOTS:
         panel.setViewMode(ControlPanel::ViewMode::List);
         QCOMPARE(panel.builtinView()->flow(), QListView::TopToBottom);
         // One row per applet in a list.
-        QCOMPARE(panel.builtinView()->height(), 3 * panel.builtinView()->gridSize().height());
+        QCOMPARE(panel.builtinView()->height(), 4 * panel.builtinView()->gridSize().height());
     }
 };
 
