@@ -16,7 +16,7 @@ Daytona has an apt repository for Debian 13 (amd64 and arm64) at
 <https://soupbowl.io/Project-Daytona/>, with two suites:
 
 - `stable`: tagged releases.
-- `edge`: the latest build of `main`, for testing. Only the newest builds are kept.
+- `edge`: a nightly build of `main`, for testing. Only the newest builds are kept.
 
 Add the signing key (fingerprint `E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090`):
 
@@ -104,8 +104,9 @@ another `0.1.0` build, add `--reinstall`.
 
 CI builds the packages for the tag (it checks that the tag matches `debian/changelog`). The apt
 workflow (`.github/workflows/apt.yml`) then publishes them as the `v0.2.0` GitHub release and in
-the `stable` suite. Builds of `main` keep going to the rolling `edge` prerelease and the `edge`
-suite, which keep only the two newest builds. Every deployment rebuilds the whole site, so removed
+the `stable` suite. Nightly builds of `main` (made only when `main` has changed, or straight away
+with Run workflow on the CI workflow) go to the rolling `edge` prerelease and the `edge` suite,
+which keep only the two newest builds. Every deployment rebuilds the whole site, so removed
 builds leave it, and the repository is signed with the key in the `GPG_SIGN_PRIVATE` secret
 (public key: `packaging/apt/daytona-archive-keyring.asc`).
 

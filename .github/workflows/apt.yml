@@ -2,8 +2,10 @@
 #
 # Publishes the apt repository on GitHub Pages after CI builds packages:
 #
-# - main: the packages go on the rolling "edge" prerelease, which keeps only
-#   the two newest builds (scripts/apt/update-edge-release.sh).
+# - main (the nightly build, or Run workflow on main): the packages go on
+#   the rolling "edge" prerelease, which keeps only the two newest builds
+#   (scripts/apt/update-edge-release.sh). A nightly run that built nothing,
+#   because main hadn't changed, publishes nothing.
 # - a vX.Y.Z tag: the packages become the GitHub release for that tag.
 #
 # Then the whole site is rebuilt from the releases (stable suite) and the
@@ -30,14 +32,40 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  # Did the CI run build packages to publish?
+  packages:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       (github.event.workflow_run.head_branch == 'main' ||
-        startsWith(github.event.workflow_run.head_branch, 'v')))
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      ((github.event.workflow_run.event == 'push' &&
+        startsWith(github.event.workflow_run.head_branch, 'v')) ||
+       ((github.event.workflow_run.event == 'schedule' ||
+         github.event.workflow_run.event == 'workflow_dispatch') &&
+        github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      found: ${{ steps.count.outputs.found }}
+    steps:
+      - id: count
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.event.workflow_run.id }}
+        run: |
+          count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN/artifacts" \
+              --jq '[.artifacts[] | select(.name | startswith("Packages ("))] | length')"
+          echo "$count package artifacts"
+          if [ "$count" -gt 0 ]; then
+            echo "found=true" >>"$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: packages
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'workflow_dispatch' || needs.packages.outputs.found == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
