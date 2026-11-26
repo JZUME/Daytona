@@ -102,6 +102,11 @@
     <keybind key="C-Escape">
       <action name="Execute" command="daytona-shell --start-menu" />
     </keybind>
+    <!-- Win+L locks the computer, as in Windows XP. The shell runs swaylock;
+         Super_L's onRelease binding above does not fire after a chord. -->
+    <keybind key="W-l">
+      <action name="Execute" command="daytona-shell --lock" />
+    </keybind>
     <!-- Volume keys, through WirePlumber (Debian 13's PipeWire session
          manager). Raising stops at 100%, as NT's volume control did. The
          speaker in the notification area follows the change. -->

@@ -3,6 +3,7 @@
 #include "shutdowndialog.h"
 
 #include <QRadioButton>
+#include <QSignalSpy>
 #include <QTest>
 
 using namespace Daytona;
@@ -76,6 +77,32 @@ private Q_SLOTS:
         dialog.prepare();
         dialog.reject();
         QVERIFY(actions.performed.isEmpty());
+    }
+
+    void lockOnlyWhenAvailable()
+    {
+        FakeActions actions;
+        ShutDownDialog dialog(&actions);
+        dialog.prepare();
+        QVERIFY(!dialog.option(SessionAction::Lock)->isEnabled());
+        dialog.setLockAvailable(true);
+        dialog.option(SessionAction::Lock)->setChecked(true);
+        QCOMPARE(dialog.chosen(), SessionAction::Lock);
+        dialog.accept();
+        QCOMPARE(actions.performed, QList<SessionAction> { SessionAction::Lock });
+        // Remembered, unless swaylock has gone.
+        dialog.prepare();
+        QCOMPARE(dialog.chosen(), SessionAction::Lock);
+        dialog.setLockAvailable(false);
+        QCOMPARE(dialog.chosen(), SessionAction::ShutDown);
+    }
+
+    void lockIsAskedForNotPerformed()
+    {
+        SessionActions actions;
+        QSignalSpy spy(&actions, &SessionActions::lockRequested);
+        actions.perform(SessionAction::Lock, [](const QString &) { QFAIL("failed"); });
+        QCOMPARE(spy.count(), 1);
     }
 
     void failureIsShown()

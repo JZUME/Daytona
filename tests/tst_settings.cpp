@@ -9,6 +9,7 @@
 #include <QTest>
 
 using Daytona::PointerScheme;
+using Daytona::ScreenSaver;
 using Daytona::Settings;
 using Daytona::TaskbarEdge;
 using Daytona::WallpaperMode;
@@ -164,6 +165,38 @@ private Q_SLOTS:
         const QString bad = path(QStringLiteral("badpointer.ini"));
         writeFile(bad, "[Mouse]\nPointerScheme=huge\n");
         QCOMPARE(Settings(bad).pointerScheme(), PointerScheme::Standard);
+    }
+
+    void screenSaver()
+    {
+        const QString file = path(QStringLiteral("saver.ini"));
+        {
+            Settings s(file);
+            // Blank Screen after 15 minutes, without a password, by default.
+            QCOMPARE(s.screenSaver(), ScreenSaver::Blank);
+            QCOMPARE(s.screenSaverWait(), 15);
+            QCOMPARE(s.screenSaverPassword(), false);
+            QSignalSpy spy(&s, &Settings::changed);
+            s.setScreenSaver(ScreenSaver::None);
+            s.setScreenSaverWait(5);
+            s.setScreenSaverPassword(true);
+            QCOMPARE(spy.count(), 3);
+            QCOMPARE(spy.first().first().toString(), QStringLiteral("ScreenSaver/Saver"));
+            s.setScreenSaverWait(1000); // clamped to NT's range
+            QCOMPARE(s.screenSaverWait(), Settings::MaxScreenSaverWait);
+            s.setScreenSaverWait(5);
+        }
+        Settings s(file);
+        QCOMPARE(s.screenSaver(), ScreenSaver::None);
+        QCOMPARE(s.screenSaverWait(), 5);
+        QCOMPARE(s.screenSaverPassword(), true);
+
+        const QString bad = path(QStringLiteral("badsaver.ini"));
+        writeFile(bad, "[ScreenSaver]\nSaver=flying-toasters\nWait=0\nPasswordProtected=maybe\n");
+        Settings b(bad);
+        QCOMPARE(b.screenSaver(), ScreenSaver::Blank);
+        QCOMPARE(b.screenSaverWait(), 15);
+        QCOMPARE(b.screenSaverPassword(), false);
     }
 
     void systemStartLogo()

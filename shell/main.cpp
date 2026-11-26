@@ -2,6 +2,7 @@
 
 #include "applicationindex.h"
 #include "balloon.h"
+#include "blankscreen.h"
 #include "controlpanel.h"
 #include "daytonastyle.h"
 #include "desktop.h"
@@ -13,6 +14,8 @@
 #include "notificationservice.h"
 #include "outputmanager.h"
 #include "rundialog.h"
+#include "screenlock.h"
+#include "screensaverservice.h"
 #include "settings.h"
 #include "shellservice.h"
 #include "shutdowndialog.h"
@@ -63,6 +66,16 @@ int main(int argc, char *argv[])
     if (hasArgument(argc, argv, "--start-menu")) {
         QCoreApplication app(argc, argv);
         return Daytona::ShellService::requestToggleStartMenu() ? 0 : 1;
+    }
+    // Lock Workstation (Win+L, swayidle's before-sleep and lock) and the
+    // screen saver (swayidle's timeout), done by the running shell.
+    if (hasArgument(argc, argv, "--lock")) {
+        QCoreApplication app(argc, argv);
+        return Daytona::ShellService::requestLock() ? 0 : 1;
+    }
+    if (hasArgument(argc, argv, "--screen-saver")) {
+        QCoreApplication app(argc, argv);
+        return Daytona::ShellService::requestScreenSaver() ? 0 : 1;
     }
 
     QApplication app(argc, argv);
@@ -200,10 +213,44 @@ int main(int argc, char *argv[])
     QObject::connect(
         &startMenu, &Daytona::StartMenu::closed, &taskbar, &Daytona::Taskbar::collapseLater);
 
+    // Locking (swaylock) and the screen saver (swayidle's timeout).
+    Daytona::ScreenLocker locker;
+    if (!locker.isAvailable())
+        qCWarning(lcShell) << "swaylock is not installed: the session cannot be locked";
+    Daytona::BlankScreen blankScreen;
+    QObject::connect(&service, &Daytona::ShellService::lockRequested, &locker,
+        [&locker](const std::function<void()> &done) {
+            locker.lock(Daytona::LockKind::Workstation, done);
+        });
+    QObject::connect(&service, &Daytona::ShellService::screenSaverRequested, &blankScreen,
+        [&settings, &locker, &blankScreen] {
+            if (settings.screenSaver() == Daytona::ScreenSaver::None)
+                return;
+            if (settings.screenSaverPassword())
+                locker.lock(Daytona::LockKind::ScreenSaver);
+            else
+                blankScreen.start();
+        });
+    Daytona::IdleMonitor idle(&settings, QCoreApplication::applicationFilePath());
+    idle.start();
+    // Programs that keep the screen on (video players, presentations) through
+    // org.freedesktop.ScreenSaver rather than Wayland's idle-inhibit.
+    Daytona::ScreenSaverService screenSaverService(QDBusConnection::sessionBus());
+    if (screenSaverService.registerOnBus()) {
+        QObject::connect(&screenSaverService, &Daytona::ScreenSaverService::inhibitedChanged, &idle,
+            &Daytona::IdleMonitor::setInhibited);
+    } else {
+        qCWarning(lcShell) << "Cannot own org.freedesktop.ScreenSaver; programs that ask"
+                           << "for it will not keep the screen saver off";
+    }
+
     // Display Properties, from Start > Settings > Display..., the desktop's
     // menu and the Control Panel.
     Daytona::DisplayPropertiesDialog displayProperties(&settings);
     displayProperties.setScreenSettings(&outputs);
+    QObject::connect(&displayProperties,
+        &Daytona::DisplayPropertiesDialog::screenSaverPreviewRequested, &blankScreen,
+        &Daytona::BlankScreen::start);
     const auto showDisplayProperties = [&displayProperties] {
         displayProperties.prepare();
         displayProperties.show();
@@ -300,6 +347,9 @@ int main(int argc, char *argv[])
 
     Daytona::SessionActions sessionActions;
     Daytona::ShutDownDialog shutDownDialog(&sessionActions);
+    shutDownDialog.setLockAvailable(locker.isAvailable());
+    QObject::connect(&sessionActions, &Daytona::SessionActions::lockRequested, &locker,
+        [&locker] { locker.lock(Daytona::LockKind::Workstation); });
     QObject::connect(
         &startMenu, &Daytona::StartMenu::shutDownRequested, &shutDownDialog, [&shutDownDialog] {
             shutDownDialog.prepare();

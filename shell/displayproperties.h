@@ -19,6 +19,7 @@ class QListWidget;
 class QPushButton;
 class QRadioButton;
 class QSlider;
+class QSpinBox;
 
 namespace Daytona {
 
@@ -93,10 +94,11 @@ private:
     QLabel *m_sample;
 };
 
-// NT's Display Properties, with the Background, Appearance and Settings
-// tabs. The Settings tab has NT's Font Size: Small Fonts (100%), Large
-// Fonts (150%; NT's was 125%) or a custom size, applied as the scale of the screen the
-// dialog is on and remembered for that screen.
+// NT's Display Properties, with the Background, Screen Saver, Appearance and
+// Settings tabs. The Screen Saver tab offers (None) and Blank Screen, the
+// wait and password protection. The Settings tab has NT's Font Size: Small
+// Fonts (100%), Large Fonts (150%; NT's was 125%) or a custom size, applied
+// as the scale of the screen the dialog is on and remembered for that screen.
 class DisplayPropertiesDialog : public QDialog
 {
     Q_OBJECT
@@ -132,6 +134,10 @@ public:
     double selectedScale() const;
     // Selects scale in the font size list, adding a custom entry if needed.
     void selectScale(double scale);
+    QComboBox *screenSaverBox() const { return m_screenSaver; }
+    QSpinBox *screenSaverWaitBox() const { return m_wait; }
+    QCheckBox *screenSaverPasswordBox() const { return m_password; }
+    QPushButton *screenSaverPreviewButton() const { return m_previewSaver; }
     QComboBox *schemeBox() const { return m_schemes; }
     QCheckBox *systemLogoBox() const { return m_systemLogo; }
     QPushButton *applyButton() const { return m_apply; }
@@ -147,11 +153,15 @@ public Q_SLOTS:
     void loadThemeFile(const QString &path);
 
 Q_SIGNALS:
+    // The screen saver's Preview button was pressed.
+    void screenSaverPreviewRequested();
     // The theme tool finished applying a scheme (ok false if it failed).
     void schemeApplied(bool ok);
 
 private:
     QWidget *createBackgroundTab();
+    QWidget *createScreenSaverTab();
+    void updateScreenSaverControls();
     QWidget *createAppearanceTab();
     QWidget *createSettingsTab();
     QString screenName() const;
@@ -170,6 +180,12 @@ private:
     QListWidget *m_wallpapers;
     // The Display options, in the order shown.
     QList<std::pair<WallpaperMode, QRadioButton *>> m_displayModes;
+    DesktopPreview *m_saverPreview;
+    QComboBox *m_screenSaver;
+    QPushButton *m_saverSettings;
+    QPushButton *m_previewSaver;
+    QCheckBox *m_password;
+    QSpinBox *m_wait;
     AppearancePreview *m_appearancePreview;
     QComboBox *m_schemes;
     QCheckBox *m_systemLogo;

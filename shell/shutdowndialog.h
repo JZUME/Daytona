@@ -13,12 +13,14 @@ enum class SessionAction
 {
     ShutDown,
     Restart,
-    LogOff
+    LogOff,
+    Lock
 };
 
 // The session actions behind the Shut Down dialog: shut down and restart go
-// to systemd-logind over D-Bus, log off asks labwc to exit. All calls are
-// asynchronous so the shell never blocks on them.
+// to systemd-logind over D-Bus, log off asks labwc to exit, and lock emits
+// lockRequested for the shell's screen locker. All calls are asynchronous so
+// the shell never blocks on them.
 class SessionActions : public QObject
 {
     Q_OBJECT
@@ -32,6 +34,9 @@ public:
     // Asks logind which actions are allowed ("yes" or "challenge").
     virtual void queryAvailability(Availability done);
     virtual void perform(SessionAction action, Failure failed);
+
+Q_SIGNALS:
+    void lockRequested();
 };
 
 // NT's Shut Down dialog.
@@ -47,6 +52,8 @@ public:
 
     // Enables or disables the shut down and restart options.
     void setAvailability(bool canShutDown, bool canRestart);
+    // Whether the lock option is offered (swaylock is installed).
+    void setLockAvailable(bool available);
 
     SessionAction chosen() const;
     QRadioButton *option(SessionAction action) const;
@@ -63,6 +70,7 @@ private:
     QRadioButton *m_shutDown;
     QRadioButton *m_restart;
     QRadioButton *m_logOff;
+    QRadioButton *m_lock;
     SessionAction m_last = SessionAction::ShutDown;
 };
 

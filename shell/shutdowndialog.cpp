@@ -72,6 +72,10 @@ void SessionActions::queryAvailability(Availability done)
 
 void SessionActions::perform(SessionAction action, Failure failed)
 {
+    if (action == SessionAction::Lock) {
+        Q_EMIT lockRequested();
+        return;
+    }
     if (action == SessionAction::LogOff) {
         // End the session as "labwc --exit" does: SIGTERM to the compositor
         // named by LABWC_PID, which labwc sets for the programs it starts,
@@ -115,6 +119,10 @@ ShutDownDialog::ShutDownDialog(SessionActions *actions, QWidget *parent)
     m_shutDown = new QRadioButton(tr("&Shut down the computer?"), this);
     m_restart = new QRadioButton(tr("&Restart the computer?"), this);
     m_logOff = new QRadioButton(tr("&Close all programs and log on as a different user?"), this);
+    // Not in NT's dialog, where locking was Ctrl+Alt+Del's: Lock Workstation
+    // is offered here too, so it can be found from the Start menu.
+    m_lock = new QRadioButton(tr("&Lock the computer?"), this);
+    m_lock->setEnabled(false);
 
     // NT's buttons: Yes (default) and No.
     auto *yes = new QPushButton(tr("&Yes"), this);
@@ -130,6 +138,7 @@ ShutDownDialog::ShutDownDialog(SessionActions *actions, QWidget *parent)
     options->addWidget(m_shutDown);
     options->addWidget(m_restart);
     options->addWidget(m_logOff);
+    options->addWidget(m_lock);
     auto *buttons = new QHBoxLayout;
     buttons->addStretch();
     buttons->addWidget(yes);
@@ -152,6 +161,8 @@ QRadioButton *ShutDownDialog::option(SessionAction action) const
         return m_restart;
     case SessionAction::LogOff:
         return m_logOff;
+    case SessionAction::Lock:
+        return m_lock;
     }
     return m_logOff;
 }
@@ -162,6 +173,8 @@ SessionAction ShutDownDialog::chosen() const
         return SessionAction::ShutDown;
     if (m_restart->isChecked())
         return SessionAction::Restart;
+    if (m_lock->isChecked())
+        return SessionAction::Lock;
     return SessionAction::LogOff;
 }
 
@@ -182,6 +195,13 @@ void ShutDownDialog::setAvailability(bool canShutDown, bool canRestart)
     m_shutDown->setEnabled(canShutDown);
     m_restart->setEnabled(canRestart);
     if (!option(chosen())->isEnabled() || !option(chosen())->isChecked())
+        select(m_last);
+}
+
+void ShutDownDialog::setLockAvailable(bool available)
+{
+    m_lock->setEnabled(available);
+    if (!available && m_lock->isChecked())
         select(m_last);
 }
 

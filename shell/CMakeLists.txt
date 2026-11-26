@@ -13,6 +13,8 @@ add_library(daytona-shell-core STATIC
     applicationindex.h
     balloon.cpp
     balloon.h
+    blankscreen.cpp
+    blankscreen.h
     clickcatcher.cpp
     clickcatcher.h
     dbusmenu.cpp
@@ -49,6 +51,10 @@ add_library(daytona-shell-core STATIC
     rundialog.h
     screenmode.cpp
     screenmode.h
+    screenlock.cpp
+    screenlock.h
+    screensaverservice.cpp
+    screensaverservice.h
     settings.cpp
     settings.h
     shutdowndialog.cpp

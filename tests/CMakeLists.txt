@@ -101,3 +101,9 @@ add_dependencies(tst_displayproperties daytona-themetool)
 set_tests_properties(tst_displayproperties PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_controlpanel daytona-shell-core)
 set_tests_properties(tst_controlpanel PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+
+# Screen lock, screen saver and org.freedesktop.ScreenSaver, on a private bus.
+add_executable(tst_screenlock tst_screenlock.cpp)
+target_link_libraries(tst_screenlock PRIVATE Qt6::Test daytona-shell-core)
+add_test(NAME tst_screenlock COMMAND dbus-run-session -- $<TARGET_FILE:tst_screenlock>)
+set_tests_properties(tst_screenlock PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)

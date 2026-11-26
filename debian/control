@@ -52,6 +52,8 @@ Recommends:
  libglib2.0-bin,
  lxqt-policykit,
  pavucontrol-qt | pavucontrol,
+ swayidle,
+ swaylock,
  wireplumber,
  xdg-utils,
  xwayland,
@@ -61,7 +63,8 @@ Description: Windows NT 4.0-style desktop shell for labwc
  Daytona recreates the Windows NT 4.0 desktop on Wayland: a taskbar with
  Start button, Start menu, window buttons, notification area (tray icons,
  volume control and balloons) and clock, a desktop with NT wallpaper modes, and NT's Run, Shut
- Down, Taskbar Properties and Display Properties dialogs. labwc provides the
+ Down, Taskbar Properties and Display Properties dialogs, and a screen saver
+ and Lock Workstation through swayidle and swaylock. labwc provides the
  window management, configured with NT key bindings, window menu and theme;
  the package includes its own build of labwc 0.8.3 with a small patch that
  draws NT's raised 3D window frames, installed privately in

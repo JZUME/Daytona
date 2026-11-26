@@ -25,6 +25,12 @@ enum class TaskbarEdge
 
 // NT 4.0's Display Properties offered Tile and Center. Stretch (Windows 98),
 // Fit and Fill (Windows 7) are small modern additions (AGENT.md, Design Scope).
+enum class ScreenSaver
+{
+    None,
+    Blank
+};
+
 enum class WallpaperMode
 {
     Centre,
@@ -84,6 +90,18 @@ public:
     // size from it at log on (large: 64, extralarge: 96, else 32).
     PointerScheme pointerScheme() const;
     void setPointerScheme(PointerScheme scheme);
+
+    // Display Properties' Screen Saver tab: the screen saver, its wait in
+    // minutes (MinScreenSaverWait to MaxScreenSaverWait, as NT's spin box)
+    // and whether ending it asks for the password.
+    static constexpr int MinScreenSaverWait = 1;
+    static constexpr int MaxScreenSaverWait = 60;
+    ScreenSaver screenSaver() const;
+    void setScreenSaver(ScreenSaver saver);
+    int screenSaverWait() const;
+    void setScreenSaverWait(int minutes);
+    bool screenSaverPassword() const;
+    void setScreenSaverPassword(bool protect);
 
     // Whether the Start button shows the operating system's logo (true) or
     // Daytona's own.

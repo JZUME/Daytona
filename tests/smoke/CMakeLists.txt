@@ -86,3 +86,12 @@ if(WLRCTL_EXECUTABLE)
 else()
     message(STATUS "wlrctl not found: pointer smoke tests disabled")
 endif()
+
+# The screen saver and Lock Workstation, through swayidle and swaylock.
+find_program(SWAYIDLE_EXECUTABLE swayidle)
+find_program(SWAYLOCK_EXECUTABLE swaylock)
+if(WLRCTL_EXECUTABLE AND SWAYIDLE_EXECUTABLE AND SWAYLOCK_EXECUTABLE)
+    daytona_add_smoke_test(smoke_screensaver smoke_screensaver.sh)
+else()
+    message(STATUS "wlrctl, swayidle or swaylock not found: screen saver smoke test disabled")
+endif()

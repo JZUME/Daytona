@@ -32,6 +32,7 @@
 #include <QRadioButton>
 #include <QScreen>
 #include <QSlider>
+#include <QSpinBox>
 #include <QStandardPaths>
 #include <QTabWidget>
 #include <QTimer>
@@ -292,6 +293,7 @@ DisplayPropertiesDialog::DisplayPropertiesDialog(Settings *settings, QWidget *pa
     setWindowTitle(tr("Display Properties"));
     auto *tabs = new QTabWidget(this);
     tabs->addTab(createBackgroundTab(), tr("Background"));
+    tabs->addTab(createScreenSaverTab(), tr("Screen Saver"));
     tabs->addTab(createAppearanceTab(), tr("Appearance"));
     tabs->addTab(createSettingsTab(), tr("Settings"));
 
@@ -364,6 +366,72 @@ QWidget *DisplayPropertiesDialog::createBackgroundTab()
     return page;
 }
 
+QWidget *DisplayPropertiesDialog::createScreenSaverTab()
+{
+    // NT's tab, with its one built-in screen saver that fits Daytona:
+    // Blank Screen. It has no settings of its own, so Settings... stays
+    // disabled, as NT's did for screen savers without any.
+    auto *page = new QWidget;
+    m_saverPreview = new DesktopPreview(page);
+    auto *group = new QGroupBox(tr("&Screen Saver"), page);
+    m_screenSaver = new QComboBox(group);
+    m_screenSaver->addItem(tr("(None)"), int(ScreenSaver::None));
+    m_screenSaver->addItem(tr("Blank Screen"), int(ScreenSaver::Blank));
+    m_saverSettings = new QPushButton(tr("Se&ttings..."), group);
+    m_saverSettings->setEnabled(false);
+    m_previewSaver = new QPushButton(tr("Pre&view"), group);
+    for (QPushButton *b : { m_saverSettings, m_previewSaver })
+        b->setMinimumSize(75, 23);
+    m_password = new QCheckBox(tr("&Password protected"), group);
+    auto *waitLabel = new QLabel(tr("&Wait:"), group);
+    m_wait = new QSpinBox(group);
+    m_wait->setRange(Settings::MinScreenSaverWait, Settings::MaxScreenSaverWait);
+    waitLabel->setBuddy(m_wait);
+    auto *minutes = new QLabel(tr("minutes"), group);
+
+    connect(m_screenSaver, &QComboBox::currentIndexChanged, this, [this] {
+        updateScreenSaverControls();
+        changed();
+    });
+    connect(m_password, &QCheckBox::toggled, this, &DisplayPropertiesDialog::changed);
+    connect(m_wait, &QSpinBox::valueChanged, this, &DisplayPropertiesDialog::changed);
+    connect(m_previewSaver, &QPushButton::clicked, this,
+        &DisplayPropertiesDialog::screenSaverPreviewRequested);
+
+    auto *top = new QHBoxLayout;
+    top->addWidget(m_screenSaver, 1);
+    top->addWidget(m_saverSettings);
+    top->addWidget(m_previewSaver);
+    auto *bottom = new QHBoxLayout;
+    bottom->addWidget(m_password);
+    bottom->addStretch();
+    bottom->addWidget(waitLabel);
+    bottom->addWidget(m_wait);
+    bottom->addWidget(minutes);
+    auto *groupLayout = new QVBoxLayout(group);
+    groupLayout->addLayout(top);
+    groupLayout->addLayout(bottom);
+
+    auto *layout = new QVBoxLayout(page);
+    layout->addWidget(m_saverPreview, 0, Qt::AlignHCenter);
+    layout->addWidget(group);
+    layout->addStretch();
+    return page;
+}
+
+void DisplayPropertiesDialog::updateScreenSaverControls()
+{
+    const bool blank = m_screenSaver->currentData().toInt() == int(ScreenSaver::Blank);
+    m_previewSaver->setEnabled(blank);
+    m_password->setEnabled(blank);
+    m_wait->setEnabled(blank);
+    // The little monitor shows the screen saver, or the desktop without one.
+    const QScreen *screen = QApplication::primaryScreen();
+    m_saverPreview->setDesktop(
+        blank ? QColor(Qt::black) : Style::schemeColour(QStringLiteral("Background")), QImage(),
+        WallpaperMode::Centre, screen ? screen->size() : QSize(1024, 768));
+}
+
 QWidget *DisplayPropertiesDialog::createAppearanceTab()
 {
     auto *page = new QWidget;
@@ -415,6 +483,13 @@ void DisplayPropertiesDialog::prepare()
     const WallpaperMode mode = m_settings ? m_settings->wallpaperMode() : WallpaperMode::Centre;
     for (const auto &[candidate, radio] : std::as_const(m_displayModes))
         radio->setChecked(candidate == mode);
+
+    // Screen Saver.
+    const ScreenSaver saver = m_settings ? m_settings->screenSaver() : ScreenSaver::Blank;
+    m_screenSaver->setCurrentIndex(qMax(0, m_screenSaver->findData(int(saver))));
+    m_password->setChecked(m_settings && m_settings->screenSaverPassword());
+    m_wait->setValue(m_settings ? m_settings->screenSaverWait() : 15);
+    updateScreenSaverControls();
 
     // Appearance: built-in schemes, then loaded .theme files.
     m_schemes->clear();
@@ -580,6 +655,10 @@ void DisplayPropertiesDialog::apply()
         m_settings->setWallpaperMode(selectedMode());
         m_settings->setWallpaperPath(selectedWallpaper());
         m_settings->setSystemStartLogo(m_systemLogo->isChecked());
+        // The screen saver: the shell's idle monitor follows the settings.
+        m_settings->setScreenSaverWait(m_wait->value());
+        m_settings->setScreenSaverPassword(m_password->isChecked());
+        m_settings->setScreenSaver(ScreenSaver(m_screenSaver->currentData().toInt()));
     }
 
     // Colour scheme: the theme tool writes colors.ini and the labwc and GTK

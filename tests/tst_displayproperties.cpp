@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QSlider>
+#include <QSpinBox>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -171,6 +172,39 @@ private Q_SLOTS:
         QCOMPARE(settings.systemStartLogo(), false);
         dialog.prepare();
         QVERIFY(!dialog.systemLogoBox()->isChecked());
+    }
+
+    void screenSaverTab()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        DisplayPropertiesDialog dialog(&settings);
+        QCOMPARE(dialog.screenSaverBox()->currentText(), QStringLiteral("Blank Screen"));
+        QCOMPARE(dialog.screenSaverWaitBox()->value(), 15);
+        QVERIFY(!dialog.screenSaverPasswordBox()->isChecked());
+        QVERIFY(dialog.screenSaverPreviewButton()->isEnabled());
+
+        dialog.screenSaverWaitBox()->setValue(3);
+        dialog.screenSaverPasswordBox()->setChecked(true);
+        QVERIFY(dialog.applyButton()->isEnabled());
+        QSignalSpy preview(&dialog, &DisplayPropertiesDialog::screenSaverPreviewRequested);
+        dialog.screenSaverPreviewButton()->click();
+        QCOMPARE(preview.count(), 1);
+        dialog.apply();
+        QCOMPARE(settings.screenSaverWait(), 3);
+        QCOMPARE(settings.screenSaverPassword(), true);
+        QCOMPARE(settings.screenSaver(), ScreenSaver::Blank);
+
+        // (None): nothing to preview, protect or wait for.
+        dialog.screenSaverBox()->setCurrentIndex(0);
+        QVERIFY(!dialog.screenSaverPreviewButton()->isEnabled());
+        QVERIFY(!dialog.screenSaverPasswordBox()->isEnabled());
+        QVERIFY(!dialog.screenSaverWaitBox()->isEnabled());
+        dialog.apply();
+        QCOMPARE(settings.screenSaver(), ScreenSaver::None);
+        dialog.prepare();
+        QCOMPARE(dialog.screenSaverBox()->currentText(), QStringLiteral("(None)"));
+        QCOMPARE(dialog.screenSaverWaitBox()->value(), 3);
     }
 
     void fontSizeChoices()

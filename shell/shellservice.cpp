@@ -34,23 +34,62 @@ ShellService::Registration ShellService::registerOnSessionBus()
     return Registration::Registered;
 }
 
+namespace {
+
+    bool callShell(const char *method, int timeoutMs)
+    {
+        QDBusConnection bus = QDBusConnection::sessionBus();
+        if (!bus.isConnected()) {
+            std::fprintf(stderr, "daytona-shell: no D-Bus session bus\n");
+            return false;
+        }
+        const QDBusMessage call
+            = QDBusMessage::createMethodCall(QString::fromLatin1(ShellService::ServiceName),
+                QString::fromLatin1(ShellService::ObjectPath),
+                QString::fromLatin1(ShellService::ServiceName), QString::fromLatin1(method));
+        const QDBusMessage reply = bus.call(call, QDBus::Block, timeoutMs);
+        if (reply.type() == QDBusMessage::ErrorMessage) {
+            std::fprintf(
+                stderr, "daytona-shell: no running shell: %s\n", qPrintable(reply.errorMessage()));
+            return false;
+        }
+        return true;
+    }
+
+} // namespace
+
 bool ShellService::requestToggleStartMenu()
 {
-    QDBusConnection bus = QDBusConnection::sessionBus();
-    if (!bus.isConnected()) {
-        std::fprintf(stderr, "daytona-shell: no D-Bus session bus\n");
-        return false;
+    return callShell("ToggleStartMenu", 2000);
+}
+
+bool ShellService::requestLock()
+{
+    // Long enough for swaylock to start on a slow machine; logind allows a
+    // sleep to be delayed for 5 seconds by default anyway.
+    return callShell("Lock", 10000);
+}
+
+bool ShellService::requestScreenSaver()
+{
+    return callShell("StartScreenSaver", 2000);
+}
+
+void ShellService::Lock()
+{
+    qCDebug(lcService) << "Lock requested over D-Bus";
+    std::function<void()> done = [] { };
+    if (calledFromDBus()) {
+        setDelayedReply(true);
+        done = [bus = connection(), reply = message().createReply()]() mutable { bus.send(reply); };
     }
-    const QDBusMessage call = QDBusMessage::createMethodCall(QString::fromLatin1(ServiceName),
-        QString::fromLatin1(ObjectPath), QString::fromLatin1(ServiceName),
-        QStringLiteral("ToggleStartMenu"));
-    const QDBusMessage reply = bus.call(call, QDBus::Block, 2000);
-    if (reply.type() == QDBusMessage::ErrorMessage) {
-        std::fprintf(
-            stderr, "daytona-shell: no running shell: %s\n", qPrintable(reply.errorMessage()));
-        return false;
-    }
-    return true;
+    Q_EMIT lockRequested(done);
+}
+
+void ShellService::StartScreenSaver()
+{
+    qCDebug(lcService) << "Screen saver requested over D-Bus";
+    Q_EMIT screenSaverRequested();
 }
 
 void ShellService::ToggleStartMenu()

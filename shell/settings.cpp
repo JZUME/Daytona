@@ -8,6 +8,7 @@
 #include <QLoggingCategory>
 #include <QStandardPaths>
 #include <QTimer>
+#include <algorithm>
 
 Q_LOGGING_CATEGORY(lcSettings, "daytona.settings", QtInfoMsg)
 
@@ -30,6 +31,9 @@ namespace {
     const QString KeyScheme = QStringLiteral("Appearance/ColourScheme");
     const QString KeyThemeFiles = QStringLiteral("Appearance/ThemeFiles");
     const QString KeySystemLogo = QStringLiteral("Appearance/SystemStartLogo");
+    const QString KeyScreenSaver = QStringLiteral("ScreenSaver/Saver");
+    const QString KeyScreenSaverWait = QStringLiteral("ScreenSaver/Wait");
+    const QString KeyScreenSaverPassword = QStringLiteral("ScreenSaver/PasswordProtected");
     // Read by daytona-session too, which sets the cursor size from it.
     const QString KeyPointerScheme = QStringLiteral("Mouse/PointerScheme");
 
@@ -311,6 +315,51 @@ void Settings::setPointerScheme(PointerScheme scheme)
         scheme == PointerScheme::Large            ? QStringLiteral("large")
             : scheme == PointerScheme::ExtraLarge ? QStringLiteral("extralarge")
                                                   : QStringLiteral("standard"));
+}
+
+ScreenSaver Settings::screenSaver() const
+{
+    const QString text = m_settings.value(KeyScreenSaver).toString().trimmed().toLower();
+    if (text == QLatin1String("none"))
+        return ScreenSaver::None;
+    if (!text.isEmpty() && text != QLatin1String("blank"))
+        qCWarning(lcSettings) << "Invalid value for" << KeyScreenSaver << "- using blank";
+    return ScreenSaver::Blank;
+}
+
+void Settings::setScreenSaver(ScreenSaver saver)
+{
+    write(KeyScreenSaver,
+        saver == ScreenSaver::None ? QStringLiteral("none") : QStringLiteral("blank"));
+}
+
+int Settings::screenSaverWait() const
+{
+    constexpr int fallback = 15;
+    if (!m_settings.contains(KeyScreenSaverWait))
+        return fallback;
+    bool ok = false;
+    const int minutes = m_settings.value(KeyScreenSaverWait).toString().trimmed().toInt(&ok);
+    if (!ok || minutes < MinScreenSaverWait || minutes > MaxScreenSaverWait) {
+        qCWarning(lcSettings) << "Invalid value for" << KeyScreenSaverWait << "- using" << fallback;
+        return fallback;
+    }
+    return minutes;
+}
+
+void Settings::setScreenSaverWait(int minutes)
+{
+    write(KeyScreenSaverWait, std::clamp(minutes, MinScreenSaverWait, MaxScreenSaverWait));
+}
+
+bool Settings::screenSaverPassword() const
+{
+    return readBool(KeyScreenSaverPassword, false);
+}
+
+void Settings::setScreenSaverPassword(bool protect)
+{
+    write(KeyScreenSaverPassword, protect);
 }
 
 bool Settings::systemStartLogo() const
