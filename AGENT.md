@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Project Daytona is a Windows 95 / Windows NT 4.0 style desktop shell for Linux.
+Project Daytona is a Windows NT 4.0 style desktop shell for Linux.
 
 It is a **shell**, not a compositor and not a toolkit. It provides the desktop experience on top of an existing Wayland compositor:
 
@@ -22,6 +22,18 @@ Window management, window decorations, input and output handling are delegated t
 The intended experience is fixed by design. The layout, interaction model and visual language are not configurable. Colours, fonts and wallpaper may be, mainly so that Windows `.theme` files can be applied.
 
 The project should feel predictable, lightweight, familiar and cohesive.
+
+---
+
+## Design Scope
+
+Daytona aims to be a generally usable, familiar desktop for everyday use, not a pure retro recreation.
+
+* **Windows NT 4.0 is the focus.** When in doubt, do what NT 4.0 did.
+* **Anything up to Windows XP with the Classic style is acceptable.** Features, dialogs and behaviours from Windows 98, 2000 and XP (Classic, not Luna) may be used where they improve on NT, provided they are presented in the NT visual language.
+* **Minor modern additions are fine.** Small adjustments for things NT never had to deal with (high-density screens, modern Linux desktop conventions, a distribution's own logo, extra wallpaper placement modes such as Fit and Fill) are acceptable when they fit naturally into an existing NT-style dialog or behaviour.
+
+This widens what is eligible; it does not lower the bar for adding things. A feature still needs an explicit request, must fit the NT interaction model and visual language, and must not bring in the larger modern patterns this guide rules out (see Preserve the NT interaction model and Visual Design).
 
 ---
 
@@ -86,7 +98,7 @@ If a task appears to require an architectural change, stop and explain why. Prop
 
 ### 4. Preserve the NT interaction model
 
-The desktop follows the Windows 95 / NT 4.0 WIMP interaction model. Unless explicitly instructed otherwise, assume:
+The desktop follows the Windows NT 4.0 WIMP interaction model, with the additions allowed by Design Scope. Unless explicitly instructed otherwise, assume:
 
 * the taskbar starts at the bottom; when unlocked it can be dragged to any edge of its screen, and when locked it cannot be moved or resized (see Taskbar Placement)
 * the Start button is on the left
@@ -103,7 +115,7 @@ The desktop follows the Windows 95 / NT 4.0 WIMP interaction model. Unless expli
 
 Where behaviour is owned by the compositor (titlebars, borders, Alt+Tab, Alt+Space), Daytona achieves it through labwc configuration it ships, not by reimplementing it.
 
-Do not introduce modern alternative behaviours unless explicitly requested, for example:
+Minor modern additions are allowed (see Design Scope), but do not introduce modern alternative behaviours that change how the desktop is used unless explicitly requested, for example:
 
 * tiling
 * dynamic workspaces
@@ -150,7 +162,7 @@ Reading other projects for reference (lxqt-panel, Selkies desktop, Chicago95) is
 * Updating the Chicago95 pin is its own change, never part of an unrelated task.
 * Daytona ships no Microsoft artwork, fonts, sounds or trademarks.
 * Cursors are **Daytona Cursors**, generated at build time from Chicago95's Standard cursors (`themetool/xcursor.*`, `daytona-cursorgen`): each cursor at every pointer scheme and screen scale, larger sizes redrawn in the manner of Windows' large cursors (the body enlarged, the outline kept 1 pixel thin) rather than enlarged block by block. Chicago95's cursor theme itself is not installed, and the Chicago95 cursors that show a parody of the Windows logo (`X_cursor` and X11's novelty cursors) are replaced by the arrow.
-* The Start button shows the operating system's own logo, as NT's Start button showed NT's, chosen automatically: the icon named by os-release's `LOGO` field, else a logo file the distribution is known to install (Debian sets no `LOGO`; its red `emblem-debian.svg` from desktop-base or `debian-logo.png` from debconf is used). Only a distribution's own names and files are used, never a theme's generic `distributor-logo` or `start-here`, and a derivative is never given its parent's logo. Daytona ships no distribution's logo; it shows what the system has. Without one, or when the user turns it off (Display Properties > Appearance, an approved exception), the button shows Daytona's original logo (`artwork/start-logo.svg`).
+* The Start button shows the operating system's own logo, as NT's Start button showed NT's, chosen automatically: the icon named by os-release's `LOGO` field, else a logo file the distribution is known to install (Debian sets no `LOGO`; its red `emblem-debian.svg` from desktop-base or `debian-logo.png` from debconf is used). Only a distribution's own names and files are used, never a theme's generic `distributor-logo` or `start-here`, and a derivative is never given its parent's logo. Daytona ships no distribution's logo; it shows what the system has. Without one, or when the user turns it off (Display Properties > Appearance, "Use the operating system's logo on the Start button", on by default, for users whose distribution logo looks poor at 16 pixels), the button shows Daytona's original logo (`artwork/start-logo.svg`).
 
 ---
 
@@ -215,12 +227,12 @@ Implement standard Wayland protocols rather than application-specific behaviour.
 
 ## Visual Design
 
-The UI should match Windows 95 / NT 4.0 closely in structure and feel. Pixel-perfect emulation is not required, and Microsoft artwork, icons, fonts and trademarks must not be copied or shipped.
+The UI should match Windows NT 4.0 closely in structure and feel; later Classic-style details up to Windows XP are acceptable (see Design Scope). Pixel-perfect emulation is not required, and Microsoft artwork, icons, fonts and trademarks must not be copied or shipped.
 
 Characteristics:
 
 * rectangular bevelled 3D borders (raised and sunken)
-* solid colours, no gradients except where a `.theme` explicitly specifies an NT-style titlebar gradient
+* solid colours, no gradients except titlebar gradients where the colour scheme or `.theme` specifies them (as Windows 98, 2000 and XP Classic did)
 * conventional titlebars, menus and dialogs
 * simple pressed / unpressed button states
 * dotted focus rectangles
@@ -281,27 +293,18 @@ Daytona's own settings are a small, documented INI file, not CSS and not a gener
 
 ## Configuration Policy
 
-Daytona is deliberately not customisable beyond NT shell equivalence.
+Daytona is deliberately not customisable beyond what the Windows shell offered.
 
-The rule: **if Windows NT 4.0's shell did not offer it, Daytona does not offer it.** Having an NT equivalent makes a setting eligible, not required; it is only added when explicitly requested.
-
-**Approved exceptions** (post-NT features deliberately included):
-
-* **Lock the taskbar** (Windows XP). It makes the NT-era drag-to-edge behaviour safe to leave enabled.
-* **Notification balloons** (Windows 2000). Linux applications send desktop notifications and expect them to be shown; balloons are the closest era-appropriate presentation.
-* **Large Fonts is 150%**, not NT's 125% (120 DPI). 150% is the more useful size on today's high-density screens; 125% remains available under Custom....
-* **Start button logo choice** (Display Properties > Appearance, "Use the operating system's logo on the Start button", on by default). NT had no such option; it lets users whose distribution logo looks poor at 16 pixels use Daytona's own logo instead.
-
-No other post-NT features are accepted without explicit approval.
+The rule: **a setting is eligible only if the Windows shell offered it between NT 4.0 and XP (Classic), or it is a minor modern addition that fits an existing NT-style dialog (see Design Scope).** Being eligible does not make a setting required; it is only added when explicitly requested.
 
 Accepted configuration, Display Properties equivalents:
 
 * colour scheme and fonts (normally applied via `.theme` files)
 * wallpaper
-* the Start button logo: the operating system's or Daytona's (approved exception)
+* the Start button logo: the operating system's or Daytona's
 * desktop area (resolution) and refresh frequency, per screen, on the Settings tab as in NT (applied through wlr-output-management, confirmed by a 15-second keep-or-revert prompt instead of NT's Test button, and remembered per screen like the font size)
 * clock format (follows the system locale)
-* high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% (see approved exceptions), custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
+* high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% rather than NT's 125%, as the more useful size on today's high-density screens, with 125% still available under Custom..., custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
 
 Accepted configuration, Mouse Properties equivalents (NT's Control Panel applet, approved as a dialog):
 
@@ -310,7 +313,7 @@ Accepted configuration, Mouse Properties equivalents (NT's Control Panel applet,
 Accepted configuration, Taskbar Properties equivalents:
 
 * taskbar edge (set by dragging, not by a setting in a dialog)
-* lock the taskbar
+* lock the taskbar (from Windows XP; makes drag-to-edge safe to leave enabled)
 * always on top
 * auto hide
 * show small icons in Start menu
@@ -325,7 +328,7 @@ Fixed:
 * titlebar button order
 * interaction model
 
-Do not add settings that NT did not have, such as taskbar transparency, alternative Start menu layouts, panel applets or custom widgets. Do not expose a setting simply because it is easy to implement.
+Do not add settings outside Design Scope, such as taskbar transparency, alternative Start menu layouts, panel applets or custom widgets. Do not expose a setting simply because it is easy to implement.
 
 ---
 
@@ -362,7 +365,7 @@ The shell implements the `org.freedesktop.Notifications` D-Bus service.
 * One balloon at a time; further notifications queue.
 * A balloon closes on click, on its close button, or after its timeout (application timeout, else 10 seconds). Clicking the body invokes the `default` action if present.
 * Supported capabilities: `body`, `actions` (default action only), `icon-static`. Markup, sounds and persistence are not supported.
-* No notification history, do-not-disturb or notification centre: none existed in the era.
+* No notification history, do-not-disturb or notification centre: none existed up to Windows XP.
 
 ---
 
