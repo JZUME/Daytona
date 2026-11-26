@@ -223,3 +223,12 @@ The same scripts work outside a container on any Debian 13 machine with the pack
 ## Licence
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+## Trademarks
+
+Daytona is an independent project. It is not affiliated with, endorsed by or
+sponsored by Microsoft Corporation. Microsoft, Windows and Windows NT are
+trademarks of the Microsoft group of companies, used here only to describe
+the style Daytona follows. Daytona ships no Microsoft artwork, fonts, sounds
+or logos; its icons come from [Chicago95](https://github.com/grassmunk/Chicago95)
+(see [third_party/README.md](third_party/README.md)).

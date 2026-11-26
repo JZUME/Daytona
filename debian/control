@@ -86,6 +86,9 @@ Description: Windows NT 4.0-style desktop shell for labwc
  Widgets applications the NT look, and daytona-themetool, which applies
  Windows 95/NT/Plus! .theme colour schemes to the shell, Qt and GTK 3
  applications and labwc. A "Daytona" session is installed for login managers.
+ .
+ Daytona is not affiliated with or endorsed by Microsoft. Windows and
+ Windows NT are trademarks of the Microsoft group of companies.
 
 Package: daytona-chicago95
 Architecture: all
@@ -98,6 +101,8 @@ Description: Chicago95 GTK theme, icons and cursors for Daytona
  theme, in the current Daytona colour scheme, to GTK 3 applications.
  .
  This package contains the Chicago95 GTK 2/3 theme and the Chicago95 icon
- theme, as pinned by Daytona, and the "Daytona Cursors" cursor theme: the
+ theme, as pinned by Daytona (system icons only: without icons that replace
+ an application's own icon and without the Windows logo), and the "Daytona
+ Cursors" cursor theme: the
  Chicago95 Standard cursors redrawn for each pointer scheme (standard, large
  and extra large) and screen scale.

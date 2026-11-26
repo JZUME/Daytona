@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- A cut-down xkeyboard-config rules file for tst_keyboard. -->
+<!-- A cut-down xkeyboard-config rules file for tst_keyboard. Layout names
+     and descriptions are from xkeyboard-config's rules/evdev.xml
+     (https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config),
+     MIT licence. -->
 <xkbConfigRegistry version="1.1">
   <modelList/>
   <layoutList>
