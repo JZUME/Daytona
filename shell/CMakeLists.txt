@@ -67,6 +67,8 @@ add_library(daytona-shell-core STATIC
     recentdocuments.h
     rundialog.cpp
     rundialog.h
+    screenchooser.cpp
+    screenchooser.h
     screenmode.cpp
     screenmode.h
     screenlock.cpp

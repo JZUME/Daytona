@@ -114,6 +114,77 @@ To see what would start, and why other entries are skipped:
 dex --autostart --environment Daytona --dry-run --verbose
 ```
 
+## Programs started by D-Bus and systemd
+
+Some programs are not started from the session but by D-Bus activation or
+as systemd user services: portal dialogs such as the file chooser (see
+below), `gnome-terminal`'s server, applications with `DBusActivatable=true`
+and `systemd --user` services. They get the environment of the D-Bus and
+systemd user managers, not the session's, so without help they would open
+without the Daytona theme.
+
+labwc adds `WAYLAND_DISPLAY`, `XDG_CURRENT_DESKTOP`, `DISPLAY`, the cursor
+variables, `XDG_SESSION_TYPE`, `LABWC_PID` and `LABWC_VER` to both
+activation environments when it starts. Daytona's labwc `autostart` file adds
+`GTK_THEME`, `QT_STYLE_OVERRIDE` and `XDG_SESSION_DESKTOP`, so these programs
+take the Daytona GTK theme and Qt style like the rest of the session.
+
+When the session ends (Log off, or labwc exiting for any other reason, even
+if the shell crashed), labwc runs Daytona's labwc `shutdown` file, which
+takes them out again (`systemctl --user unset-environment`; D-Bus can only
+set them empty), as labwc does for its own. Otherwise a later GNOME or KDE
+session for the same user on the same systemd user manager would start
+programs in the Daytona theme. If labwc itself crashes, neither labwc nor
+Daytona can clean up, and the variables stay until the user's systemd
+manager stops (all of the user's sessions end) or the next Daytona log off.
+
+Both follow labwc's own rule for when to touch the activation environments:
+only when labwc runs the screens itself (its DRM backend), not when it runs
+in a window inside another desktop, whose environment that is.
+`daytona-session` makes that decision for both and passes it on as
+`LABWC_UPDATE_ACTIVATION_ENV`; set that variable yourself to override it.
+
+To check, in a Daytona session:
+
+```bash
+systemctl --user show-environment | grep -E 'GTK_THEME|QT_STYLE_OVERRIDE'
+```
+
+## File dialogs and screen sharing (portals)
+
+Sandboxed applications (Flatpak, Snap) and many others (Firefox and
+Chromium for screen sharing, and for their file dialogs when configured to,
+GTK applications run with `GTK_USE_PORTAL=1`) ask
+[xdg-desktop-portal](https://flatpak.github.io/xdg-desktop-portal/) for file
+dialogs, screen sharing and screenshots. The portal hands each request to a
+backend chosen for the desktop. Daytona's choice is
+`share/xdg-desktop-portal/daytona-portals.conf`:
+
+| Request | Backend | Why |
+| --- | --- | --- |
+| File Open and Save dialogs | `xdg-desktop-portal-lxqt`, else `-gtk` | LXQt's dialog is Qt, takes the `daytona` style and Chicago95 icons, and has NT's layout (the folder list, File name and Files of type, Open and Cancel). GTK's has a sidebar and path bar of its own. |
+| Screen sharing (ScreenCast), screenshots | `xdg-desktop-portal-wlr` | Captures labwc's screens through wlroots' protocols. |
+| Everything else (Open With, printing, appearance settings) | `xdg-desktop-portal-gtk` | GTK 3 dialogs in the Daytona theme. |
+
+The Daytona package recommends all three backends. Each is started by D-Bus
+when first needed, with the theme variables described above.
+
+When a program asks to share the screen, Daytona asks which screen (or
+window, with an xdg-desktop-portal-wlr and labwc new enough to share single
+windows) it may share, in its own Share Screen dialog
+(`daytona-shell --choose-screen`). With one screen the list holds "Entire
+screen"; Cancel refuses the request. xdg-desktop-portal-wlr runs the dialog
+as its chooser, set in `/etc/xdg/xdg-desktop-portal-wlr/Daytona`;
+xdg-desktop-portal-wlr reads that file only from `/etc/xdg`, so an install
+with another prefix needs it copied there. Without a chooser,
+xdg-desktop-portal-wlr refuses every request.
+
+To see the portals running in the session:
+
+```bash
+busctl --user list | grep portal
+```
+
 ## Administrator password prompts (polkit)
 
 When an application needs administrator rights through polkit (`pkexec`,

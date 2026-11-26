@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Run by labwc when the session ends (Log off), whether or not the shell is
+# still running. Takes the Daytona theme variables the autostart file added
+# out of the D-Bus and systemd activation environments again, as labwc does
+# for its own, so a later session of another desktop for the same user does
+# not start programs in the Daytona theme.
+case "$(echo "${LABWC_UPDATE_ACTIVATION_ENV:-}" | tr '[:upper:]' '[:lower:]')" in
+1 | true | yes | on)
+    if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+        # D-Bus can only set variables, so they are set empty, as labwc does.
+        dbus-update-activation-environment \
+            GTK_THEME= QT_STYLE_OVERRIDE= XDG_SESSION_DESKTOP= >/dev/null 2>&1
+        systemctl --user unset-environment \
+            GTK_THEME QT_STYLE_OVERRIDE XDG_SESSION_DESKTOP >/dev/null 2>&1
+    fi
+    ;;
+esac

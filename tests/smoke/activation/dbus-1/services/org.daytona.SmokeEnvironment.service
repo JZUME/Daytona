@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# For smoke_activation_env.sh: a D-Bus-activated program that writes the
+# environment it was started with to $SMOKE_ENVIRONMENT_FILE, then fails, so
+# the activation ends at once.
+[D-BUS Service]
+Name=org.daytona.SmokeEnvironment
+Exec=/bin/sh -c 'env > "$SMOKE_ENVIRONMENT_FILE"; exit 1'

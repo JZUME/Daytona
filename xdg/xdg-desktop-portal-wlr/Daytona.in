@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# xdg-desktop-portal-wlr's settings in the Daytona session (it reads the file
+# named after XDG_CURRENT_DESKTOP). When a program asks to share the screen,
+# Daytona's Share Screen dialog asks which screen or window it may share;
+# without a chooser xdg-desktop-portal-wlr refuses every request.
+[screencast]
+chooser_type=dmenu
+chooser_cmd=@CMAKE_INSTALL_FULL_BINDIR@/daytona-shell --choose-screen

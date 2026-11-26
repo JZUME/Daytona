@@ -1,5 +1,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Run by labwc at startup.
+
+# Programs that D-Bus or systemd start (portal dialogs such as the file
+# chooser, D-Bus-activated applications, systemd user services) get the
+# Daytona theme and desktop name too: add them to the activation
+# environment, beside the variables labwc adds itself, when labwc does (see
+# daytona-session). The labwc shutdown file takes them out again.
+case "$(echo "${LABWC_UPDATE_ACTIVATION_ENV:-}" | tr '[:upper:]' '[:lower:]')" in
+1 | true | yes | on)
+    if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+        dbus-update-activation-environment \
+            GTK_THEME QT_STYLE_OVERRIDE XDG_SESSION_DESKTOP >/dev/null 2>&1
+        systemctl --user import-environment \
+            GTK_THEME QT_STYLE_OVERRIDE XDG_SESSION_DESKTOP >/dev/null 2>&1
+    fi
+    ;;
+esac
+
 daytona-shell >/dev/null 2>&1 &
 
 # The polkit authentication agent, which asks for an administrator password

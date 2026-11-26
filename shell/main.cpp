@@ -20,6 +20,7 @@
 #include "outputmanager.h"
 #include "printscreen.h"
 #include "rundialog.h"
+#include "screenchooser.h"
 #include "screenlock.h"
 #include "screensaverservice.h"
 #include "settings.h"
@@ -132,6 +133,11 @@ int main(int argc, char *argv[])
     QApplication::setFont(QFont(QStringLiteral("sans"), 8));
     // Window and menu icons come from Chicago95, installed with Daytona.
     QIcon::setThemeName(QStringLiteral("Chicago95"));
+
+    // The screen sharing chooser, run by xdg-desktop-portal-wlr (see
+    // xdg/xdg-desktop-portal-wlr): a dialog of its own, beside the shell.
+    if (hasArgument(argc, argv, "--choose-screen"))
+        return Daytona::runScreenChooser();
 
     Daytona::ShellService service;
     switch (service.registerOnSessionBus()) {

@@ -45,6 +45,29 @@ if [ -z "${WLR_RENDERER:-}" ]; then
     done
 fi
 
+# Programs started by D-Bus or systemd rather than from the session (portal
+# dialogs such as the file chooser, D-Bus-activated applications, systemd
+# user services) see only the activation environment. labwc adds its
+# WAYLAND_DISPLAY, XDG_CURRENT_DESKTOP and cursor variables to it, and the
+# labwc autostart file adds the theme variables above, and both take them
+# out again at log off (the labwc shutdown file). labwc decides alone,
+# updating only when it drives the screens itself; Daytona's additions must
+# follow the same decision, so it is made here, the same way, unless already
+# set: not when started inside another desktop (nested in its Wayland or X
+# session) or on another wlroots backend, whose activation environment
+# belongs to that desktop.
+if [ -z "${LABWC_UPDATE_ACTIVATION_ENV:-}" ]; then
+    LABWC_UPDATE_ACTIVATION_ENV=true
+    if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
+        LABWC_UPDATE_ACTIVATION_ENV=false
+    fi
+    case ",${WLR_BACKENDS:-drm}," in
+    *,drm,*) ;;
+    *) LABWC_UPDATE_ACTIVATION_ENV=false ;;
+    esac
+    export LABWC_UPDATE_ACTIVATION_ENV
+fi
+
 # Daytona's patched labwc (bevelled NT window frames), installed next to this
 # script's prefix; the system's labwc if it was built without it.
 bindir="$(dirname "$(readlink -f "$0")")"

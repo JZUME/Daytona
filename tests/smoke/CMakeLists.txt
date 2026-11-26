@@ -97,6 +97,21 @@ else()
     message(STATUS "dex or gdbus not found: autostart smoke test disabled")
 endif()
 
+# D-Bus-activated programs get the theme variables (labwc autostart).
+find_program(DBUS_UPDATE_ACTIVATION_ENVIRONMENT_EXECUTABLE dbus-update-activation-environment)
+if(GDBUS_EXECUTABLE AND DBUS_UPDATE_ACTIVATION_ENVIRONMENT_EXECUTABLE)
+    add_test(NAME smoke_activation_env
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
+            ${CMAKE_CURRENT_SOURCE_DIR}/smoke_activation_env.sh)
+    set_tests_properties(smoke_activation_env PROPERTIES
+        FIXTURES_REQUIRED smoke
+        LABELS smoke
+        TIMEOUT 90
+        ENVIRONMENT "DAYTONA_SMOKE_ACTIVATION=1;XDG_DATA_DIRS=${CMAKE_CURRENT_SOURCE_DIR}/activation:/usr/local/share:/usr/share")
+else()
+    message(STATUS "gdbus or dbus-update-activation-environment not found: activation smoke test disabled")
+endif()
+
 # Pointer tests drive a virtual pointer with wlrctl.
 find_program(WLRCTL_EXECUTABLE wlrctl)
 if(WLRCTL_EXECUTABLE)

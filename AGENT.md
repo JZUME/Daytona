@@ -79,6 +79,7 @@ Before writing a component, check whether an established Linux component already
 * idle timeout, lock before sleep and on logind's `Lock`: **swayidle** (the lock screen itself is Daytona's `daytona-lock`, as no existing locker can show NT's dialogs)
 * sound server and volume keys: **PipeWire** (through pipewire-pulse) and **WirePlumber**'s `wpctl`
 * sound mixer (Control Panel applet, Open Volume Control): **pavucontrol-qt**
+* file dialogs and screen sharing for sandboxed and portal-using applications: **xdg-desktop-portal** with LXQt's (**xdg-desktop-portal-lxqt**) file dialog, **xdg-desktop-portal-wlr** for screen sharing (with Daytona's Share Screen dialog as its chooser) and **xdg-desktop-portal-gtk** for the rest
 * Print Screen capture and the clipboard: **grim** and **wl-clipboard**'s `wl-copy`
 * suspend, hibernate, lid and power button: **systemd-logind**; battery state: **UPower**; brightness keys: **brightnessctl**
 * keyboard layouts and switching between them: **XKB**, through labwc's `XKB_DEFAULT_*` environment; the list of layouts: **xkeyboard-config** (`evdev.xml`)

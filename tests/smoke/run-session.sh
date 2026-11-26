@@ -23,6 +23,11 @@
 # DAYTONA_SMOKE_OUTPUTS (default 1) is how many headless outputs the session
 # has (HEADLESS-1, HEADLESS-2...).
 #
+# DAYTONA_SMOKE_ACTIVATION=1 has labwc update the D-Bus activation
+# environment, as in a real session, with the theme variables daytona-session
+# sets. They are set only after the bus has started, so activated programs
+# get them only through that update.
+#
 # DAYTONA_SMOKE_AUTOSTART names a directory of XDG autostart entries for the
 # session: its config/autostart is copied to the user's autostart directory,
 # and its xdg directory is the only system configuration directory
@@ -68,6 +73,10 @@ export XCURSOR_THEME="Daytona Cursors"
 export XCURSOR_SIZE=32
 export XCURSOR_PATH="$prefix/share/icons:/usr/share/icons"
 export DAYTONA_SCREENSHOT_SIZE="${width}x${height}"
+if [[ "${DAYTONA_SMOKE_ACTIVATION:-}" == 1 ]]; then
+    export LABWC_UPDATE_ACTIVATION_ENV=true
+    export GTK_THEME=Daytona QT_STYLE_OVERRIDE=daytona XDG_SESSION_DESKTOP=Daytona
+fi
 
 labwc_pid=""
 cleanup() {

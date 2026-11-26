@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-install(FILES rc.xml menu.xml autostart
+install(FILES rc.xml menu.xml autostart shutdown
     DESTINATION ${DAYTONA_LABWC_INSTALL_DIR})
 
 # labwc looks for themes in the data directories' themes/ folders.
