@@ -8,6 +8,7 @@
 #include "daytonastyle.h"
 #include "desktop.h"
 #include "displayproperties.h"
+#include "endsession.h"
 #include "gtktheme.h"
 #include "inputlocaleicon.h"
 #include "inputlocales.h"
@@ -477,7 +478,11 @@ int main(int argc, char *argv[])
     QObject::connect(&controlPanel, &Daytona::ControlPanel::taskbarPropertiesRequested,
         &taskbarProperties, showTaskbarProperties);
 
+    // Programs are asked to close before the session ends.
+    Daytona::ProgramCloser programCloser(
+        &toplevels.list(), [&toplevels](quint32 id) { toplevels.close(id); });
     Daytona::SessionActions sessionActions;
+    sessionActions.setProgramCloser(&programCloser);
     Daytona::ShutDownDialog shutDownDialog(&sessionActions);
     shutDownDialog.setLockAvailable(locker.isAvailable());
     QObject::connect(&sessionActions, &Daytona::SessionActions::lockRequested, &locker,

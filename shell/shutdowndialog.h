@@ -9,6 +9,8 @@ class QRadioButton;
 
 namespace Daytona {
 
+class ProgramCloser;
+
 enum class SessionAction
 {
     ShutDown,
@@ -30,8 +32,10 @@ struct PowerAvailability
 
 // The session actions behind the Shut Down dialog: shut down, restart, stand
 // by and hibernate go to systemd-logind over D-Bus, log off asks labwc to exit, and lock emits
-// lockRequested for the shell's screen locker. All calls are asynchronous so
-// the shell never blocks on them.
+// lockRequested for the shell's screen locker. Before shutting down,
+// restarting or logging off, programs are asked to close (see
+// setProgramCloser). All calls are asynchronous so the shell never blocks on
+// them.
 class SessionActions : public QObject
 {
     Q_OBJECT
@@ -46,8 +50,17 @@ public:
     virtual void queryAvailability(Availability done);
     virtual void perform(SessionAction action, Failure failed);
 
+    // Closes programs before the session ends; without one the session
+    // ends straight away.
+    void setProgramCloser(ProgramCloser *closer) { m_closer = closer; }
+
 Q_SIGNALS:
     void lockRequested();
+
+private:
+    void performNow(SessionAction action, const Failure &failed);
+
+    ProgramCloser *m_closer = nullptr;
 };
 
 // NT's Shut Down dialog.

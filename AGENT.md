@@ -358,7 +358,7 @@ Top to bottom, matching NT 4.0:
 * **Find**: launches a file-search command set in Daytona's INI file; greyed out if unset.
 * **Run...**: Daytona's Run dialog.
 * separator
-* **Shut Down...**: NT-style dialog offering Shut down, Restart and Close all programs and log on as a different user, using systemd-logind over QtDBus, plus Stand by and Hibernate (see Power) and Lock the computer (see Screen Lock and Screen Saver). Shut down and Restart are disabled when logind reports them unavailable, as NT did; Stand by and Hibernate are shown only where logind allows them.
+* **Shut Down...**: NT-style dialog offering Shut down, Restart and Close all programs and log on as a different user, using systemd-logind over QtDBus, plus Stand by and Hibernate (see Power) and Lock the computer (see Screen Lock and Screen Saver). Shut down and Restart are disabled when logind reports them unavailable, as NT did; Stand by and Hibernate are shown only where logind allows them. Before shutting down, restarting or logging off, every program is asked to close, as NT did (the shell sends Close to each owner window over the foreign-toplevel protocol and waits), so programs can save their work or ask to; one that has not closed after 20 seconds gets NT's End Task prompt (End Task, Wait, Cancel), which goes away by itself if the program closes meanwhile. End Task stops waiting for that program, which ends with the session.
 
 NT's **Help** item is omitted; there is no system-wide help viewer to open.
 

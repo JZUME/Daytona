@@ -2,6 +2,8 @@
 
 #include "shutdowndialog.h"
 
+#include "endsession.h"
+
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusPendingCallWatcher>
@@ -77,6 +79,19 @@ void SessionActions::queryAvailability(Availability done)
 }
 
 void SessionActions::perform(SessionAction action, Failure failed)
+{
+    // NT asked programs to close before the session ended, so that unsaved
+    // work could be saved. Standing by, hibernating and locking keep them.
+    const bool endsSession = action == SessionAction::ShutDown || action == SessionAction::Restart
+        || action == SessionAction::LogOff;
+    if (endsSession && m_closer) {
+        m_closer->closeAll([this, action, failed] { performNow(action, failed); });
+        return;
+    }
+    performNow(action, failed);
+}
+
+void SessionActions::performNow(SessionAction action, const Failure &failed)
 {
     if (action == SessionAction::Lock) {
         Q_EMIT lockRequested();

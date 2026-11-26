@@ -27,6 +27,8 @@ add_library(daytona-shell-core STATIC
     desktop.h
     displayproperties.cpp
     displayproperties.h
+    endsession.cpp
+    endsession.h
     inputlocaleicon.cpp
     inputlocaleicon.h
     inputlocales.cpp

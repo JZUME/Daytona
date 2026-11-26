@@ -18,6 +18,8 @@ daytona_add_test(tst_recentdocuments daytona-shell-core)
 daytona_add_test(tst_rundialog daytona-shell-core)
 daytona_add_test(tst_shutdowndialog daytona-shell-core)
 set_tests_properties(tst_shutdowndialog PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+daytona_add_test(tst_endsession daytona-shell-core)
+set_tests_properties(tst_endsession PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 set_tests_properties(tst_rundialog PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 set_tests_properties(tst_recentdocuments PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 
