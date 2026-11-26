@@ -72,10 +72,14 @@ public:
 
 public Q_SLOTS:
     // Clicks, forwarded to the application with the pointer position.
-    void activate(const QPoint &globalPos);
+    // Items made with libayatana-appindicator (nm-applet, for one) have no
+    // Activate method, only a menu: activate() then shows the menu instead,
+    // beside anchor, as other desktops do.
+    void activate(const QPoint &globalPos, QWidget *anchor = nullptr);
     void secondaryActivate(const QPoint &globalPos);
     void contextMenu(const QPoint &globalPos);
-    // The item's menu: its DBusMenu when it has one, else ContextMenu.
+    // The item's menu: its DBusMenu when it has one, else ContextMenu. The
+    // DBusMenu is shown beside anchor (see popUpBesideTrayIcon).
     void showMenu(const QPoint &globalPos, QWidget *anchor);
 
     // Re-reads every property (asynchronously).
@@ -102,6 +106,7 @@ private:
     QString m_iconThemePath;
     QString m_menuPath;
     bool m_itemIsMenu = false;
+    bool m_noActivate = false; // Activate is not implemented
     DBusMenuClient *m_menuClient = nullptr;
     QList<QImage> m_pixmaps;
     QList<QImage> m_attentionPixmaps;

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Daytona's version of NetworkManager's applet entry, which it uses in place
+# of /etc/xdg/autostart/nm-applet.desktop (see labwc/autostart). The applet
+# must be asked for a StatusNotifierItem icon (--indicator): its default is
+# the X11 tray, which Wayland has no place for, so it would show no icon.
+[Desktop Entry]
+Type=Application
+Name=NetworkManager Applet
+Comment=Manage your network connections
+Icon=nm-device-wireless
+TryExec=nm-applet
+Exec=nm-applet --indicator
+NoDisplay=true

@@ -32,6 +32,7 @@ add_subdirectory(locker)
 add_subdirectory(themetool)
 add_subdirectory(labwc)
 add_subdirectory(session)
+add_subdirectory(xdg)
 add_subdirectory(third_party)
 
 include(CTest)

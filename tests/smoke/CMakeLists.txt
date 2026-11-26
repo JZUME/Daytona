@@ -81,7 +81,7 @@ if(DEX_EXECUTABLE AND GDBUS_EXECUTABLE)
         FIXTURES_REQUIRED smoke
         LABELS smoke
         TIMEOUT 90
-        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$<TARGET_FILE_DIR:daytona-sni-test-item>:$ENV{PATH};DAYTONA_SMOKE_AUTOSTART=${CMAKE_CURRENT_SOURCE_DIR}/autostart")
+        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$<TARGET_FILE_DIR:daytona-sni-test-item>:${CMAKE_CURRENT_SOURCE_DIR}/autostart/bin:$ENV{PATH};DAYTONA_SMOKE_AUTOSTART=${CMAKE_CURRENT_SOURCE_DIR}/autostart")
 else()
     message(STATUS "dex or gdbus not found: autostart smoke test disabled")
 endif()

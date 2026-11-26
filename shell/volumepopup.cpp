@@ -2,6 +2,8 @@
 
 #include "volumepopup.h"
 
+#include "taskbar.h"
+
 #include <QCheckBox>
 #include <QLabel>
 #include <QSignalBlocker>
@@ -75,6 +77,17 @@ QPoint volumePopupPosition(
         return { taskbar.left() - popup.width(), y };
     }
     return {};
+}
+
+void popUpBesideTrayIcon(QWidget *popup, QWidget *icon)
+{
+    QWidget *bar = icon->window();
+    const auto *taskbar = qobject_cast<const Taskbar *>(bar);
+    const TaskbarEdge edge = taskbar ? taskbar->edge() : TaskbarEdge::Bottom;
+    const QRect rect(icon->mapTo(bar, QPoint()), icon->size());
+    popup->adjustSize();
+    popup->move(bar->mapToGlobal(volumePopupPosition(edge, bar->rect(), rect, popup->sizeHint())));
+    popup->show();
 }
 
 } // namespace Daytona

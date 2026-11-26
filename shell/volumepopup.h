@@ -44,4 +44,11 @@ private:
 QPoint volumePopupPosition(
     TaskbarEdge edge, const QRect &taskbar, const QRect &icon, const QSize &popup);
 
+// Shows popup (a menu or pop-up window) beside the taskbar at icon, a widget
+// in the notification area, as NT's tray menus and the volume pop-up open.
+// Qt's own popup() is not used: it keeps a menu on the screen as Qt sees it,
+// where a layer-shell taskbar is at 0,0, so the place above the taskbar looks
+// off the screen, though it is right for the compositor.
+void popUpBesideTrayIcon(QWidget *popup, QWidget *icon);
+
 } // namespace Daytona

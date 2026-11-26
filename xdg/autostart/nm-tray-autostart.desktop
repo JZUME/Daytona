@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Used only when nm-applet is installed (see labwc/autostart): nm-tray, LXQt's
+# network icon, does not start as well, so there is one network icon.
+[Desktop Entry]
+Type=Application
+Name=nm-tray
+Exec=nm-tray
+Hidden=true

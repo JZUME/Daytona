@@ -3,8 +3,10 @@
 #include "statusnotifieritem.h"
 
 #include "dbusmenu.h"
+#include "volumepopup.h"
 
 #include <QDBusArgument>
+#include <QDBusError>
 #include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QDBusPendingCallWatcher>
@@ -15,6 +17,7 @@
 #include <QImageReader>
 #include <QLoggingCategory>
 #include <QPixmap>
+#include <QPointer>
 #include <QtEndian>
 
 Q_LOGGING_CATEGORY(lcSniItem, "daytona.sni.item", QtInfoMsg)
@@ -270,12 +273,36 @@ void StatusNotifierItem::showMenu(const QPoint &globalPos, QWidget *anchor)
     }
     if (!m_menuClient)
         m_menuClient = new DBusMenuClient(m_service, m_menuPath, m_connection, this);
-    m_menuClient->popup(globalPos, anchor);
+    QPointer<QWidget> icon = anchor;
+    m_menuClient->popup(globalPos, anchor, [icon](QMenu *menu) {
+        if (icon)
+            popUpBesideTrayIcon(menu, icon);
+    });
 }
 
-void StatusNotifierItem::activate(const QPoint &globalPos)
+void StatusNotifierItem::activate(const QPoint &globalPos, QWidget *anchor)
 {
-    call("Activate", globalPos);
+    if (m_noActivate) {
+        showMenu(globalPos, anchor);
+        return;
+    }
+    QDBusMessage message = QDBusMessage::createMethodCall(
+        m_service, m_path, ItemInterface, QStringLiteral("Activate"));
+    message << globalPos.x() << globalPos.y();
+    auto *watcher = new QDBusPendingCallWatcher(m_connection.asyncCall(message, 5000), this);
+    QPointer<QWidget> parent = anchor;
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+        [this, globalPos, parent](QDBusPendingCallWatcher *w) {
+            w->deleteLater();
+            if (!w->isError())
+                return;
+            const QDBusError::ErrorType error = w->error().type();
+            if (error != QDBusError::UnknownMethod && error != QDBusError::UnknownInterface)
+                return;
+            m_noActivate = true;
+            if (parent && !m_menuPath.isEmpty())
+                showMenu(globalPos, parent);
+        });
 }
 
 void StatusNotifierItem::secondaryActivate(const QPoint &globalPos)

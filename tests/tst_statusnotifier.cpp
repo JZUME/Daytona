@@ -13,6 +13,7 @@
 #include "trayicon.h"
 
 #include <QApplication>
+#include <QContextMenuEvent>
 #include <QElapsedTimer>
 #include <QMenu>
 #include <QSignalSpy>
@@ -227,6 +228,50 @@ private Q_SLOTS:
 
         app = QDBusConnection(QStringLiteral("released"));
         QDBusConnection::disconnectFromBus(QStringLiteral("menuapp"));
+        QTRY_COMPARE_WITH_TIMEOUT(area.trayIcons().size(), 0, 3000);
+    }
+
+    void menuOnlyItem()
+    {
+        // An item without Activate (libayatana-appindicator's, such as
+        // nm-applet's): a left click shows its menu instead.
+        NotificationArea area;
+        area.setHost(m_host);
+        QSignalSpy added(m_host, &StatusNotifierHost::itemAdded);
+        QDBusConnection app
+            = QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("ayatana"));
+        SniTestMenu menuObject;
+        QVERIFY(menuObject.publish(app));
+        SniTestItem item;
+        item.menu = QDBusObjectPath(QString::fromLatin1(SniTestMenu::Path));
+        item.iconPixmap << sniTestPixmap(solid(16, Qt::red));
+        QVERIFY(item.publish(app, false, false));
+        QVERIFY(added.wait(3000));
+        TrayIcon *icon = area.trayIcons().constLast();
+        QTRY_VERIFY_WITH_TIMEOUT(icon->item()->isReady(), 3000);
+
+        icon->resize(icon->sizeHint());
+        QTest::mouseClick(icon, Qt::LeftButton);
+        QTRY_VERIFY_WITH_TIMEOUT(icon->item()->menuClient(), 3000);
+        DBusMenuClient *client = icon->item()->menuClient();
+        QTRY_VERIFY_WITH_TIMEOUT(client->menu() && client->menu()->isVisible(), 3000);
+        client->menu()->hide();
+
+        // Later clicks show it straight away.
+        QTest::mouseClick(icon, Qt::LeftButton);
+        QTRY_VERIFY_WITH_TIMEOUT(client->menu() && client->menu()->isVisible(), 3000);
+        client->menu()->hide();
+
+        // The right button's context menu event stops at the icon, so the
+        // taskbar's own menu does not open over the item's.
+        QContextMenuEvent event(
+            QContextMenuEvent::Mouse, QPoint(1, 1), icon->mapToGlobal(QPoint(1, 1)));
+        event.ignore();
+        QApplication::sendEvent(icon, &event);
+        QVERIFY(event.isAccepted());
+
+        app = QDBusConnection(QStringLiteral("released"));
+        QDBusConnection::disconnectFromBus(QStringLiteral("ayatana"));
         QTRY_COMPARE_WITH_TIMEOUT(area.trayIcons().size(), 0, 3000);
     }
 

@@ -23,6 +23,7 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     void itemChanged();

@@ -137,12 +137,15 @@ public:
 
     // Exports the item on connection and registers it with the watcher.
     // Without waiting (for a watcher in the same thread) only the export is
-    // checked.
-    bool publish(QDBusConnection connection, bool waitForWatcher = true)
+    // checked. Without methods, the item is like libayatana-appindicator's,
+    // which has no Activate (or other click) methods, only a menu.
+    bool publish(QDBusConnection connection, bool waitForWatcher = true, bool withMethods = true)
     {
-        if (!connection.registerObject(QStringLiteral("/StatusNotifierItem"), this,
-                QDBusConnection::ExportAllProperties | QDBusConnection::ExportScriptableSlots
-                    | QDBusConnection::ExportScriptableSignals)) {
+        QDBusConnection::RegisterOptions options
+            = QDBusConnection::ExportAllProperties | QDBusConnection::ExportScriptableSignals;
+        if (withMethods)
+            options |= QDBusConnection::ExportScriptableSlots;
+        if (!connection.registerObject(QStringLiteral("/StatusNotifierItem"), this, options)) {
             return false;
         }
         QDBusMessage message

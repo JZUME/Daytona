@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Stands in for nm-tray, which must not start while nm-applet is installed.
+exec daytona-sni-test-item --tooltip nm-tray

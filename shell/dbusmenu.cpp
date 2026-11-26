@@ -243,7 +243,8 @@ void DBusMenuClient::fill(QMenu *menu, const DBusMenuNode &node)
         [this](QMenu *submenu, int id) { aboutToShow(submenu, id); });
 }
 
-void DBusMenuClient::popup(const QPoint &globalPos, QWidget *anchor)
+void DBusMenuClient::popup(
+    const QPoint &globalPos, QWidget *anchor, const std::function<void(QMenu *)> &place)
 {
     // Tell the application first, as dbusmenu asks; it may update the menu
     // before we read it. Only the layout read waits; this call does not.
@@ -253,7 +254,7 @@ void DBusMenuClient::popup(const QPoint &globalPos, QWidget *anchor)
     m_connection.asyncCall(notice, CallTimeout);
 
     QPointer<QWidget> parent = anchor;
-    fetch(0, [this, parent, globalPos](const DBusMenuNode &root) {
+    fetch(0, [this, parent, globalPos, place](const DBusMenuNode &root) {
         if (!parent)
             return;
         if (m_menu)
@@ -265,7 +266,10 @@ void DBusMenuClient::popup(const QPoint &globalPos, QWidget *anchor)
             Q_EMIT failed();
             return;
         }
-        m_menu->popup(globalPos);
+        if (place)
+            place(m_menu);
+        else
+            m_menu->popup(globalPos);
         Q_EMIT shown();
     });
 }

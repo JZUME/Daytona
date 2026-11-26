@@ -4,6 +4,7 @@
 
 #include "statusnotifieritem.h"
 
+#include <QContextMenuEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QTextDocument>
@@ -69,7 +70,7 @@ void TrayIcon::mouseReleaseEvent(QMouseEvent *event)
         if (m_item->itemIsMenu())
             m_item->showMenu(global, this);
         else
-            m_item->activate(global);
+            m_item->activate(global, this);
         break;
     case Qt::MiddleButton:
         m_item->secondaryActivate(global);
@@ -80,6 +81,13 @@ void TrayIcon::mouseReleaseEvent(QMouseEvent *event)
     default:
         break;
     }
+}
+
+void TrayIcon::contextMenuEvent(QContextMenuEvent *event)
+{
+    // The right button's release shows the item's menu; the taskbar's own
+    // menu must not open as well.
+    event->accept();
 }
 
 } // namespace Daytona

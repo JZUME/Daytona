@@ -17,7 +17,19 @@ fi
 # or after 30 seconds if it never appears. dex starts each one without
 # waiting for it, and all of this runs in the background, so a slow or
 # failing entry cannot hold up or break the shell.
+#
+# When NetworkManager's applet is installed, it is the network icon: dex
+# first reads Daytona's own entries (share/daytona/xdg/autostart, beside this
+# file's share/daytona/labwc), which win over system entries of the same name.
+# They start nm-applet with --indicator, which gives it a tray icon here, and
+# keep nm-tray from adding a second network icon. Users' own entries still
+# win over both.
+xdg_config_dirs="${XDG_CONFIG_DIRS:-/etc/xdg}"
+if command -v nm-applet >/dev/null; then
+    daytona_xdg="$(dirname "$(readlink -f "$0")")/../xdg"
+    xdg_config_dirs="$daytona_xdg:$xdg_config_dirs"
+fi
 {
     gdbus wait --session --timeout 30 org.kde.StatusNotifierWatcher
-    dex --autostart --environment Daytona
+    XDG_CONFIG_DIRS="$xdg_config_dirs" dex --autostart --environment Daytona
 } >/dev/null 2>&1 &

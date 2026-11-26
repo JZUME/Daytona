@@ -52,9 +52,11 @@ public:
     DBusMenuClient(const QString &service, const QString &path, QDBusConnection connection,
         QObject *parent = nullptr);
 
-    // Fetches the menu and pops it up at globalPos, parented to anchor.
-    // If the application does not answer in time, nothing is shown.
-    void popup(const QPoint &globalPos, QWidget *anchor);
+    // Fetches the menu and pops it up at globalPos, parented to anchor; or,
+    // when place is given, has place position and show it. If the
+    // application does not answer in time, nothing is shown.
+    void popup(
+        const QPoint &globalPos, QWidget *anchor, const std::function<void(QMenu *)> &place = {});
 
     // The menu last shown (for tests); null before the first popup.
     QMenu *menu() const { return m_menu; }

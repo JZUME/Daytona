@@ -3,7 +3,6 @@
 #include "inputlocaleicon.h"
 
 #include "inputlocales.h"
-#include "taskbar.h"
 #include "volumepopup.h"
 
 #include <QActionGroup>
@@ -101,17 +100,7 @@ void InputLocaleIcon::contextMenuEvent(QContextMenuEvent *)
 
 void InputLocaleIcon::showMenu(QMenu *menu)
 {
-    // Beside the taskbar at the icon, as the volume pop-up opens. Moved and
-    // shown rather than popup(), which keeps a menu on the screen as Qt sees
-    // it: there a layer-shell taskbar is at 0,0, so the place above it looks
-    // off the screen, though it is right for the compositor.
-    QWidget *bar = window();
-    const auto *taskbar = qobject_cast<const Taskbar *>(bar);
-    const TaskbarEdge edge = taskbar ? taskbar->edge() : TaskbarEdge::Bottom;
-    const QRect icon(mapTo(bar, QPoint()), size());
-    menu->adjustSize();
-    menu->move(bar->mapToGlobal(volumePopupPosition(edge, bar->rect(), icon, menu->sizeHint())));
-    menu->show();
+    popUpBesideTrayIcon(menu, this);
 }
 
 } // namespace Daytona

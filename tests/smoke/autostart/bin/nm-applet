@@ -1,0 +1,6 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Stands in for NetworkManager's applet: a tray icon however it is started,
+# so smoke_autostart sees it if it starts twice (with and without
+# --indicator).
+exec daytona-sni-test-item --tooltip "nm-applet $*"

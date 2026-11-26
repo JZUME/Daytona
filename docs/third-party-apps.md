@@ -135,6 +135,30 @@ To check it works:
 pkexec true
 ```
 
+## Network
+
+NetworkManager's applet, `nm-applet` from the `network-manager-applet`
+package (which the Daytona package recommends), is the network icon in the
+notification area. Clicking it shows its menu, drawn by Daytona as an NT
+menu: the Wi-Fi networks in range, VPN connections, Enable Networking and
+Edit Connections. It asks for Wi-Fi and VPN passwords itself, in GTK 3
+dialogs that take the Daytona colour scheme. Joining a network for all users
+asks for an administrator password through the polkit agent.
+
+The applet's own icon for the X11 tray would not show on Wayland, so Daytona
+replaces its system autostart entry with one that runs
+`nm-applet --indicator` (a StatusNotifierItem). Daytona's entries are in
+`share/daytona/xdg/autostart`, which the labwc `autostart` file puts first
+in `XDG_CONFIG_DIRS` for dex when `nm-applet` is installed; users' own
+entries in `~/.config/autostart` still win. While `nm-applet` is installed,
+LXQt's `nm-tray` (installed with LXQt) does not start in Daytona, so there is
+only one network icon.
+
+Edit Connections opens NetworkManager's Network Connections
+(`nm-connection-editor`). The same program is in the Control Panel as
+"Advanced Network Configuration", as its own `.desktop` entry is a Settings
+application.
+
 ## Notification area (tray icons)
 
 The notification area shows icons that applications register over D-Bus
@@ -142,6 +166,11 @@ The notification area shows icons that applications register over D-Bus
 service and draws each icon, tooltip and menu itself. Qt's
 `QSystemTrayIcon`, KDE applications, Electron applications, Chromium,
 Firefox and GTK applications using libayatana-appindicator all use it.
+
+A left click activates an icon and a right click shows its menu, beside the
+taskbar at the icon. Icons that are only a menu (`ItemIsMenu`), and
+libayatana-appindicator icons, which have no activate action, show their
+menu on a left click too.
 
 Applications that only know the older X11 tray (XEmbed), which embeds the
 application's own small window in the taskbar, show no icon. This includes
