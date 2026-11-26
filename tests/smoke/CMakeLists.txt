@@ -16,6 +16,14 @@ target_link_libraries(daytona-pixelcheck PRIVATE Qt6::Gui)
 add_executable(daytona-smoke-window testwindow.cpp)
 target_link_libraries(daytona-smoke-window PRIVATE Qt6::Widgets)
 
+# Holds the left mouse button down (wlrctl can only click).
+find_package(Qt6 6.8 REQUIRED COMPONENTS WaylandClient)
+pkg_check_modules(SmokeWaylandClient REQUIRED IMPORTED_TARGET wayland-client)
+add_executable(daytona-smoke-button pointerbutton.cpp)
+target_link_libraries(daytona-smoke-button PRIVATE Qt6::WaylandClient PkgConfig::SmokeWaylandClient)
+qt_generate_wayland_protocol_client_sources(daytona-smoke-button
+    FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-virtual-pointer-unstable-v1.xml)
+
 set(SMOKE_PREFIX "${CMAKE_BINARY_DIR}/smoke-root")
 
 # Install the build into a private prefix once, before any smoke test.
@@ -83,6 +91,10 @@ find_program(WLRCTL_EXECUTABLE wlrctl)
 if(WLRCTL_EXECUTABLE)
     daytona_add_smoke_test(smoke_startmenu_hover smoke_startmenu_hover.sh)
     daytona_add_smoke_test(smoke_pointer smoke_pointer.sh)
+    # Pressed caption buttons come from Daytona's labwc patch.
+    if(DAYTONA_BUILD_LABWC)
+        daytona_add_smoke_test(smoke_caption_pressed smoke_caption_pressed.sh)
+    endif()
 else()
     message(STATUS "wlrctl not found: pointer smoke tests disabled")
 endif()

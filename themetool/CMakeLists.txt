@@ -21,6 +21,10 @@ qt_add_resources(daytona-theme-core labwc-theme-template
         ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/iconify.svg
         ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/max.svg
         ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/max_toggled.svg
+        ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/close_pressed.svg
+        ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/iconify_pressed.svg
+        ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/max_pressed.svg
+        ${PROJECT_SOURCE_DIR}/labwc/themes/Daytona/openbox-3/max_toggled_pressed.svg
 )
 target_include_directories(daytona-theme-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(daytona-theme-core PUBLIC daytona-colours)

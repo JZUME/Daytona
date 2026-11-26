@@ -9,13 +9,17 @@ install(FILES themes/Daytona/openbox-3/themerc DESTINATION ${DAYTONA_THEME_DIR})
 # labwc 0.8.3 needs separate images for active/inactive windows and for the
 # hover state. NT caption buttons look the same in all of these (and have no
 # hover effect), so each source image is installed under all four names.
+# The pressed (sunken) images are read by Daytona's labwc patch only.
 foreach(button iconify max max_toggled close)
-    foreach(variant "" "_hover")
-        foreach(state active inactive)
+    foreach(state active inactive)
+        foreach(variant "" "_hover")
             install(FILES themes/Daytona/openbox-3/${button}.svg
                 DESTINATION ${DAYTONA_THEME_DIR}
                 RENAME ${button}${variant}-${state}.svg)
         endforeach()
+        install(FILES themes/Daytona/openbox-3/${button}_pressed.svg
+            DESTINATION ${DAYTONA_THEME_DIR}
+            RENAME ${button}_pressed-${state}.svg)
     endforeach()
 endforeach()
 

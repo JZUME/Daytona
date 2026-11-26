@@ -20,7 +20,8 @@ inline constexpr const char *LabwcThemeName = "Daytona";
 QByteArray labwcThemerc(const SchemeColours &colours);
 
 // A caption button image recoloured for the scheme. buttonName is one of
-// "close", "iconify", "max" or "max_toggled".
+// "close", "iconify", "max" or "max_toggled", optionally followed by
+// "_pressed" for its sunken image.
 QByteArray labwcButtonSvg(const QString &buttonName, const SchemeColours &colours);
 
 // $XDG_DATA_HOME/themes/Daytona/openbox-3

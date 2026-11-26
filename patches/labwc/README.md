@@ -8,6 +8,7 @@ so they could be submitted upstream as they are.
 | Patch | What it adds |
 | --- | --- |
 | `0001-ssd-add-optional-bevelled-Windows-9x-NT-style-window.patch` | Theme option `window.border.bevel` with four colours (`window.border.bevel.{light,highlight,shadow,darkshadow}.color`): the outer two pixels of the window border, round the whole frame, are drawn as a raised 3D edge, as Windows NT frames are. Off by default. Fixes issue #86. |
+| `0002-ssd-show-a-pressed-image-while-a-titlebar-button-is-.patch` | Pressed titlebar button images (`BUTTON[_toggled]_pressed`, for example `close_pressed-active.svg`), shown while the left mouse button is held on a button with the cursor over it, as NT's caption buttons sink in. Themes without them look as before. |
 
 ## Updating the pinned labwc version
 

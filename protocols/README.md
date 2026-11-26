@@ -7,5 +7,6 @@ Each keeps its own copyright and licence notice.
 |---|---|---|
 | `wlr-foreign-toplevel-management-unstable-v1.xml` | wlr-protocols, as shipped in wlroots 0.18.2 (Debian 13 source package `wlroots`) | Permissive (HPND-style notice in the file); GPL-compatible |
 | `wlr-output-management-unstable-v1.xml` | wlr-protocols, as shipped in wlroots 0.18.2 (Debian 13 source package `wlroots`) | Permissive (HPND-style notice in the file); GPL-compatible |
+| `wlr-virtual-pointer-unstable-v1.xml` | wlr-protocols, as shipped in wlroots 0.18.2 (Debian 13 source package `wlroots`); used by a smoke test helper only | MIT (notice in the file); GPL-compatible |
 
 Debian 13 does not package wlr-protocols, so the file is kept here.

@@ -82,6 +82,18 @@ private Q_SLOTS:
         QVERIFY(!svg.contains(QLatin1String("#c0c0c0")));
         for (const char *button : { "iconify", "max", "max_toggled" })
             QVERIFY(labwcButtonSvg(QLatin1String(button), colours).startsWith("<?xml"));
+
+        // The pressed image: the frame inverted (the outer shadow line along
+        // the top) and the glyph one pixel down and right.
+        const QString pressed
+            = QString::fromUtf8(labwcButtonSvg(QStringLiteral("close_pressed"), colours));
+        QVERIFY(pressed.contains(
+            QLatin1String("<rect x=\"2\" y=\"0\" width=\"13\" height=\"1\" fill=\"#030303\"/>")));
+        QVERIFY(pressed.contains(
+            QLatin1String("<rect x=\"6\" y=\"4\" width=\"1\" height=\"1\" fill=\"#020202\"/>")));
+        QVERIFY(!pressed.contains(QLatin1String("#000000")));
+        for (const char *button : { "iconify_pressed", "max_pressed", "max_toggled_pressed" })
+            QVERIFY(labwcButtonSvg(QLatin1String(button), colours).startsWith("<?xml"));
     }
 
     void writeAndRemove()
@@ -92,8 +104,9 @@ private Q_SLOTS:
         QString error;
         QVERIFY2(writeLabwcTheme(dir, scheme.colours, &error), qPrintable(error));
         const QStringList files = QDir(dir).entryList(QDir::Files);
-        QCOMPARE(files.size(), 17); // themerc and 16 button images
+        QCOMPARE(files.size(), 25); // themerc, 16 button images and 8 pressed ones
         QVERIFY(files.contains(QStringLiteral("max_toggled_hover-inactive.svg")));
+        QVERIFY(files.contains(QStringLiteral("max_toggled_pressed-inactive.svg")));
         QVERIFY(QFile::exists(dir + QStringLiteral("/.daytona-generated")));
         // Writing again replaces the generated theme.
         QVERIFY2(writeLabwcTheme(dir, standardColours(), &error), qPrintable(error));

@@ -20,6 +20,33 @@ namespace {
 
     const char *const Buttons[] = { "close", "iconify", "max", "max_toggled" };
 
+    // Each file name a button's image is written under, for a template:
+    // "close" -> close-active.svg, close_hover-active.svg and so on, and
+    // "close_pressed" -> close_pressed-active.svg and close_pressed-inactive.svg.
+    // NT buttons have no hover effect, so the hover images are the normal ones.
+    QStringList buttonFileNames(const QString &image)
+    {
+        QStringList names;
+        const bool pressed = image.endsWith(QLatin1String("_pressed"));
+        for (const char *variant : { "", "_hover" }) {
+            if (pressed && *variant)
+                continue;
+            for (const char *state : { "active", "inactive" })
+                names << QStringLiteral("%1%2-%3.svg")
+                             .arg(image, QLatin1String(variant), QLatin1String(state));
+        }
+        return names;
+    }
+
+    // Every button image template: each button and its pressed form.
+    QStringList buttonImages()
+    {
+        QStringList images;
+        for (const char *button : Buttons)
+            images << QLatin1String(button) << QLatin1String(button) + QStringLiteral("_pressed");
+        return images;
+    }
+
     QString hex(const QColor &colour)
     {
         return colour.name(QColor::HexRgb);
@@ -54,14 +81,8 @@ namespace {
     QStringList themeFiles()
     {
         QStringList files { QStringLiteral("themerc") };
-        for (const char *button : Buttons) {
-            for (const char *variant : { "", "_hover" }) {
-                for (const char *state : { "active", "inactive" })
-                    files << QStringLiteral("%1%2-%3.svg")
-                                 .arg(QLatin1String(button), QLatin1String(variant),
-                                     QLatin1String(state));
-            }
-        }
+        for (const QString &image : buttonImages())
+            files << buttonFileNames(image);
         return files;
     }
 
@@ -195,16 +216,11 @@ bool writeLabwcTheme(const QString &dir, const SchemeColours &colours, QString *
         return false;
     if (!writeFile(target.filePath(QStringLiteral("themerc")), labwcThemerc(colours), error))
         return false;
-    for (const char *button : Buttons) {
-        const QByteArray svg = labwcButtonSvg(QLatin1String(button), colours);
-        for (const char *variant : { "", "_hover" }) {
-            for (const char *state : { "active", "inactive" }) {
-                const QString name
-                    = QStringLiteral("%1%2-%3.svg")
-                          .arg(QLatin1String(button), QLatin1String(variant), QLatin1String(state));
-                if (!writeFile(target.filePath(name), svg, error))
-                    return false;
-            }
+    for (const QString &image : buttonImages()) {
+        const QByteArray svg = labwcButtonSvg(image, colours);
+        for (const QString &name : buttonFileNames(image)) {
+            if (!writeFile(target.filePath(name), svg, error))
+                return false;
         }
     }
     return true;
