@@ -78,6 +78,7 @@ Before writing a component, check whether an established Linux component already
 * screen locking: **swaylock** (`ext-session-lock-v1`); idle timeout, lock before sleep and on logind's `Lock`: **swayidle**
 * sound server and volume keys: **PipeWire** (through pipewire-pulse) and **WirePlumber**'s `wpctl`
 * sound mixer (Control Panel applet, Open Volume Control): **pavucontrol-qt**
+* suspend, hibernate, lid and power button: **systemd-logind**; battery state: **UPower**; brightness keys: **brightnessctl**
 * file manager, terminal, editor, etc.: existing lightweight applications
 
 Daytona's own code should be the parts that do not exist elsewhere: the NT-style shell UI, the Win95 `QStyle`, the theme converter and the glue that makes them cohesive.
@@ -347,7 +348,7 @@ Top to bottom, matching NT 4.0:
 * **Find**: launches a file-search command set in Daytona's INI file; greyed out if unset.
 * **Run...**: Daytona's Run dialog.
 * separator
-* **Shut Down...**: NT-style dialog offering Shut down, Restart and Close all programs and log on as a different user, using systemd-logind over QtDBus, plus Lock the computer (see Screen Lock and Screen Saver). Options logind reports as unavailable are disabled.
+* **Shut Down...**: NT-style dialog offering Shut down, Restart and Close all programs and log on as a different user, using systemd-logind over QtDBus, plus Stand by and Hibernate (see Power) and Lock the computer (see Screen Lock and Screen Saver). Shut down and Restart are disabled when logind reports them unavailable, as NT did; Stand by and Hibernate are shown only where logind allows them.
 
 NT's **Help** item is omitted; there is no system-wide help viewer to open.
 
@@ -405,6 +406,18 @@ NT 4.0's speaker icon in the notification area, built into the shell (no existin
 * **Locking for the system**: swayidle also runs `daytona-shell --lock` before sleep (waiting until the screen is locked) and on logind's `Lock` signal (`loginctl lock-session`).
 * **Keeping the screen on**: swayidle honours Wayland's idle-inhibit protocol. The shell also serves `org.freedesktop.ScreenSaver`'s `Inhibit`/`UnInhibit` (on `/org/freedesktop/ScreenSaver` and `/ScreenSaver`), which VLC, LibreOffice Impress and others use instead; while any inhibit is held swayidle runs without its timeout. An inhibit ends with `UnInhibit` from the same caller or when the caller leaves the bus.
 * Not provided: animated screen savers, NT's Windows Security dialog (Ctrl+Alt+Del) and monitor power saving.
+
+---
+
+## Power
+
+Laptop support from Windows 98 and 2000, on top of logind and UPower:
+
+* **Stand by and Hibernate** are in the Shut Down dialog ("Put the computer on stand by?", "Hibernate the computer?"), shown only when logind's `CanSuspend` / `CanHibernate` answer `yes` or `challenge`, and call logind's `Suspend` / `Hibernate` asynchronously like the other options. The screen is locked before the machine sleeps (swayidle's `before-sleep`, see Screen Lock and Screen Saver), so the session is locked on resume.
+* **The battery icon** is Windows 2000's power meter, built into the shell (the existing tray battery monitors are GTK or XEmbed, or bring LXQt's power manager with its own idle and lid handling). It follows UPower's display device over QtDBus, re-reading it on UPower's `PropertiesChanged`, and is hidden on machines without a battery. It sits left of the speaker; the icon shows the charge and a plug while on mains power, and the tooltip the charge and time left as Windows XP worded it ("1 hr 23 min (45%) remaining", "45% available (plugged in, charging)").
+* **Low battery**: when UPower's warning level rises to low or critical while on battery, a balloon says so (a critical one stays for the longest balloon time). UPower's own critical action (hibernate or power off) is left to UPower.
+* **Brightness keys** (`XF86MonBrightnessUp/Down`) are labwc keybindings running `brightnessctl`, which writes the backlight as a member of the `video` group (Debian's `brightness-udev`); lowering stops at 1, so the backlight never goes fully off.
+* Not provided: power plans, NT/2000's Power Options dialog, lid and power button policy (logind's) and keyboard backlight.
 
 ---
 

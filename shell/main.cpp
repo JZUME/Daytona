@@ -2,6 +2,7 @@
 
 #include "applicationindex.h"
 #include "balloon.h"
+#include "battery.h"
 #include "blankscreen.h"
 #include "controlpanel.h"
 #include "daytonastyle.h"
@@ -200,6 +201,33 @@ int main(int argc, char *argv[])
         });
     QObject::connect(&balloon, &Daytona::Balloon::bodyClicked, &notifications,
         &Daytona::NotificationQueue::activateCurrent);
+
+    // The battery icon, on machines with a battery (UPower), and its low
+    // battery balloons.
+    Daytona::BatteryMonitor battery;
+    QObject::connect(&battery, &Daytona::BatteryMonitor::lowBattery, &notifications,
+        [&notifications](const Daytona::BatteryState &state) {
+            const bool critical = state.warning >= Daytona::BatteryState::Warning::Critical;
+            Daytona::Notification warning;
+            warning.appName = QCoreApplication::translate("main", "Power");
+            warning.appIcon = QStringLiteral("battery-caution");
+            warning.summary = critical
+                ? QCoreApplication::translate("main", "Battery critically low")
+                : QCoreApplication::translate("main", "Battery low");
+            warning.body = critical ? QCoreApplication::translate("main",
+                                          "%1% remaining. Plug in the computer now, or save your "
+                                          "work and shut it down.")
+                                          .arg(state.percent)
+                                    : QCoreApplication::translate("main",
+                                          "%1% remaining. You might want to plug in the computer.")
+                                          .arg(state.percent);
+            // A critical warning stays as long as a balloon can.
+            if (critical)
+                warning.timeoutMs = Daytona::NotificationQueue::MaxTimeoutMs;
+            notifications.notify(warning);
+        });
+    if (battery.start())
+        taskbar.notificationArea()->setBatteryMonitor(&battery);
 
     // The desktop: colour and wallpaper behind every window.
     Daytona::DesktopManager desktops(&settings);

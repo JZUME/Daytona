@@ -2,6 +2,7 @@
 
 #include "notificationarea.h"
 
+#include "batteryicon.h"
 #include "bevel.h"
 #include "clock.h"
 #include "statusnotifierhost.h"
@@ -51,12 +52,29 @@ void NotificationArea::setVolumeControl(VolumeControl *control)
     m_layout->insertWidget(m_layout->indexOf(m_clock), m_volumeIcon);
 }
 
+void NotificationArea::setBatteryMonitor(BatteryMonitor *monitor)
+{
+    delete m_batteryIcon;
+    m_batteryIcon = new BatteryIcon(monitor, this);
+    // Windows 2000 order: power, then volume, then the clock.
+    QWidget *next = m_volumeIcon ? static_cast<QWidget *>(m_volumeIcon) : m_clock;
+    m_layout->insertWidget(m_layout->indexOf(next), m_batteryIcon);
+}
+
+QWidget *NotificationArea::firstOwnIcon() const
+{
+    if (m_batteryIcon)
+        return m_batteryIcon;
+    if (m_volumeIcon)
+        return m_volumeIcon;
+    return m_clock;
+}
+
 void NotificationArea::addItem(StatusNotifierItem *item)
 {
-    // New icons go to the right of existing ones; the speaker and the clock
-    // stay last.
-    QWidget *next = m_volumeIcon ? static_cast<QWidget *>(m_volumeIcon) : m_clock;
-    m_layout->insertWidget(m_layout->indexOf(next), new TrayIcon(item, this));
+    // New icons go to the right of existing ones; the battery, the speaker
+    // and the clock stay last.
+    m_layout->insertWidget(m_layout->indexOf(firstOwnIcon()), new TrayIcon(item, this));
 }
 
 void NotificationArea::removeItem(StatusNotifierItem *item)

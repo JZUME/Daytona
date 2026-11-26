@@ -13,6 +13,10 @@ add_library(daytona-shell-core STATIC
     applicationindex.h
     balloon.cpp
     balloon.h
+    battery.cpp
+    battery.h
+    batteryicon.cpp
+    batteryicon.h
     blankscreen.cpp
     blankscreen.h
     clickcatcher.cpp

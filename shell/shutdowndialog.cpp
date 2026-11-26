@@ -51,23 +51,29 @@ void SessionActions::queryAvailability(Availability done)
 {
     QDBusConnection bus = QDBusConnection::systemBus();
     if (!bus.isConnected()) {
-        done(false, false);
+        done({});
         return;
     }
-    auto *powerOff = new QDBusPendingCallWatcher(
-        bus.asyncCall(logindCall(QStringLiteral("CanPowerOff")), 3000), this);
-    auto *reboot = new QDBusPendingCallWatcher(
-        bus.asyncCall(logindCall(QStringLiteral("CanReboot")), 3000), this);
+    const QStringList methods { QStringLiteral("CanPowerOff"), QStringLiteral("CanReboot"),
+        QStringLiteral("CanSuspend"), QStringLiteral("CanHibernate") };
+    QList<QDBusPendingCallWatcher *> watchers;
+    for (const QString &method : methods)
+        watchers << new QDBusPendingCallWatcher(bus.asyncCall(logindCall(method), 3000), this);
     auto finished = std::make_shared<int>(0);
     auto report = [=](QDBusPendingCallWatcher *) {
-        if (++*finished < 2)
+        if (++*finished < watchers.size())
             return;
-        done(allowed(*powerOff), allowed(*reboot));
-        powerOff->deleteLater();
-        reboot->deleteLater();
+        PowerAvailability available;
+        available.shutDown = allowed(*watchers[0]);
+        available.restart = allowed(*watchers[1]);
+        available.standBy = allowed(*watchers[2]);
+        available.hibernate = allowed(*watchers[3]);
+        done(available);
+        for (QDBusPendingCallWatcher *watcher : watchers)
+            watcher->deleteLater();
     };
-    connect(powerOff, &QDBusPendingCallWatcher::finished, this, report);
-    connect(reboot, &QDBusPendingCallWatcher::finished, this, report);
+    for (QDBusPendingCallWatcher *watcher : watchers)
+        connect(watcher, &QDBusPendingCallWatcher::finished, this, report);
 }
 
 void SessionActions::perform(SessionAction action, Failure failed)
@@ -87,8 +93,27 @@ void SessionActions::perform(SessionAction action, Failure failed)
             failed(tr("Could not end the session."));
         return;
     }
-    QDBusMessage call = logindCall(
-        action == SessionAction::ShutDown ? QStringLiteral("PowerOff") : QStringLiteral("Reboot"));
+    QString method;
+    switch (action) {
+    case SessionAction::ShutDown:
+        method = QStringLiteral("PowerOff");
+        break;
+    case SessionAction::Restart:
+        method = QStringLiteral("Reboot");
+        break;
+    case SessionAction::StandBy:
+        // The screen is locked before the machine sleeps: swayidle holds
+        // logind's sleep delay until daytona-shell --lock has locked it.
+        method = QStringLiteral("Suspend");
+        break;
+    case SessionAction::Hibernate:
+        method = QStringLiteral("Hibernate");
+        break;
+    case SessionAction::LogOff:
+    case SessionAction::Lock:
+        return; // handled above
+    }
+    QDBusMessage call = logindCall(method);
     call << true; // interactive: logind may ask for authentication
     auto *watcher
         = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(call, 25000), this);
@@ -118,6 +143,12 @@ ShutDownDialog::ShutDownDialog(SessionActions *actions, QWidget *parent)
     auto *question = new QLabel(tr("Are you sure you want to:"), this);
     m_shutDown = new QRadioButton(tr("&Shut down the computer?"), this);
     m_restart = new QRadioButton(tr("&Restart the computer?"), this);
+    // From Windows 98 and 2000, which offered them where the hardware could:
+    // hidden unless logind allows them.
+    m_standBy = new QRadioButton(tr("Put the computer on s&tand by?"), this);
+    m_hibernate = new QRadioButton(tr("&Hibernate the computer?"), this);
+    m_standBy->hide();
+    m_hibernate->hide();
     m_logOff = new QRadioButton(tr("&Close all programs and log on as a different user?"), this);
     // Not in NT's dialog, where locking was Ctrl+Alt+Del's: Lock Workstation
     // is offered here too, so it can be found from the Start menu.
@@ -137,6 +168,8 @@ ShutDownDialog::ShutDownDialog(SessionActions *actions, QWidget *parent)
     options->addWidget(question);
     options->addWidget(m_shutDown);
     options->addWidget(m_restart);
+    options->addWidget(m_standBy);
+    options->addWidget(m_hibernate);
     options->addWidget(m_logOff);
     options->addWidget(m_lock);
     auto *buttons = new QHBoxLayout;
@@ -149,7 +182,8 @@ ShutDownDialog::ShutDownDialog(SessionActions *actions, QWidget *parent)
     grid->addWidget(icon, 0, 0);
     grid->addLayout(options, 0, 1);
     grid->addLayout(buttons, 1, 0, 1, 2);
-    setFixedSize(sizeHint());
+    // Fixed, but following the options shown.
+    grid->setSizeConstraint(QLayout::SetFixedSize);
 }
 
 QRadioButton *ShutDownDialog::option(SessionAction action) const
@@ -159,6 +193,10 @@ QRadioButton *ShutDownDialog::option(SessionAction action) const
         return m_shutDown;
     case SessionAction::Restart:
         return m_restart;
+    case SessionAction::StandBy:
+        return m_standBy;
+    case SessionAction::Hibernate:
+        return m_hibernate;
     case SessionAction::LogOff:
         return m_logOff;
     case SessionAction::Lock:
@@ -173,6 +211,10 @@ SessionAction ShutDownDialog::chosen() const
         return SessionAction::ShutDown;
     if (m_restart->isChecked())
         return SessionAction::Restart;
+    if (m_standBy->isChecked())
+        return SessionAction::StandBy;
+    if (m_hibernate->isChecked())
+        return SessionAction::Hibernate;
     if (m_lock->isChecked())
         return SessionAction::Lock;
     return SessionAction::LogOff;
@@ -183,17 +225,21 @@ void ShutDownDialog::select(SessionAction action)
     // Fall back to an enabled option if the remembered one is unavailable.
     for (SessionAction candidate :
         { action, SessionAction::ShutDown, SessionAction::Restart, SessionAction::LogOff }) {
-        if (option(candidate)->isEnabled()) {
+        if (option(candidate)->isEnabled() && !option(candidate)->isHidden()) {
             option(candidate)->setChecked(true);
             return;
         }
     }
 }
 
-void ShutDownDialog::setAvailability(bool canShutDown, bool canRestart)
+void ShutDownDialog::setAvailability(const PowerAvailability &available)
 {
-    m_shutDown->setEnabled(canShutDown);
-    m_restart->setEnabled(canRestart);
+    m_shutDown->setEnabled(available.shutDown);
+    m_restart->setEnabled(available.restart);
+    m_standBy->setVisible(available.standBy);
+    m_standBy->setEnabled(available.standBy);
+    m_hibernate->setVisible(available.hibernate);
+    m_hibernate->setEnabled(available.hibernate);
     if (!option(chosen())->isEnabled() || !option(chosen())->isChecked())
         select(m_last);
 }
@@ -208,13 +254,13 @@ void ShutDownDialog::setLockAvailable(bool available)
 void ShutDownDialog::prepare()
 {
     // Until logind answers, only logging off is certainly possible.
-    setAvailability(false, false);
+    setAvailability({});
     select(m_last);
     if (m_actions) {
         QPointer<ShutDownDialog> self(this);
-        m_actions->queryAvailability([self](bool canShutDown, bool canRestart) {
+        m_actions->queryAvailability([self](const PowerAvailability &available) {
             if (self) {
-                self->setAvailability(canShutDown, canRestart);
+                self->setAvailability(available);
                 self->select(self->m_last);
             }
         });

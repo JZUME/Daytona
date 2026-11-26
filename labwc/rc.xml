@@ -122,6 +122,16 @@
     <keybind key="XF86AudioMicMute">
       <action name="Execute" command="wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" />
     </keybind>
+    <!-- Brightness keys, through brightnessctl. Debian's brightness-udev
+         lets members of the video group (as the installer makes the first
+         user) change the backlight. Lowering stops at 1, so the screen never
+         goes fully dark. -->
+    <keybind key="XF86MonBrightnessUp">
+      <action name="Execute" command="brightnessctl -q set 5%+" />
+    </keybind>
+    <keybind key="XF86MonBrightnessDown">
+      <action name="Execute" command="brightnessctl -q -n1 set 5%-" />
+    </keybind>
   </keyboard>
 
   <mouse>

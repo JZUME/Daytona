@@ -58,8 +58,10 @@ The packages:
 - `daytona` holds the shell, the `daytona` Qt style, `daytona-themetool`, the labwc configuration
   and the session file, and its own build of labwc with Daytona's window frame patch, installed
   privately in `/usr/libexec/daytona` so a system labwc is left alone. It pulls in the Qt
-  runtime it needs. It recommends WirePlumber, for the volume keys, and pavucontrol-qt, the
-  mixer that the speaker icon opens and the Control Panel lists.
+  runtime it needs. It recommends WirePlumber, for the volume keys, pavucontrol-qt, the
+  mixer that the speaker icon opens and the Control Panel lists, UPower, for the battery icon,
+  and brightnessctl, for the brightness keys (members of the `video` group can change the
+  backlight; Debian's installer adds the first user to it).
 - `daytona-chicago95` holds the Chicago95 GTK theme, icons and cursors, built from the pinned
   submodule.
 

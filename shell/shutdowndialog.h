@@ -13,12 +13,23 @@ enum class SessionAction
 {
     ShutDown,
     Restart,
+    StandBy,
+    Hibernate,
     LogOff,
     Lock
 };
 
-// The session actions behind the Shut Down dialog: shut down and restart go
-// to systemd-logind over D-Bus, log off asks labwc to exit, and lock emits
+// Which of logind's actions the user may take ("yes" or "challenge").
+struct PowerAvailability
+{
+    bool shutDown = false;
+    bool restart = false;
+    bool standBy = false;
+    bool hibernate = false;
+};
+
+// The session actions behind the Shut Down dialog: shut down, restart, stand
+// by and hibernate go to systemd-logind over D-Bus, log off asks labwc to exit, and lock emits
 // lockRequested for the shell's screen locker. All calls are asynchronous so
 // the shell never blocks on them.
 class SessionActions : public QObject
@@ -26,7 +37,7 @@ class SessionActions : public QObject
     Q_OBJECT
 
 public:
-    using Availability = std::function<void(bool canShutDown, bool canRestart)>;
+    using Availability = std::function<void(const PowerAvailability &available)>;
     using Failure = std::function<void(const QString &message)>;
 
     explicit SessionActions(QObject *parent = nullptr);
@@ -50,8 +61,9 @@ public:
     // Refreshes which options are available and selects the last choice.
     void prepare();
 
-    // Enables or disables the shut down and restart options.
-    void setAvailability(bool canShutDown, bool canRestart);
+    // Enables or disables the shut down and restart options, as NT did, and
+    // shows stand by and hibernate only where the machine can do them.
+    void setAvailability(const PowerAvailability &available);
     // Whether the lock option is offered (swaylock is installed).
     void setLockAvailable(bool available);
 
@@ -69,6 +81,8 @@ private:
     SessionActions *m_actions;
     QRadioButton *m_shutDown;
     QRadioButton *m_restart;
+    QRadioButton *m_standBy;
+    QRadioButton *m_hibernate;
     QRadioButton *m_logOff;
     QRadioButton *m_lock;
     SessionAction m_last = SessionAction::ShutDown;

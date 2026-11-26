@@ -13,12 +13,11 @@ namespace {
 class FakeActions : public SessionActions
 {
 public:
-    bool canShutDown = true;
-    bool canRestart = true;
+    PowerAvailability available { true, true, false, false };
     QList<SessionAction> performed;
     QString failWith;
 
-    void queryAvailability(Availability done) override { done(canShutDown, canRestart); }
+    void queryAvailability(Availability done) override { done(available); }
     void perform(SessionAction action, Failure failed) override
     {
         performed << action;
@@ -48,14 +47,46 @@ private Q_SLOTS:
     void unavailableOptionsAreDisabled()
     {
         FakeActions actions;
-        actions.canShutDown = false;
-        actions.canRestart = false;
+        actions.available.shutDown = false;
+        actions.available.restart = false;
         ShutDownDialog dialog(&actions);
         dialog.prepare();
         QVERIFY(!dialog.option(SessionAction::ShutDown)->isEnabled());
         QVERIFY(!dialog.option(SessionAction::Restart)->isEnabled());
         QVERIFY(dialog.option(SessionAction::LogOff)->isEnabled());
         QCOMPARE(dialog.chosen(), SessionAction::LogOff); // falls back to what is possible
+    }
+
+    void standByAndHibernateOnlyWhereAllowed()
+    {
+        FakeActions actions;
+        ShutDownDialog dialog(&actions);
+        dialog.prepare();
+        QVERIFY(dialog.option(SessionAction::StandBy)->isHidden());
+        QVERIFY(dialog.option(SessionAction::Hibernate)->isHidden());
+
+        actions.available.standBy = true;
+        dialog.prepare();
+        QVERIFY(!dialog.option(SessionAction::StandBy)->isHidden());
+        QVERIFY(dialog.option(SessionAction::Hibernate)->isHidden());
+        dialog.option(SessionAction::StandBy)->setChecked(true);
+        QCOMPARE(dialog.chosen(), SessionAction::StandBy);
+        dialog.accept();
+        QCOMPARE(actions.performed, QList<SessionAction> { SessionAction::StandBy });
+
+        // Remembered while allowed; when it no longer is, the dialog falls
+        // back to shutting down.
+        dialog.prepare();
+        QCOMPARE(dialog.chosen(), SessionAction::StandBy);
+        actions.available.standBy = false;
+        actions.available.hibernate = true;
+        dialog.prepare();
+        QVERIFY(dialog.option(SessionAction::StandBy)->isHidden());
+        QVERIFY(!dialog.option(SessionAction::Hibernate)->isHidden());
+        QCOMPARE(dialog.chosen(), SessionAction::ShutDown);
+        dialog.option(SessionAction::Hibernate)->setChecked(true);
+        dialog.accept();
+        QCOMPARE(actions.performed.last(), SessionAction::Hibernate);
     }
 
     void remembersLastChoice()

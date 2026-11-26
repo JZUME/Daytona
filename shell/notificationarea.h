@@ -8,6 +8,8 @@ class QHBoxLayout;
 
 namespace Daytona {
 
+class BatteryIcon;
+class BatteryMonitor;
 class Clock;
 class StatusNotifierHost;
 class StatusNotifierItem;
@@ -35,6 +37,11 @@ public:
     void setVolumeControl(VolumeControl *control);
     VolumeIcon *volumeIcon() const { return m_volumeIcon; }
 
+    // Shows the battery icon for monitor, left of the speaker, while the
+    // machine has a battery.
+    void setBatteryMonitor(BatteryMonitor *monitor);
+    BatteryIcon *batteryIcon() const { return m_batteryIcon; }
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 
@@ -44,7 +51,11 @@ private:
 
     QHBoxLayout *m_layout;
     Clock *m_clock;
+    // The first of the shell's own icons, which stay right of tray icons.
+    QWidget *firstOwnIcon() const;
+
     VolumeIcon *m_volumeIcon = nullptr;
+    BatteryIcon *m_batteryIcon = nullptr;
 };
 
 } // namespace Daytona
