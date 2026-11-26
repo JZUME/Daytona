@@ -1,0 +1,108 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Publishes the apt repository on GitHub Pages after CI builds packages:
+#
+# - main: the packages go on the rolling "edge" prerelease, which keeps only
+#   the two newest builds (scripts/apt/update-edge-release.sh).
+# - a vX.Y.Z tag: the packages become the GitHub release for that tag.
+#
+# Then the whole site is rebuilt from the releases (stable suite) and the
+# edge prerelease (edge suite), signed and deployed. Each deployment
+# replaces the site, so removed builds disappear from it.
+name: apt repository
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  id-token: write
+
+# One run at a time per kind. A newer main build replaces a waiting older
+# one; a release run is never replaced by a main build.
+concurrency:
+  group: apt-repository-${{ startsWith(github.event.workflow_run.head_branch, 'v') && github.event.workflow_run.head_branch || 'main' }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       (github.event.workflow_run.head_branch == 'main' ||
+        startsWith(github.event.workflow_run.head_branch, 'v')))
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      REF: ${{ github.event.workflow_run.head_branch }}
+      COMMIT: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the packages CI built
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          pattern: Packages (*)
+          merge-multiple: true
+          path: new
+
+      - name: Update the edge prerelease
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main'
+        run: scripts/apt/update-edge-release.sh new "$COMMIT"
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'v')
+        run: |
+          if gh release view "$REF" >/dev/null 2>&1; then
+            gh release upload "$REF" new/*.deb --clobber
+          else
+            gh release create "$REF" --verify-tag --title "Daytona ${REF#v}" --generate-notes new/*.deb
+          fi
+
+      - name: Collect packages
+        run: |
+          mkdir -p site/pool/stable site/pool/edge
+          gh release list --exclude-pre-releases --exclude-drafts --limit 20 \
+              --json tagName --jq '.[].tagName' |
+            while read -r tag; do
+              gh release download "$tag" --pattern '*.deb' --dir site/pool/stable
+            done
+          if gh release view edge >/dev/null 2>&1; then
+            gh release download edge --pattern '*.deb' --dir site/pool/edge
+          fi
+          ls -l site/pool/*
+
+      - name: Build and sign the repository
+        env:
+          GPG_SIGN_PRIVATE: ${{ secrets.GPG_SIGN_PRIVATE }}
+          GPG_SIGN_PASSPHRASE: ${{ secrets.GPG_SIGN_PASSPHRASE }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends apt-utils gnupg
+          printf '%s\n' "$GPG_SIGN_PRIVATE" | gpg --batch --import
+          if [[ -n "$GPG_SIGN_PASSPHRASE" ]]; then
+            printf '%s' "$GPG_SIGN_PASSPHRASE" >"$RUNNER_TEMP/passphrase"
+            export GPG_PASSPHRASE_FILE="$RUNNER_TEMP/passphrase"
+          fi
+          scripts/apt/build-repo.sh site
+          rm -f "$RUNNER_TEMP/passphrase"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

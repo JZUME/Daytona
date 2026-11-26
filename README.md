@@ -10,12 +10,48 @@ Development happens on `main`. The earlier GTK edition is kept on the `legacy` b
 
 ## Installing on Debian 13
 
-CI builds `.deb` packages for Debian 13 (amd64 and arm64) on every change; download them from the
-**Packages (amd64)** or **Packages (arm64)** artifact of a CI run, or build them yourself (below). Install both packages:
+Daytona has an apt repository for Debian 13 (amd64 and arm64) at
+<https://soup-bowl.github.io/Project-Daytona/>, with two suites:
+
+- `stable`: tagged releases.
+- `edge`: the latest build of `main`, for testing. Only the newest builds are kept.
+
+Add the signing key (fingerprint `E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090`):
+
+```bash
+sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg https://soup-bowl.github.io/Project-Daytona/daytona-archive-keyring.gpg
+```
+
+Add the repository, with `Suites: stable` or `Suites: edge`:
+
+```bash
+sudo tee /etc/apt/sources.list.d/daytona.sources <<'END'
+Types: deb
+URIs: https://soup-bowl.github.io/Project-Daytona
+Suites: edge
+Components: main
+Signed-By: /etc/apt/keyrings/daytona.gpg
+END
+```
+
+Then install:
+
+```bash
+sudo apt update && sudo apt install daytona
+```
+
+Updates then come with `sudo apt update && sudo apt upgrade`. Log out and back in after an update
+of Daytona; your settings (colour scheme, wallpaper, taskbar) are kept.
+
+The packages can also be installed by hand: download them from a GitHub release, or from the
+**Packages (amd64)** or **Packages (arm64)** artifact of a CI run, or build them yourself (below),
+then install both:
 
 ```bash
 sudo apt install ./daytona_*.deb ./daytona-chicago95_*.deb
 ```
+
+The packages:
 
 - `daytona` holds the shell, the `daytona` Qt style, `daytona-themetool`, the labwc configuration
   and the session file, and its own build of labwc with Daytona's window frame patch, installed
@@ -41,23 +77,29 @@ dpkg-buildpackage -us -uc -b
 The packages are written to the parent directory. To give them a snapshot version as CI does
 (below), run `scripts/snapshot-version.sh` first; it adds an entry to `debian/changelog`.
 
-### Updating
+### Versions and updates
 
-CI packages have a snapshot version made from the commit they were built from, such as
+Builds of `main` have a snapshot version made from the commit they were built from, such as
 `0.1.0+git20261125222910.412d7ba`: the release version, the commit's date and time (UTC) and its
-short hash. Each build is newer than the last, so installing newer packages over older ones
-upgrades them:
-
-```bash
-sudo apt install ./daytona_*.deb ./daytona-chicago95_*.deb
-```
-
-Then log out and back in. Your settings (colour scheme, wallpaper, taskbar) are kept.
-`dpkg -l daytona` shows which commit is installed. apt asks before installing an older build
-over a newer one.
+short hash. Each build is newer than the last, and newer than the release before it, so apt
+upgrades to it. Packages installed by hand are upgraded the same way, by installing newer ones over
+them. `dpkg -l daytona` shows which version is installed.
 
 Packages built before snapshot versions all have version `0.1.0`. To replace one of those with
 another `0.1.0` build, add `--reinstall`.
+
+### Releasing
+
+1. Run `scripts/release.sh 0.2.0 "Summary of the release"` to add the version to
+   `debian/changelog`, then commit it and merge it to `main`.
+2. Tag that commit and push the tag: `git tag v0.2.0 <commit> && git push origin v0.2.0`.
+
+CI builds the packages for the tag (it checks that the tag matches `debian/changelog`). The apt
+workflow (`.github/workflows/apt.yml`) then publishes them as the `v0.2.0` GitHub release and in
+the `stable` suite. Builds of `main` keep going to the rolling `edge` prerelease and the `edge`
+suite, which keep only the two newest builds. Every deployment rebuilds the whole site, so removed
+builds leave it, and the repository is signed with the key in the `GPG_SIGN_PRIVATE` secret
+(public key: `packaging/apt/daytona-archive-keyring.asc`).
 
 ## Building
 

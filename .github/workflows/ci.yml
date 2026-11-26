@@ -4,6 +4,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -65,7 +66,21 @@ jobs:
       - name: Install build dependencies
         run: apt-get build-dep -y ./daytona
 
+      # Releases (vX.Y.Z tags) keep the version in debian/changelog, which
+      # must match the tag (scripts/release.sh); other builds get a
+      # snapshot version.
+      - name: Check the release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: daytona
+        run: |
+          version="$(dpkg-parsechangelog -S Version)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "debian/changelog has $version but the tag is $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
       - name: Snapshot version
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         working-directory: daytona
         run: |
           git config --global --add safe.directory "$PWD"

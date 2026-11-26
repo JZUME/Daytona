@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daytona apt repository</title>
+<style>
+  body { margin: 0; background: #008080; font: 14px/1.5 Tahoma, Verdana, "DejaVu Sans", sans-serif; color: #000; }
+  .window { max-width: 46rem; margin: 2rem auto; background: #c0c0c0; padding: 3px;
+    border: 2px solid; border-color: #fff #000 #000 #fff; box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf; }
+  .title { background: #000080; color: #fff; font-weight: bold; padding: 3px 6px; }
+  .body { padding: 0.5rem 1rem 1rem; }
+  h2 { font-size: 1rem; margin: 1.2rem 0 0.3rem; }
+  pre { background: #fff; padding: 0.5rem; overflow-x: auto; margin: 0.3rem 0;
+    border: 2px solid; border-color: #808080 #fff #fff #808080; }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }
+  table { border-collapse: collapse; }
+  td, th { text-align: left; padding: 2px 1rem 2px 0; vertical-align: top; }
+  a { color: #000080; }
+  @media (max-width: 48rem) { .window { margin: 0; } }
+</style>
+</head>
+<body>
+<div class="window">
+<div class="title">Daytona apt repository</div>
+<div class="body">
+<p><a href="https://github.com/soup-bowl/Project-Daytona">Daytona</a> is a Windows NT 4.0 style
+desktop for Debian 13 (trixie), on amd64 and arm64. This repository keeps it up to date with the
+rest of your system.</p>
+
+<table>
+<tr><th>Suite</th><th>What it has</th><th>Newest</th></tr>
+<tr><td><code>stable</code></td><td>Tagged releases</td><td><code>@STABLE_VERSION@</code></td></tr>
+<tr><td><code>edge</code></td><td>The latest build of <code>main</code>, for testing</td><td><code>@EDGE_VERSION@</code></td></tr>
+</table>
+
+<h2>1. Add the signing key</h2>
+<pre><code>sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg \
+    https://soup-bowl.github.io/Project-Daytona/daytona-archive-keyring.gpg</code></pre>
+<p>Key fingerprint: <code>E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090</code></p>
+
+<h2>2. Add the repository</h2>
+<p>Use <code>Suites: stable</code> for releases or <code>Suites: edge</code> for the latest build.</p>
+<pre><code>sudo tee /etc/apt/sources.list.d/daytona.sources &lt;&lt;'END'
+Types: deb
+URIs: https://soup-bowl.github.io/Project-Daytona
+Suites: edge
+Components: main
+Signed-By: /etc/apt/keyrings/daytona.gpg
+END</code></pre>
+
+<h2>3. Install</h2>
+<pre><code>sudo apt update
+sudo apt install daytona</code></pre>
+<p>Log out and choose <b>Daytona</b> in the login screen's session menu. Updates then arrive with
+<code>sudo apt update &amp;&amp; sudo apt upgrade</code>.</p>
+
+<h2>Notes</h2>
+<p>The <code>edge</code> suite only keeps the newest builds; older ones are removed. Every release
+and its packages stay on the
+<a href="https://github.com/soup-bowl/Project-Daytona/releases">releases page</a>.</p>
+</div>
+</div>
+</body>
+</html>
