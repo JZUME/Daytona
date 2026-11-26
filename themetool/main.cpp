@@ -21,9 +21,11 @@ void print(const Daytona::ColourScheme &scheme)
         const QColor c = scheme.colour(key);
         std::printf("  %-22s %3d %3d %3d\n", qPrintable(key), c.red(), c.green(), c.blue());
     }
-    std::printf("Wallpaper: %s%s\n",
-        scheme.wallpaper.isEmpty() ? "(none)" : qPrintable(scheme.wallpaper),
-        scheme.tileWallpaper ? " (tiled)" : "");
+    if (scheme.wallpaper.isEmpty())
+        std::printf("Wallpaper: (none)\n");
+    else
+        std::printf(
+            "Wallpaper: %s (%s)\n", qPrintable(scheme.wallpaper), qPrintable(scheme.wallpaperMode));
     for (auto it = scheme.cursors.constBegin(); it != scheme.cursors.constEnd(); ++it)
         std::printf("Cursor %s: %s\n", qPrintable(it.key()), qPrintable(it.value()));
     for (const QString &warning : scheme.warnings)
@@ -44,7 +46,7 @@ void recordSchemeName(const QString &name)
 }
 
 // Copies the theme's wallpaper into Daytona's data directory and records it,
-// with its tile or centre mode, in daytona.ini. Qt reads BMP files itself, so
+// with its display mode (tile, centre, stretch, ...), in daytona.ini. Qt reads BMP files itself, so
 // they are copied as they are.
 void applyWallpaper(const Daytona::ColourScheme &scheme)
 {
@@ -65,10 +67,8 @@ void applyWallpaper(const Daytona::ColourScheme &scheme)
     }
     QSettings settings(settingsPath(), QSettings::IniFormat);
     settings.setValue(QStringLiteral("Appearance/Wallpaper"), target);
-    settings.setValue(QStringLiteral("Appearance/WallpaperMode"),
-        scheme.tileWallpaper ? QStringLiteral("tile") : QStringLiteral("centre"));
-    std::printf(
-        "Wallpaper: %s (%s)\n", qPrintable(target), scheme.tileWallpaper ? "tiled" : "centred");
+    settings.setValue(QStringLiteral("Appearance/WallpaperMode"), scheme.wallpaperMode);
+    std::printf("Wallpaper: %s (%s)\n", qPrintable(target), qPrintable(scheme.wallpaperMode));
 }
 
 // GTK 3 applications: the Daytona GTK theme in the scheme's colours, and the

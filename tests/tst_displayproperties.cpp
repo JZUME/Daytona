@@ -122,6 +122,14 @@ private Q_SLOTS:
         QCOMPARE(dialog.selectedMode(), WallpaperMode::Tile);
         QVERIFY(!dialog.applyButton()->isEnabled());
 
+        // The later Windows modes are offered and selected from settings too.
+        for (WallpaperMode mode :
+            { WallpaperMode::Stretch, WallpaperMode::Fit, WallpaperMode::Fill }) {
+            settings.setWallpaperMode(mode);
+            QCOMPARE(DisplayPropertiesDialog(&settings).selectedMode(), mode);
+        }
+        settings.setWallpaperMode(WallpaperMode::Tile);
+
         dialog.wallpaperList()->setCurrentRow(0); // (None)
         QVERIFY(dialog.applyButton()->isEnabled());
         dialog.apply();

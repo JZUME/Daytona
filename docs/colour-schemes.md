@@ -43,7 +43,7 @@ Built-in schemes: Windows Standard, High Contrast Black and High Contrast White.
   `org.gnome.desktop.interface` settings schema installed, GTK on Wayland can read those
   instead; Daytona does not change them.
 - **Wallpaper:** copies a `.theme` file's wallpaper to
-  `$XDG_DATA_HOME/daytona/wallpaper/` and records it, tiled or centred, in
+  `$XDG_DATA_HOME/daytona/wallpaper/` and records it, with its tile, centre, stretch, fit or fill mode, in
   `daytona.ini`.
 
 For Windows Standard, the generated labwc and GTK themes are removed, so the

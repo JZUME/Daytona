@@ -21,7 +21,8 @@ struct ColourScheme
     // Always contains every key in colourKeys().
     QMap<QString, QColor> colours;
     QString wallpaper; // absolute path inside the theme's directory, or empty
-    bool tileWallpaper = false;
+    // daytona.ini's WallpaperMode: "centre", "tile", "stretch", "fit" or "fill".
+    QString wallpaperMode = QStringLiteral("centre");
     QMap<QString, QString> cursors; // cursor role -> absolute path, as found
     QStringList warnings; // unsupported or missing parts, for the user
 

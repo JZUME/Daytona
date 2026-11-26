@@ -14,6 +14,8 @@
 
 using namespace Daytona;
 
+Q_DECLARE_METATYPE(Daytona::WallpaperMode)
+
 class TestDesktop : public QObject
 {
     Q_OBJECT
@@ -32,11 +34,32 @@ private Q_SLOTS:
         QVERIFY(image.save(wallpaperPath(), "BMP"));
     }
 
-    void centredPosition()
+    void placement_data()
     {
-        QCOMPARE(centredWallpaperPosition({ 100, 50 }, { 10, 10 }), QPoint(45, 20));
+        QTest::addColumn<QSize>("image");
+        QTest::addColumn<WallpaperMode>("mode");
+        QTest::addColumn<QRect>("expected");
+        // On a 100x50 desktop.
+        QTest::newRow("centre") << QSize(10, 10) << WallpaperMode::Centre << QRect(45, 20, 10, 10);
         // Larger than the desktop: cropped evenly, never scaled.
-        QCOMPARE(centredWallpaperPosition({ 100, 50 }, { 200, 150 }), QPoint(-50, -50));
+        QTest::newRow("centre, large")
+            << QSize(200, 150) << WallpaperMode::Centre << QRect(-50, -50, 200, 150);
+        QTest::newRow("stretch") << QSize(10, 10) << WallpaperMode::Stretch << QRect(0, 0, 100, 50);
+        QTest::newRow("fit, tall") << QSize(10, 10) << WallpaperMode::Fit << QRect(25, 0, 50, 50);
+        QTest::newRow("fit, wide")
+            << QSize(400, 100) << WallpaperMode::Fit << QRect(0, 12, 100, 25);
+        QTest::newRow("fill, tall")
+            << QSize(10, 10) << WallpaperMode::Fill << QRect(0, -25, 100, 100);
+        QTest::newRow("fill, wide")
+            << QSize(400, 100) << WallpaperMode::Fill << QRect(-50, 0, 200, 50);
+    }
+
+    void placement()
+    {
+        QFETCH(QSize, image);
+        QFETCH(WallpaperMode, mode);
+        QFETCH(QRect, expected);
+        QCOMPARE(wallpaperRect({ 100, 50 }, image, mode), expected);
     }
 
     void colourOnly()
@@ -65,6 +88,31 @@ private Q_SLOTS:
         QCOMPARE(shot.pixelColor(9, 4), QColor(Qt::blue)); // (21-3)/2, (10-2)/2
         QCOMPARE(shot.pixelColor(11, 5), QColor(Qt::green));
         QCOMPARE(shot.pixelColor(12, 5), QColor(0, 128, 128));
+    }
+
+    void scaledWallpaper()
+    {
+        Settings settings(m_dir.filePath(QStringLiteral("e.ini")));
+        settings.setWallpaperPath(wallpaperPath());
+        settings.setWallpaperMode(WallpaperMode::Fit);
+        Desktop desktop(&settings);
+        desktop.resize(30, 40);
+        if (desktop.wallpaper().isNull()) {
+            QSignalSpy loaded(&desktop, &Desktop::wallpaperLoaded);
+            QVERIFY(loaded.wait(3000));
+        }
+        // Fit: 3x2 becomes 30x20, with the desktop colour above and below.
+        QImage shot = desktop.grab().toImage();
+        QCOMPARE(shot.pixelColor(15, 2), QColor(0, 128, 128));
+        QCOMPARE(shot.pixelColor(1, 11), QColor(Qt::blue));
+        QCOMPARE(shot.pixelColor(28, 28), QColor(Qt::green));
+        QCOMPARE(shot.pixelColor(15, 37), QColor(0, 128, 128));
+
+        // Stretch covers it all, corner to corner.
+        settings.setWallpaperMode(WallpaperMode::Stretch);
+        shot = desktop.grab().toImage();
+        QCOMPARE(shot.pixelColor(0, 0), QColor(Qt::blue));
+        QCOMPARE(shot.pixelColor(29, 39), QColor(Qt::green));
     }
 
     void tiledWallpaperFollowsSettings()

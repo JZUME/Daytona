@@ -53,7 +53,19 @@ namespace {
 
     QString modeName(WallpaperMode mode)
     {
-        return mode == WallpaperMode::Tile ? QStringLiteral("tile") : QStringLiteral("centre");
+        switch (mode) {
+        case WallpaperMode::Tile:
+            return QStringLiteral("tile");
+        case WallpaperMode::Stretch:
+            return QStringLiteral("stretch");
+        case WallpaperMode::Fit:
+            return QStringLiteral("fit");
+        case WallpaperMode::Fill:
+            return QStringLiteral("fill");
+        case WallpaperMode::Centre:
+            break;
+        }
+        return QStringLiteral("centre");
     }
 
 } // namespace
@@ -278,10 +290,12 @@ WallpaperMode Settings::wallpaperMode() const
     if (!m_settings.contains(KeyWallpaperMode))
         return WallpaperMode::Centre;
     const QString text = m_settings.value(KeyWallpaperMode).toString().trimmed().toLower();
-    if (text == modeName(WallpaperMode::Tile))
-        return WallpaperMode::Tile;
-    if (text != modeName(WallpaperMode::Centre))
-        qCWarning(lcSettings) << "Invalid value for" << KeyWallpaperMode << "- using centre";
+    for (WallpaperMode mode : { WallpaperMode::Centre, WallpaperMode::Tile, WallpaperMode::Stretch,
+             WallpaperMode::Fit, WallpaperMode::Fill }) {
+        if (text == modeName(mode))
+            return mode;
+    }
+    qCWarning(lcSettings) << "Invalid value for" << KeyWallpaperMode << "- using centre";
     return WallpaperMode::Centre;
 }
 

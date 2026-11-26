@@ -79,6 +79,28 @@ private Q_SLOTS:
         QCOMPARE(s.colours.size(), colourKeys().size());
     }
 
+    void wallpaperStyle_data()
+    {
+        QTest::addColumn<QByteArray>("desktop");
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("none") << QByteArray() << QStringLiteral("centre");
+        QTest::newRow("centre") << QByteArray("WallpaperStyle=0\n") << QStringLiteral("centre");
+        QTest::newRow("stretch") << QByteArray("WallpaperStyle=2\n") << QStringLiteral("stretch");
+        QTest::newRow("fit") << QByteArray("WallpaperStyle=6\n") << QStringLiteral("fit");
+        QTest::newRow("fill") << QByteArray("WallpaperStyle=10\n") << QStringLiteral("fill");
+        QTest::newRow("unknown") << QByteArray("WallpaperStyle=22\n") << QStringLiteral("centre");
+        // TileWallpaper wins, as in Windows.
+        QTest::newRow("tile") << QByteArray("WallpaperStyle=2\nTileWallpaper=1\n")
+                              << QStringLiteral("tile");
+    }
+
+    void wallpaperStyle()
+    {
+        QFETCH(QByteArray, desktop);
+        QFETCH(QString, mode);
+        QCOMPARE(parse("[Control Panel\\Desktop]\n" + desktop).wallpaperMode, mode);
+    }
+
     void invalidColoursWarn()
     {
         const ColourScheme s = parse("[Control Panel\\Colors]\nMenu=300 0 0\nWindow=1 2\n"
@@ -97,7 +119,7 @@ private Q_SLOTS:
         QCOMPARE(s->colour(QStringLiteral("ActiveTitle")), QColor(128, 0, 0));
         QCOMPARE(s->colour(QStringLiteral("Background")), QColor(0, 64, 64)); // quoted value
         QVERIFY(s->wallpaper.endsWith(QStringLiteral("Sample Wallpaper.bmp"))); // case-insensitive
-        QVERIFY(s->tileWallpaper);
+        QCOMPARE(s->wallpaperMode, QStringLiteral("tile"));
         QVERIFY(s->warnings.join(QLatin1Char(' ')).contains(QStringLiteral("Sound")));
     }
 

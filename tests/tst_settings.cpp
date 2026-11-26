@@ -109,6 +109,16 @@ private Q_SLOTS:
         QCOMPARE(s.colourScheme(), QStringLiteral("High Contrast Black"));
     }
 
+    void everyWallpaperModeRoundTrips()
+    {
+        const QString file = path(QStringLiteral("modes.ini"));
+        for (WallpaperMode mode : { WallpaperMode::Tile, WallpaperMode::Stretch, WallpaperMode::Fit,
+                 WallpaperMode::Fill, WallpaperMode::Centre }) {
+            Settings(file).setWallpaperMode(mode);
+            QCOMPARE(Settings(file).wallpaperMode(), mode);
+        }
+    }
+
     void everyEdgeRoundTrips()
     {
         const QString file = path(QStringLiteral("edges.ini"));
@@ -125,7 +135,7 @@ private Q_SLOTS:
         writeFile(file,
             "[Taskbar]\nEdge=diagonal\nRows=0\nLocked=maybe\nAlwaysOnTop=yes please\n"
             "AutoHide=2\nShowClock=\nSmallStartMenuIcons=TRUE\n"
-            "[Appearance]\nWallpaperMode=stretch\nColourScheme=   \n");
+            "[Appearance]\nWallpaperMode=zoom\nColourScheme=   \n");
         Settings s(file);
         QCOMPARE(s.taskbarEdge(), TaskbarEdge::Bottom);
         QCOMPARE(s.taskbarRows(), 1);

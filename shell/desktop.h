@@ -14,10 +14,13 @@ class QScreen;
 
 namespace Daytona {
 
-// How the wallpaper is placed, in device pixels, as NT drew it: centred on
-// the desktop colour, or tiled from the top-left corner. Returns where the
-// image's top-left corner goes for centre mode.
-QPoint centredWallpaperPosition(const QSize &desktopPixels, const QSize &imagePixels);
+// Where the wallpaper goes on the desktop, in device pixels, for every mode
+// but Tile (which repeats it from the top-left corner):
+// - Centre: unscaled, centred on the desktop colour, as NT drew it.
+// - Stretch: scaled to cover the desktop exactly, ignoring its proportions.
+// - Fit: scaled to fit inside the desktop, with desktop colour either side.
+// - Fill: scaled to cover the desktop, cropped evenly where it overflows.
+QRect wallpaperRect(const QSize &desktopPixels, const QSize &imagePixels, WallpaperMode mode);
 
 // The desktop: NT's desktop colour and wallpaper on a background layer
 // surface, with a right-click menu.
@@ -54,6 +57,8 @@ private:
     QString m_wallpaperPath;
     WallpaperMode m_mode = WallpaperMode::Centre;
     QImage m_wallpaper;
+    // The wallpaper scaled for Stretch, Fit or Fill, kept between paints.
+    QImage m_scaled;
     QFutureWatcher<QImage> m_loader;
 };
 

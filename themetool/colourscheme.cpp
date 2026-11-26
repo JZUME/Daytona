@@ -216,8 +216,18 @@ ColourScheme parseTheme(const QByteArray &data, const QString &name, const QStri
             scheme.warnings << QStringLiteral("Wallpaper \"%1\" was not found next to the theme")
                                    .arg(wallpaper.left(200));
     }
-    scheme.tileWallpaper
-        = desktop.value(QStringLiteral("tilewallpaper")).trimmed() == QLatin1String("1");
+    // TileWallpaper=1 tiles whatever the style. WallpaperStyle came with
+    // Windows 98 (2 stretch) and Windows 7 (6 fit, 10 fill); anything else
+    // centres.
+    const QString style = desktop.value(QStringLiteral("wallpaperstyle")).trimmed();
+    if (desktop.value(QStringLiteral("tilewallpaper")).trimmed() == QLatin1String("1"))
+        scheme.wallpaperMode = QStringLiteral("tile");
+    else if (style == QLatin1String("2"))
+        scheme.wallpaperMode = QStringLiteral("stretch");
+    else if (style == QLatin1String("6"))
+        scheme.wallpaperMode = QStringLiteral("fit");
+    else if (style == QLatin1String("10"))
+        scheme.wallpaperMode = QStringLiteral("fill");
 
     const auto cursors = sections.value(QStringLiteral("control panel\\cursors"));
     for (auto it = cursors.constBegin(); it != cursors.constEnd(); ++it) {

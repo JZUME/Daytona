@@ -19,12 +19,27 @@ Q_LOGGING_CATEGORY(lcDesktop, "daytona.desktop", QtInfoMsg)
 
 namespace Daytona {
 
-QPoint centredWallpaperPosition(const QSize &desktopPixels, const QSize &imagePixels)
+QRect wallpaperRect(const QSize &desktopPixels, const QSize &imagePixels, WallpaperMode mode)
 {
-    // Images larger than the desktop are cropped evenly on both sides, as NT
-    // did; nothing is scaled.
-    return { (desktopPixels.width() - imagePixels.width()) / 2,
-        (desktopPixels.height() - imagePixels.height()) / 2 };
+    QSize size = imagePixels;
+    switch (mode) {
+    case WallpaperMode::Stretch:
+        return { QPoint(0, 0), desktopPixels };
+    case WallpaperMode::Fit:
+        size.scale(desktopPixels, Qt::KeepAspectRatio);
+        break;
+    case WallpaperMode::Fill:
+        size.scale(desktopPixels, Qt::KeepAspectRatioByExpanding);
+        break;
+    case WallpaperMode::Centre:
+    case WallpaperMode::Tile:
+        // Images larger than the desktop are cropped evenly on both sides,
+        // as NT did; nothing is scaled.
+        break;
+    }
+    return { QPoint((desktopPixels.width() - size.width()) / 2,
+                 (desktopPixels.height() - size.height()) / 2),
+        size };
 }
 
 Desktop::Desktop(Settings *settings, QWidget *parent)
@@ -40,6 +55,7 @@ Desktop::Desktop(Settings *settings, QWidget *parent)
 
     connect(&m_loader, &QFutureWatcher<QImage>::finished, this, [this] {
         m_wallpaper = m_loader.result();
+        m_scaled = QImage();
         update();
         Q_EMIT wallpaperLoaded();
     });
@@ -82,6 +98,7 @@ void Desktop::loadWallpaper()
         return;
     m_wallpaperPath = path;
     m_wallpaper = QImage();
+    m_scaled = QImage();
     update();
     if (path.isEmpty()) {
         Q_EMIT wallpaperLoaded();
@@ -108,14 +125,21 @@ void Desktop::paintEvent(QPaintEvent *)
     // pixel ratio so one image pixel covers one device pixel.
     QImage image = m_wallpaper;
     const qreal ratio = devicePixelRatioF();
-    image.setDevicePixelRatio(ratio);
     if (m_mode == WallpaperMode::Tile) {
+        image.setDevicePixelRatio(ratio);
         painter.drawTiledPixmap(rect(), QPixmap::fromImage(image));
-    } else {
-        const QSize desktopPixels = (QSizeF(size()) * ratio).toSize();
-        const QPoint at = centredWallpaperPosition(desktopPixels, image.size());
-        painter.drawImage(QPointF(at) / ratio, image);
+        return;
     }
+    const QSize desktopPixels = (QSizeF(size()) * ratio).toSize();
+    const QRect target = wallpaperRect(desktopPixels, image.size(), m_mode);
+    if (target.size() != image.size()) {
+        // Scale once in device pixels, then draw that pixel for pixel.
+        if (m_scaled.size() != target.size())
+            m_scaled = image.scaled(target.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        image = m_scaled;
+    }
+    image.setDevicePixelRatio(ratio);
+    painter.drawImage(QPointF(target.topLeft()) / ratio, image);
 }
 
 void Desktop::mousePressEvent(QMouseEvent *event)

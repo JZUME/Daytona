@@ -5,6 +5,7 @@
 #include "bevel.h"
 #include "colourscheme.h"
 #include "daytonastyle.h"
+#include "desktop.h"
 #include "outputmanager.h"
 #include "systemlogo.h"
 
@@ -183,15 +184,23 @@ void DesktopPreview::paintEvent(QPaintEvent *)
         return;
     // The wallpaper at the same scale as the screen.
     const qreal scale = qreal(screen.width()) / m_screen.width();
-    const QSize scaled = (QSizeF(m_wallpaper.size()) * scale).toSize().expandedTo(QSize(1, 1));
-    const QImage small = m_wallpaper.scaled(scaled, Qt::IgnoreAspectRatio, Qt::FastTransformation);
     painter.setClipRect(screen);
     if (m_mode == WallpaperMode::Tile) {
+        const QSize scaled = (QSizeF(m_wallpaper.size()) * scale).toSize().expandedTo(QSize(1, 1));
+        const QImage small
+            = m_wallpaper.scaled(scaled, Qt::IgnoreAspectRatio, Qt::FastTransformation);
         painter.drawTiledPixmap(screen, QPixmap::fromImage(small));
-    } else {
-        painter.drawImage(screen.left() + (screen.width() - small.width()) / 2,
-            screen.top() + (screen.height() - small.height()) / 2, small);
+        return;
     }
+    // The little screen is not quite the real one's shape, so map each axis
+    // on its own: what the desktop shows edge to edge, the preview does too.
+    const QRect placed = wallpaperRect(m_screen, m_wallpaper.size(), m_mode);
+    const qreal scaleY = qreal(screen.height()) / m_screen.height();
+    const QRect target(screen.left() + qRound(placed.x() * scale),
+        screen.top() + qRound(placed.y() * scaleY), qMax(1, qRound(placed.width() * scale)),
+        qMax(1, qRound(placed.height() * scaleY)));
+    painter.drawImage(
+        target, m_wallpaper.scaled(target.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation));
 }
 
 AppearancePreview::AppearancePreview(QWidget *parent)
@@ -320,13 +329,20 @@ QWidget *DisplayPropertiesDialog::createBackgroundTab()
     browse->setMinimumSize(75, 23);
     connect(browse, &QPushButton::clicked, this, &DisplayPropertiesDialog::browse);
     auto *displayLabel = new QLabel(tr("Display:"), group);
-    m_tile = new QRadioButton(tr("&Tile"), group);
-    m_centre = new QRadioButton(tr("&Center"), group);
+    // NT's Tile and Center first, then the later Windows modes (AGENT.md,
+    // Design Scope).
+    m_displayModes = {
+        { WallpaperMode::Tile, new QRadioButton(tr("&Tile"), group) },
+        { WallpaperMode::Centre, new QRadioButton(tr("&Center"), group) },
+        { WallpaperMode::Stretch, new QRadioButton(tr("&Stretch"), group) },
+        { WallpaperMode::Fit, new QRadioButton(tr("F&it"), group) },
+        { WallpaperMode::Fill, new QRadioButton(tr("Fi&ll"), group) },
+    };
     connect(m_wallpapers, &QListWidget::currentRowChanged, this, [this] {
         updateBackgroundPreview();
         changed();
     });
-    for (QRadioButton *radio : { m_tile, m_centre }) {
+    for (const auto &[mode, radio] : std::as_const(m_displayModes)) {
         connect(radio, &QRadioButton::toggled, this, [this] {
             updateBackgroundPreview();
             changed();
@@ -334,12 +350,13 @@ QWidget *DisplayPropertiesDialog::createBackgroundTab()
     }
 
     auto *groupLayout = new QGridLayout(group);
-    groupLayout->addWidget(m_wallpapers, 0, 0, 5, 1);
+    const int rows = 3 + int(m_displayModes.size());
+    groupLayout->addWidget(m_wallpapers, 0, 0, rows, 1);
     groupLayout->addWidget(browse, 0, 1);
     groupLayout->addWidget(displayLabel, 1, 1);
-    groupLayout->addWidget(m_tile, 2, 1);
-    groupLayout->addWidget(m_centre, 3, 1);
-    groupLayout->setRowStretch(4, 1); // as NT: the options under Browse...
+    for (int i = 0; i < m_displayModes.size(); ++i)
+        groupLayout->addWidget(m_displayModes[i].second, 2 + i, 1);
+    groupLayout->setRowStretch(rows - 1, 1); // as NT: the options under Browse...
 
     auto *layout = new QVBoxLayout(page);
     layout->addWidget(m_desktopPreview, 0, Qt::AlignHCenter);
@@ -396,7 +413,8 @@ void DisplayPropertiesDialog::prepare()
     }
     selectWallpaper(m_settings ? m_settings->wallpaperPath() : QString());
     const WallpaperMode mode = m_settings ? m_settings->wallpaperMode() : WallpaperMode::Centre;
-    (mode == WallpaperMode::Tile ? m_tile : m_centre)->setChecked(true);
+    for (const auto &[candidate, radio] : std::as_const(m_displayModes))
+        radio->setChecked(candidate == mode);
 
     // Appearance: built-in schemes, then loaded .theme files.
     m_schemes->clear();
@@ -501,7 +519,11 @@ QString DisplayPropertiesDialog::selectedWallpaper() const
 
 WallpaperMode DisplayPropertiesDialog::selectedMode() const
 {
-    return m_tile->isChecked() ? WallpaperMode::Tile : WallpaperMode::Centre;
+    for (const auto &[mode, radio] : m_displayModes) {
+        if (radio->isChecked())
+            return mode;
+    }
+    return WallpaperMode::Centre;
 }
 
 SchemeColours DisplayPropertiesDialog::candidateColours() const

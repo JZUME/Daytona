@@ -8,7 +8,9 @@
 
 #include <QDialog>
 #include <QImage>
+#include <QList>
 #include <functional>
+#include <utility>
 
 class QCheckBox;
 class QComboBox;
@@ -166,8 +168,8 @@ private:
     QString m_themeTool;
     DesktopPreview *m_desktopPreview;
     QListWidget *m_wallpapers;
-    QRadioButton *m_tile;
-    QRadioButton *m_centre;
+    // The Display options, in the order shown.
+    QList<std::pair<WallpaperMode, QRadioButton *>> m_displayModes;
     AppearancePreview *m_appearancePreview;
     QComboBox *m_schemes;
     QCheckBox *m_systemLogo;

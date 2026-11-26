@@ -23,11 +23,15 @@ enum class TaskbarEdge
     Right
 };
 
-// NT 4.0's Display Properties offered Tile and Center only.
+// NT 4.0's Display Properties offered Tile and Center. Stretch (Windows 98),
+// Fit and Fill (Windows 7) are small modern additions (AGENT.md, Design Scope).
 enum class WallpaperMode
 {
     Centre,
-    Tile
+    Tile,
+    Stretch,
+    Fit,
+    Fill
 };
 
 // Every user setting the shell has, stored in one INI file.

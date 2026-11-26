@@ -24,7 +24,7 @@ set_tests_properties(tst_recentdocuments PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=
 add_test(NAME themetool_inspect
     COMMAND daytona-themetool inspect ${CMAKE_CURRENT_SOURCE_DIR}/data/themes/Sample.theme)
 set_tests_properties(themetool_inspect PROPERTIES
-    PASS_REGULAR_EXPRESSION "ActiveTitle +128   0   0.*Wallpaper: [^\n]*Sample Wallpaper.bmp \\(tiled\\)")
+    PASS_REGULAR_EXPRESSION "ActiveTitle +128   0   0.*Wallpaper: [^\n]*Sample Wallpaper.bmp \\(tile\\)")
 set_tests_properties(tst_startmenu PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_bevel daytona-style)
 set_tests_properties(tst_bevel PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
@@ -66,7 +66,7 @@ add_test(NAME themetool_apply_theme
     COMMAND daytona-themetool apply ${CMAKE_CURRENT_SOURCE_DIR}/data/themes/Sample.theme)
 set_tests_properties(themetool_apply_theme PROPERTIES
     ENVIRONMENT "XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/themetool-apply-theme;XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/themetool-apply-theme/data;LABWC_PID="
-    PASS_REGULAR_EXPRESSION "Wallpaper: [^\n]*/themetool-apply-theme/data/daytona/wallpaper/Sample Wallpaper.bmp \\(tiled\\).*Warning: ")
+    PASS_REGULAR_EXPRESSION "Wallpaper: [^\n]*/themetool-apply-theme/data/daytona/wallpaper/Sample Wallpaper.bmp \\(tile\\).*Warning: ")
 daytona_add_test(tst_desktop daytona-shell-core)
 set_tests_properties(tst_desktop PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 
