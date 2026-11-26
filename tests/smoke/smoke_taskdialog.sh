@@ -9,6 +9,14 @@ source "$(dirname "$0")/lib.sh"
 height=${DAYTONA_SCREENSHOT_SIZE#*x}
 top=$((height - 28))
 
+# Wait for the taskbar first. labwc centres a new window in the area the
+# taskbar leaves free; a window that maps before the taskbar has reserved
+# its strip is centred on the whole screen instead, 14px lower, and the
+# dialog's titlebar misses the pixel checked below.
+wait_for_pixels 15 \
+    512 $((top + 1)) '#ffffff' \
+    2 $((top + 4)) '#ffffff'
+
 daytona-smoke-window --normal --dialog &
 window=$!
 trap 'kill $window 2>/dev/null || true' EXIT
