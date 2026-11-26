@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=onlyshowin
+Exec=daytona-sni-test-item --tooltip onlyshowin
+OnlyShowIn=GNOME;KDE;

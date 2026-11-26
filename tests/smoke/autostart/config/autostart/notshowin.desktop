@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=notshowin
+Exec=daytona-sni-test-item --tooltip notshowin
+NotShowIn=Daytona;

@@ -1,3 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Run by labwc at startup.
 daytona-shell >/dev/null 2>&1 &
+
+# Then the applications in the XDG autostart directories (~/.config/autostart
+# and /etc/xdg/autostart), honouring Hidden, OnlyShowIn/NotShowIn and TryExec,
+# with dex. They start once the shell's notification area is on the session
+# bus (org.kde.StatusNotifierWatcher), so their tray icons register with it,
+# or after 30 seconds if it never appears. dex starts each one without
+# waiting for it, and all of this runs in the background, so a slow or
+# failing entry cannot hold up or break the shell.
+{
+    gdbus wait --session --timeout 30 org.kde.StatusNotifierWatcher
+    dex --autostart --environment Daytona
+} >/dev/null 2>&1 &

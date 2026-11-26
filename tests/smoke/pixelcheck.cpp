@@ -5,6 +5,7 @@
 // Usage: daytona-pixelcheck IMAGE X Y #RRGGBB [X Y #RRGGBB ...]
 //        daytona-pixelcheck --frame IMAGE SCALE
 //        daytona-pixelcheck --pointer IMAGE X Y SCALE
+//        daytona-pixelcheck --count IMAGE #RRGGBB N
 // Exits 0 if every pixel matches exactly, 1 if any differ (reported on
 // stderr), 2 on bad arguments or an unreadable image.
 //
@@ -18,6 +19,9 @@
 // a plain background, and checks it is NT's size in logical pixels (the
 // arrow is about 20 tall) whatever the output SCALE: a pointer drawn from
 // too small an image comes out SCALE times smaller.
+//
+// --count checks that exactly N pixels in the image have the colour, for
+// counting things of a known size and colour wherever they are drawn.
 
 #include <QColor>
 #include <QImage>
@@ -117,6 +121,22 @@ int checkPointer(const QImage &image, int x, int y, int scale)
     return 0;
 }
 
+int countPixels(const QImage &image, QRgb colour, int expected)
+{
+    int count = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            if ((line[x] & 0xffffff) == (colour & 0xffffff))
+                ++count;
+        }
+    }
+    if (count == expected)
+        return 0;
+    std::fprintf(stderr, "%d pixels of the colour, expected %d\n", count, expected);
+    return 1;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc == 6 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--pointer")) {
@@ -131,6 +151,18 @@ int main(int argc, char *argv[])
             return 2;
         }
         return checkPointer(image, x, y, scale);
+    }
+    if (argc == 5 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--count")) {
+        const QImage image
+            = QImage(QString::fromLocal8Bit(argv[2])).convertToFormat(QImage::Format_RGB32);
+        const QColor colour = QColor::fromString(QString::fromLocal8Bit(argv[3]));
+        bool ok = false;
+        const int expected = QString::fromLocal8Bit(argv[4]).toInt(&ok);
+        if (image.isNull() || !colour.isValid() || !ok || expected < 0) {
+            std::fprintf(stderr, "usage: %s --count IMAGE #RRGGBB N\n", argv[0]);
+            return 2;
+        }
+        return countPixels(image, colour.rgb(), expected);
     }
     if (argc == 4 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--frame")) {
         const QImage image

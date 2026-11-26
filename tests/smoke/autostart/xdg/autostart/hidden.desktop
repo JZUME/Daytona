@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=hidden
+Exec=daytona-sni-test-item --tooltip overridden

@@ -62,6 +62,22 @@ set_tests_properties(smoke_screen_scale PROPERTIES
     TIMEOUT 90
     ENVIRONMENT "DAYTONA_SMOKE_CONFIG=${CMAKE_CURRENT_SOURCE_DIR}/screen-scale.ini")
 
+# XDG autostart: labwc's autostart runs dex once the shell's tray is up.
+find_program(DEX_EXECUTABLE dex)
+find_program(GDBUS_EXECUTABLE gdbus)
+if(DEX_EXECUTABLE AND GDBUS_EXECUTABLE)
+    add_test(NAME smoke_autostart
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
+            ${CMAKE_CURRENT_SOURCE_DIR}/smoke_autostart.sh)
+    set_tests_properties(smoke_autostart PROPERTIES
+        FIXTURES_REQUIRED smoke
+        LABELS smoke
+        TIMEOUT 90
+        ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$<TARGET_FILE_DIR:daytona-sni-test-item>:$ENV{PATH};DAYTONA_SMOKE_AUTOSTART=${CMAKE_CURRENT_SOURCE_DIR}/autostart")
+else()
+    message(STATUS "dex or gdbus not found: autostart smoke test disabled")
+endif()
+
 # Pointer tests drive a virtual pointer with wlrctl.
 find_program(WLRCTL_EXECUTABLE wlrctl)
 if(WLRCTL_EXECUTABLE)

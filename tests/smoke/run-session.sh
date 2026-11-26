@@ -19,6 +19,11 @@
 # names a daytona.ini to start with instead; the output is then left as labwc
 # created it (no size or scale is set), as the test is about what the shell
 # does with that configuration.
+#
+# DAYTONA_SMOKE_AUTOSTART names a directory of XDG autostart entries for the
+# session: its config/autostart is copied to the user's autostart directory,
+# and its xdg directory is the only system configuration directory
+# (XDG_CONFIG_DIRS), so its xdg/autostart entries are the only system ones.
 set -euo pipefail
 
 # The shell uses the D-Bus session bus; give the session its own bus.
@@ -43,6 +48,10 @@ export XDG_CONFIG_HOME="$runtime/config"
 mkdir -p "$XDG_CONFIG_HOME/daytona"
 if [[ -n "${DAYTONA_SMOKE_CONFIG:-}" ]]; then
     cp "$DAYTONA_SMOKE_CONFIG" "$XDG_CONFIG_HOME/daytona/daytona.ini"
+fi
+if [[ -n "${DAYTONA_SMOKE_AUTOSTART:-}" ]]; then
+    cp -r "$DAYTONA_SMOKE_AUTOSTART/config/autostart" "$XDG_CONFIG_HOME/"
+    export XDG_CONFIG_DIRS="$DAYTONA_SMOKE_AUTOSTART/xdg"
 fi
 export WLR_BACKENDS=headless
 export WLR_RENDERER=pixman

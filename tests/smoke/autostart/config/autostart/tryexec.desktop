@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=tryexec
+Exec=daytona-sni-test-item --tooltip tryexec
+TryExec=daytona-no-such-program

@@ -75,6 +75,45 @@ See `docs/colour-schemes.md`: GTK 3 applications in the session use Chicago95
 in the current colour scheme (`GTK_THEME=Daytona`). GTK 4 and libadwaita
 applications are out of scope.
 
+## Autostart applications
+
+At log on, after the shell has started, Daytona starts the applications in
+the XDG autostart directories, as other desktops do: `~/.config/autostart`
+(`$XDG_CONFIG_HOME/autostart`) and `/etc/xdg/autostart` (each directory in
+`$XDG_CONFIG_DIRS`). This is how tray helpers such as `nm-applet`,
+`blueman-applet`, polkit agents, `gnome-keyring` and `xdg-user-dirs-update`
+start.
+
+The rules are those of the freedesktop Desktop Application Autostart
+specification:
+
+- A user entry replaces the system entry with the same file name. To stop a
+  system entry starting, copy it to `~/.config/autostart` and add
+  `Hidden=true`.
+- Entries with `Hidden=true` do not start.
+- `OnlyShowIn` and `NotShowIn` are checked against the desktop name
+  `Daytona` (the session's `XDG_CURRENT_DESKTOP`), so an entry with
+  `OnlyShowIn=GNOME;` or `NotShowIn=Daytona;` does not start.
+- An entry whose `TryExec` program is not installed does not start.
+
+Daytona's labwc `autostart` file starts the shell, waits for the shell's
+notification area to appear on the session bus (up to 30 seconds), so that
+tray icons register with it, and then runs
+[`dex`](https://github.com/jceb/dex) `--autostart --environment Daytona`.
+dex starts every entry without waiting for it, and all of this runs in the
+background, so an entry that is slow or fails to start cannot hold up the
+shell. dex and `gdbus` (`libglib2.0-bin`) are recommended by the Daytona
+package; without dex, no autostart entries start.
+
+There is no Startup folder in the Start menu and no editor for these
+entries.
+
+To see what would start, and why other entries are skipped:
+
+```bash
+dex --autostart --environment Daytona --dry-run --verbose
+```
+
 ## Notification area (tray icons)
 
 The notification area shows icons that applications register over D-Bus

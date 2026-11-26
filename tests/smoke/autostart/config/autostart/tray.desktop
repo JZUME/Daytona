@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=tray
+Exec=daytona-sni-test-item --tooltip user

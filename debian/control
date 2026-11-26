@@ -47,6 +47,8 @@ Depends:
  qt6-svg-plugins,
  dbus-user-session | dbus-x11,
 Recommends:
+ dex,
+ libglib2.0-bin,
  xdg-utils,
  xwayland,
 Suggests:
