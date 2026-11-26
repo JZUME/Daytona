@@ -90,7 +90,7 @@ private:
 
 // NT's Display Properties, with the Background, Appearance and Settings
 // tabs. The Settings tab has NT's Font Size: Small Fonts (100%), Large
-// Fonts (125%) or a custom size, applied as the scale of the screen the
+// Fonts (150%; NT's was 125%) or a custom size, applied as the scale of the screen the
 // dialog is on and remembered for that screen.
 class DisplayPropertiesDialog : public QDialog
 {

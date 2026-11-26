@@ -9,7 +9,10 @@ and what was found.
 Display Properties > **Settings** > **Font Size** sets the scale of the screen
 the dialog is on, as NT's font size setting did:
 
-- **Small Fonts** is 100% and **Large Fonts** 125%.
+- **Small Fonts** is 100% and **Large Fonts** 150%. NT's Large Fonts was
+  125% (120 DPI); Daytona uses 150%, the more common choice for today's
+  high-density screens (an approved exception in AGENT.md). 125% is under
+  Custom....
 - **Custom...** opens NT's Custom Font Size dialog for any size from 100% to
   300%, such as 150% or 200% for a high-density screen.
 

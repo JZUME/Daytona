@@ -133,12 +133,13 @@ private Q_SLOTS:
         QCOMPARE(dialog.selectedScale(), 1.0);
         QVERIFY(!dialog.applyButton()->isEnabled());
 
-        dialog.selectScale(1.25);
+        // Large Fonts is 150% (NT's 125% is a custom size).
+        dialog.selectScale(1.5);
         QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Large Fonts"));
         QVERIFY(dialog.applyButton()->isEnabled());
         // A custom size gets one entry of its own, reused for the next one.
-        dialog.selectScale(1.5);
-        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Other (150%)"));
+        dialog.selectScale(1.25);
+        QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Other (125%)"));
         dialog.selectScale(2.0);
         QCOMPARE(dialog.fontSizeBox()->currentText(), QStringLiteral("Other (200%)"));
         QCOMPARE(dialog.fontSizeBox()->count(), 3);

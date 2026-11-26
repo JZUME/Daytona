@@ -571,7 +571,9 @@ QWidget *DisplayPropertiesDialog::createSettingsTab()
     auto *group = new QGroupBox(tr("Font Size"), page);
     m_fontSize = new QComboBox(group);
     m_fontSize->addItem(tr("Small Fonts"), 1.0);
-    m_fontSize->addItem(tr("Large Fonts"), 1.25);
+    // NT's Large Fonts was 125% (120 DPI); Daytona's is 150%, the more useful
+    // size on today's high-density screens (AGENT.md, approved exceptions).
+    m_fontSize->addItem(tr("Large Fonts"), 1.5);
     m_customFontSize = new QPushButton(tr("&Custom..."), group);
     m_customFontSize->setMinimumSize(75, 23);
     connect(m_fontSize, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::changed);

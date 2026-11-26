@@ -287,6 +287,7 @@ The rule: **if Windows NT 4.0's shell did not offer it, Daytona does not offer i
 
 * **Lock the taskbar** (Windows XP). It makes the NT-era drag-to-edge behaviour safe to leave enabled.
 * **Notification balloons** (Windows 2000). Linux applications send desktop notifications and expect them to be shown; balloons are the closest era-appropriate presentation.
+* **Large Fonts is 150%**, not NT's 125% (120 DPI). 150% is the more useful size on today's high-density screens; 125% remains available under Custom....
 
 No other post-NT features are accepted without explicit approval.
 
@@ -295,7 +296,7 @@ Accepted configuration, Display Properties equivalents:
 * colour scheme and fonts (normally applied via `.theme` files)
 * wallpaper
 * clock format (follows the system locale)
-* high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts, Large Fonts, custom), applied as each screen's scale through wlr-output-management and remembered per screen.
+* high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% (see approved exceptions), custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
 
 Accepted configuration, Taskbar Properties equivalents:
 
