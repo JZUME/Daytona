@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "screenmode.h"
 #include "xcursor.h"
 
 #include <QObject>
@@ -98,6 +99,10 @@ public:
     static constexpr double MaxScreenScale = 3.0;
     double outputScale(const QString &screen) const;
     void setOutputScale(const QString &screen, double scale);
+    // A screen's mode (NT's Desktop Area and Refresh Frequency), filed the
+    // same way; invalid when none is saved.
+    ScreenMode outputMode(const QString &screen) const;
+    void setOutputMode(const QString &screen, const ScreenMode &mode);
 
     // Follows changes other programs make to the file, such as
     // daytona-themetool recording a new wallpaper.

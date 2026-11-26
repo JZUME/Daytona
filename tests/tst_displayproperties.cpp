@@ -9,10 +9,12 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QLabel>
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QSlider>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -20,28 +22,57 @@ using namespace Daytona;
 
 namespace {
 
-// Stands in for the compositor: records scale requests and answers them at
-// once, applying the scale when it accepts.
-class FakeScaler : public ScreenScaler
+// Stands in for the compositor: records mode and scale requests and
+// answers them at once, applying them when it accepts.
+class FakeScaler : public ScreenSettings
 {
 public:
     double scale(const QString &screen) const override { return scales.value(screen); }
+    QList<ScreenMode> modes(const QString &screen) const override
+    {
+        return screen == QStringLiteral("DP-1") ? screenModes : QList<ScreenMode>();
+    }
+    ScreenMode currentMode(const QString &screen) const override
+    {
+        return screen == QStringLiteral("DP-1") ? current : ScreenMode();
+    }
     QString identity(const QString &screen) const override
     {
         return QStringLiteral("Maker Model ") + screen;
     }
-    void setScale(
-        const QString &screen, double scale, const std::function<void(bool)> &done) override
+    void configure(const QString &screen, const ScreenMode &mode, double scale,
+        const std::function<void(bool)> &done) override
     {
-        requests.append({ screen, scale });
-        if (accept)
-            scales.insert(screen, scale);
+        if (scale > 0)
+            requests.append({ screen, scale });
+        if (mode.isValid())
+            modeRequests.append(modeKey(mode));
+        if (accept) {
+            if (scale > 0)
+                scales.insert(screen, scale);
+            if (mode.isValid())
+                current = mode;
+        }
         if (done)
             done(accept);
     }
 
+    static ScreenMode mode(int w, int h, int refresh, bool preferred = false)
+    {
+        ScreenMode m;
+        m.size = QSize(w, h);
+        m.refresh = refresh;
+        m.preferred = preferred;
+        return m;
+    }
+
     QHash<QString, double> scales { { QStringLiteral("DP-1"), 1.0 } };
-    QList<QPair<QString, double>> requests;
+    QList<ScreenMode> screenModes { mode(1920, 1080, 60000, true), mode(1920, 1080, 59940),
+        mode(1920, 1080, 144000), mode(1024, 768, 75000), mode(1024, 768, 60000),
+        mode(800, 600, 60000) };
+    ScreenMode current = mode(1920, 1080, 60000, true);
+    QList<QPair<QString, double>> requests; // scale requests
+    QStringList modeRequests;
     bool accept = true;
 };
 
@@ -140,7 +171,7 @@ private Q_SLOTS:
         Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
         FakeScaler scaler;
         DisplayPropertiesDialog dialog(&settings);
-        dialog.setScreenScaler(&scaler);
+        dialog.setScreenSettings(&scaler);
         dialog.setScreenName(QStringLiteral("DP-1"));
         dialog.prepare();
         QVERIFY(dialog.fontSizeBox()->isEnabled());
@@ -174,7 +205,7 @@ private Q_SLOTS:
         Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
         FakeScaler scaler;
         DisplayPropertiesDialog dialog(&settings);
-        dialog.setScreenScaler(&scaler);
+        dialog.setScreenSettings(&scaler);
         dialog.setScreenName(QStringLiteral("DP-1"));
         int asked = 0;
         dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
@@ -204,7 +235,7 @@ private Q_SLOTS:
         Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
         FakeScaler scaler;
         DisplayPropertiesDialog dialog(&settings);
-        dialog.setScreenScaler(&scaler);
+        dialog.setScreenSettings(&scaler);
         dialog.setScreenName(QStringLiteral("DP-1"));
         dialog.setScaleConfirmation([](const std::function<void(bool)> &done) { done(false); });
         dialog.prepare();
@@ -228,7 +259,7 @@ private Q_SLOTS:
         FakeScaler scaler;
         scaler.accept = false;
         DisplayPropertiesDialog dialog(&settings);
-        dialog.setScreenScaler(&scaler);
+        dialog.setScreenSettings(&scaler);
         dialog.setScreenName(QStringLiteral("DP-1"));
         bool asked = false;
         dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
@@ -246,7 +277,8 @@ private Q_SLOTS:
         // The warning is not modal; close it.
         const auto boxes = dialog.findChildren<QMessageBox *>();
         QCOMPARE(boxes.size(), 1);
-        QCOMPARE(boxes.first()->text(), QStringLiteral("The font size could not be changed."));
+        QCOMPARE(
+            boxes.first()->text(), QStringLiteral("The display settings could not be changed."));
         boxes.first()->close();
     }
 
@@ -256,16 +288,115 @@ private Q_SLOTS:
         Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
         FakeScaler scaler;
         DisplayPropertiesDialog dialog(&settings);
-        dialog.setScreenScaler(&scaler);
+        dialog.setScreenSettings(&scaler);
         dialog.setScreenName(QStringLiteral("UNKNOWN-1")); // not reported
         dialog.prepare();
         QVERIFY(!dialog.fontSizeBox()->isEnabled());
         QVERIFY(!dialog.customFontSizeButton()->isEnabled());
+        QVERIFY(!dialog.desktopAreaSlider()->isEnabled());
+        QVERIFY(!dialog.refreshBox()->isEnabled());
+        QCOMPARE(dialog.desktopAreaLabel()->text(), QStringLiteral("Not available"));
 
         DisplayPropertiesDialog noScaler(&settings);
         QVERIFY(!noScaler.fontSizeBox()->isEnabled());
         noScaler.selectScale(1.25);
         noScaler.apply(); // nothing to apply it with; must not crash
+    }
+
+    void desktopArea()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        dialog.prepare();
+        // Less to more, one notch per size; the current one selected.
+        QVERIFY(dialog.desktopAreaSlider()->isEnabled());
+        QCOMPARE(dialog.desktopAreaSlider()->maximum(), 2);
+        QCOMPARE(dialog.desktopAreaSlider()->value(), 2);
+        QCOMPARE(dialog.desktopAreaLabel()->text(), QStringLiteral("1920 by 1080 pixels"));
+        // 59.94 and 60 Hz would both read "60", so they keep their decimals.
+        QStringList rates;
+        for (int i = 0; i < dialog.refreshBox()->count(); ++i)
+            rates << dialog.refreshBox()->itemText(i);
+        QCOMPARE(rates,
+            QStringList({ QStringLiteral("59.94 Hertz"), QStringLiteral("60.00 Hertz"),
+                QStringLiteral("144 Hertz") }));
+        QCOMPARE(dialog.refreshBox()->currentText(), QStringLiteral("60.00 Hertz"));
+        QVERIFY(!dialog.applyButton()->isEnabled());
+
+        // A smaller size: its own rates, keeping 60 Hz.
+        dialog.desktopAreaSlider()->setValue(1);
+        QCOMPARE(dialog.desktopAreaLabel()->text(), QStringLiteral("1024 by 768 pixels"));
+        QCOMPARE(dialog.refreshBox()->count(), 2);
+        QCOMPARE(dialog.refreshBox()->currentText(), QStringLiteral("60 Hertz"));
+        QVERIFY(dialog.applyButton()->isEnabled());
+        dialog.desktopAreaSlider()->setValue(0);
+        QCOMPARE(modeKey(dialog.selectedScreenMode()), QStringLiteral("800x600@60000"));
+        // Back up: the size's preferred mode wins over a rate it lacks.
+        dialog.refreshBox()->setCurrentIndex(0);
+        dialog.desktopAreaSlider()->setValue(2);
+        QCOMPARE(modeKey(dialog.selectedScreenMode()), QStringLiteral("1920x1080@60000"));
+    }
+
+    void modeKeptWhenConfirmed()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        int asked = 0;
+        dialog.setScaleConfirmation([&asked](const std::function<void(bool)> &done) {
+            ++asked;
+            done(true);
+        });
+        dialog.prepare();
+
+        // Mode and font size together: one change, one question.
+        dialog.desktopAreaSlider()->setValue(1);
+        dialog.refreshBox()->setCurrentIndex(dialog.refreshBox()->findData(75000));
+        dialog.selectScale(1.5);
+        dialog.apply();
+        QCOMPARE(scaler.modeRequests, QStringList({ QStringLiteral("1024x768@75000") }));
+        QCOMPARE(scaler.requests.size(), 1);
+        QCOMPARE(asked, 1);
+        QCOMPARE(modeKey(settings.outputMode(QStringLiteral("Maker Model DP-1"))),
+            QStringLiteral("1024x768@75000"));
+        QCOMPARE(settings.outputScale(QStringLiteral("Maker Model DP-1")), 1.5);
+
+        // Only what changed is sent and saved.
+        dialog.refreshBox()->setCurrentIndex(dialog.refreshBox()->findData(60000));
+        dialog.apply();
+        QCOMPARE(scaler.modeRequests.size(), 2);
+        QCOMPARE(scaler.requests.size(), 1);
+        QCOMPARE(modeKey(settings.outputMode(QStringLiteral("Maker Model DP-1"))),
+            QStringLiteral("1024x768@60000"));
+    }
+
+    void modeRevertsWhenNotConfirmed()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        FakeScaler scaler;
+        DisplayPropertiesDialog dialog(&settings);
+        dialog.setScreenSettings(&scaler);
+        dialog.setScreenName(QStringLiteral("DP-1"));
+        dialog.setScaleConfirmation([](const std::function<void(bool)> &done) { done(false); });
+        dialog.prepare();
+
+        dialog.desktopAreaSlider()->setValue(0);
+        dialog.apply();
+        QCOMPARE(scaler.modeRequests,
+            QStringList({ QStringLiteral("800x600@60000"), QStringLiteral("1920x1080@60000") }));
+        QCOMPARE(scaler.requests.size(), 0); // the font size was not touched
+        QCOMPARE(modeKey(scaler.current), QStringLiteral("1920x1080@60000"));
+        QCOMPARE(dialog.desktopAreaLabel()->text(), QStringLiteral("1920 by 1080 pixels"));
+        QVERIFY(!settings.outputMode(QStringLiteral("Maker Model DP-1")).isValid());
+        QVERIFY(!dialog.applyButton()->isEnabled());
     }
 
     void customFontSizeDialog()

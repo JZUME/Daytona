@@ -28,6 +28,17 @@ to another port. Otherwise the size belongs to the connector (for example
 does, so a size set with `wlr-randr` or kanshi is replaced by the saved one
 only at the next login or when the screen next appears.
 
+## Resolution and refresh rate
+
+The same tab has NT's **Desktop Area** slider (Less to More, "1024 by 768
+pixels") and **Refresh Frequency**, listing the modes the screen offers.
+Applying a new resolution, refresh rate or font size changes the screen at
+once and asks to keep it, reverting after 15 seconds; changes applied
+together are confirmed together. A kept mode is saved per screen
+(`[ScreenMode]` in `daytona.ini`, as `1920x1080@60000`, the rate in
+millihertz) and applied whenever the screen appears. If the screen no longer
+offers it, its current mode is kept.
+
 ## The mouse pointer
 
 Daytona's cursor theme ("Daytona Cursors") has every cursor at each screen

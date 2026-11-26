@@ -24,29 +24,38 @@ namespace {
         return std::abs(a - b) < 0.001;
     }
 
-    // A mode of a head. Nothing here needs modes, but every object the
-    // compositor creates must have a listener, so each is wrapped and freed
-    // when the compositor is done with it.
-    class OutputMode : public QtWayland::zwlr_output_mode_v1
+    void releaseProxy(QtWayland::zwlr_output_mode_v1 *mode)
     {
-    public:
-        explicit OutputMode(struct ::zwlr_output_mode_v1 *object)
-            : QtWayland::zwlr_output_mode_v1(object)
-        {
-        }
-
-    protected:
-        void zwlr_output_mode_v1_finished() override
-        {
-            if (proxyVersion(object()) >= ZWLR_OUTPUT_MODE_V1_RELEASE_SINCE_VERSION)
-                release();
-            else
-                wl_proxy_destroy(reinterpret_cast<wl_proxy *>(object()));
-            delete this;
-        }
-    };
+        if (proxyVersion(mode->object()) >= ZWLR_OUTPUT_MODE_V1_RELEASE_SINCE_VERSION)
+            mode->release();
+        else
+            wl_proxy_destroy(reinterpret_cast<wl_proxy *>(mode->object()));
+    }
 
 } // namespace
+
+// A mode of a head, kept in its head's list while the compositor offers it.
+class OutputModeObject : public QtWayland::zwlr_output_mode_v1
+{
+public:
+    OutputModeObject(struct ::zwlr_output_mode_v1 *object, OutputHeadObject *head)
+        : QtWayland::zwlr_output_mode_v1(object)
+        , head(head)
+    {
+    }
+
+    ScreenMode state;
+    OutputHeadObject *head;
+
+protected:
+    void zwlr_output_mode_v1_size(int32_t width, int32_t height) override
+    {
+        state.size = QSize(width, height);
+    }
+    void zwlr_output_mode_v1_refresh(int32_t refresh) override { state.refresh = refresh; }
+    void zwlr_output_mode_v1_preferred() override { state.preferred = true; }
+    void zwlr_output_mode_v1_finished() override;
+};
 
 QString outputIdentity(const OutputHead &head)
 {
@@ -64,8 +73,38 @@ public:
     {
     }
 
-    OutputHead state;
-    bool restored = false; // its saved scale has been looked at
+    OutputHead state; // modes and currentMode are filled in by snapshot()
+    QList<OutputModeObject *> modes;
+    OutputModeObject *current = nullptr;
+    bool restored = false; // its saved settings have been looked at
+
+    OutputHead snapshot() const
+    {
+        OutputHead head = state;
+        head.modes.clear();
+        for (const OutputModeObject *mode : modes)
+            head.modes.append(mode->state);
+        head.currentMode = current ? current->state : ScreenMode();
+        return head;
+    }
+
+    OutputModeObject *modeFor(const ScreenMode &wanted) const
+    {
+        const ScreenMode match = matchMode(snapshot().modes, wanted);
+        for (OutputModeObject *mode : modes) {
+            if (match.isValid() && mode->state.sameAs(match))
+                return mode;
+        }
+        return nullptr;
+    }
+
+    void forgetModes()
+    {
+        for (OutputModeObject *mode : std::as_const(modes))
+            mode->head = nullptr;
+        modes.clear();
+        current = nullptr;
+    }
 
 protected:
     void zwlr_output_head_v1_name(const QString &name) override { state.name = name; }
@@ -86,7 +125,15 @@ protected:
     }
     void zwlr_output_head_v1_mode(struct ::zwlr_output_mode_v1 *mode) override
     {
-        new OutputMode(mode);
+        modes.append(new OutputModeObject(mode, this));
+    }
+    void zwlr_output_head_v1_current_mode(struct ::zwlr_output_mode_v1 *mode) override
+    {
+        current = nullptr;
+        for (OutputModeObject *candidate : std::as_const(modes)) {
+            if (candidate->object() == mode)
+                current = candidate;
+        }
     }
     void zwlr_output_head_v1_finished() override
     {
@@ -100,6 +147,17 @@ protected:
 private:
     OutputManager *m_manager;
 };
+
+void OutputModeObject::zwlr_output_mode_v1_finished()
+{
+    if (head) {
+        head->modes.removeOne(this);
+        if (head->current == this)
+            head->current = nullptr;
+    }
+    releaseProxy(this);
+    delete this;
+}
 
 // One configuration sent to the compositor: every head, with a new scale
 // for one of them.
@@ -141,6 +199,11 @@ OutputManager::~OutputManager()
 {
     delete m_pending;
     for (OutputHeadObject *head : std::as_const(m_heads)) {
+        for (OutputModeObject *mode : std::as_const(head->modes)) {
+            releaseProxy(mode);
+            delete mode;
+        }
+        head->modes.clear();
         if (proxyVersion(head->object()) >= ZWLR_OUTPUT_HEAD_V1_RELEASE_SINCE_VERSION)
             head->release();
         delete head;
@@ -153,7 +216,7 @@ QList<OutputHead> OutputManager::heads() const
 {
     QList<OutputHead> result;
     for (const OutputHeadObject *head : m_heads)
-        result.append(head->state);
+        result.append(head->snapshot());
     return result;
 }
 
@@ -172,6 +235,18 @@ double OutputManager::scale(const QString &screen) const
     return head ? head->state.scale : 0.0;
 }
 
+QList<ScreenMode> OutputManager::modes(const QString &screen) const
+{
+    const OutputHeadObject *head = find(screen);
+    return head ? head->snapshot().modes : QList<ScreenMode>();
+}
+
+ScreenMode OutputManager::currentMode(const QString &screen) const
+{
+    const OutputHeadObject *head = find(screen);
+    return head && head->current ? head->current->state : ScreenMode();
+}
+
 QString OutputManager::identity(const QString &screen) const
 {
     const OutputHeadObject *head = find(screen);
@@ -188,7 +263,7 @@ void OutputManager::zwlr_output_manager_v1_done(uint32_t serial)
     m_serial = serial;
     m_haveSerial = true;
     Q_EMIT changed();
-    restoreSavedScales();
+    restoreSavedSettings();
     sendNext();
 }
 
@@ -200,11 +275,13 @@ void OutputManager::zwlr_output_manager_v1_finished()
 
 void OutputManager::removeHead(OutputHeadObject *head)
 {
+    // Its modes are finished on their own; they no longer have a head.
+    head->forgetModes();
     m_heads.removeOne(head);
     delete head;
 }
 
-void OutputManager::restoreSavedScales()
+void OutputManager::restoreSavedSettings()
 {
     if (!m_settings)
         return;
@@ -212,17 +289,26 @@ void OutputManager::restoreSavedScales()
         if (head->restored || head->state.name.isEmpty() || !head->state.enabled)
             continue;
         head->restored = true;
-        const QString id = outputIdentity(head->state);
-        const double saved = m_settings->outputScale(id);
-        if (saved > 0 && !sameScale(saved, head->state.scale)) {
-            qCInfo(lcOutputs) << "Restoring scale" << saved << "on" << head->state.name;
-            setScale(head->state.name, saved);
+        const OutputHead state = head->snapshot();
+        const QString id = outputIdentity(state);
+        // A saved mode the screen no longer offers is left alone.
+        ScreenMode mode = matchMode(state.modes, m_settings->outputMode(id));
+        if (mode.isValid() && mode.sameAs(state.currentMode))
+            mode = {};
+        double scale = m_settings->outputScale(id);
+        if (scale > 0 && sameScale(scale, state.scale))
+            scale = 0;
+        if (mode.isValid() || scale > 0) {
+            qCInfo(lcOutputs) << "Restoring" << state.name << "mode"
+                              << (mode.isValid() ? modeKey(mode) : QStringLiteral("unchanged"))
+                              << "scale" << (scale > 0 ? scale : state.scale);
+            configure(state.name, mode, scale);
         }
     }
 }
 
-void OutputManager::setScale(
-    const QString &screen, double scale, const std::function<void(bool)> &done)
+void OutputManager::configure(const QString &screen, const ScreenMode &mode, double scale,
+    const std::function<void(bool)> &done)
 {
     if (!find(screen)) {
         qCWarning(lcOutputs) << "No screen named" << screen;
@@ -230,7 +316,12 @@ void OutputManager::setScale(
             done(false);
         return;
     }
-    m_queue.append({ screen, scale, done });
+    Request request;
+    request.screen = screen;
+    request.mode = mode;
+    request.scale = scale;
+    request.done = done;
+    m_queue.append(request);
     sendNext();
 }
 
@@ -244,6 +335,15 @@ void OutputManager::sendNext()
         finishRequest(false);
         return;
     }
+    OutputModeObject *mode = nullptr;
+    if (request.mode.isValid()) {
+        mode = target->modeFor(request.mode);
+        if (!mode) {
+            qCWarning(lcOutputs) << request.screen << "has no mode" << modeKey(request.mode);
+            finishRequest(false);
+            return;
+        }
+    }
     m_queue.first().attempts++;
     m_pending = new OutputConfiguration(create_configuration(m_serial), this);
     // Every head must be listed; the others keep their state.
@@ -253,7 +353,9 @@ void OutputManager::sendNext()
             continue;
         }
         struct ::zwlr_output_configuration_head_v1 *config = m_pending->enable_head(head->object());
-        if (head == target)
+        if (head == target && mode)
+            zwlr_output_configuration_head_v1_set_mode(config, mode->object());
+        if (head == target && request.scale > 0)
             zwlr_output_configuration_head_v1_set_scale(
                 config, wl_fixed_from_double(request.scale));
         // It has no events and no destructor; the compositor frees it with
@@ -285,8 +387,9 @@ void OutputManager::finishRequest(bool ok)
         return;
     const Request request = m_queue.takeFirst();
     if (!ok)
-        qCWarning(lcOutputs) << "The compositor refused scale" << request.scale << "on"
-                             << request.screen;
+        qCWarning(lcOutputs) << "The compositor refused mode"
+                             << (request.mode.isValid() ? modeKey(request.mode) : QString())
+                             << "scale" << request.scale << "on" << request.screen;
     if (request.done)
         request.done(ok);
     sendNext();

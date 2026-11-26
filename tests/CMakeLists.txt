@@ -86,6 +86,7 @@ set_tests_properties(tst_notifications PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=of
 daytona_add_test(tst_taskbarplacement daytona-shell-core)
 set_tests_properties(tst_taskbarplacement PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_displayproperties daytona-shell-core)
+daytona_add_test(tst_screenmode daytona-shell-core)
 daytona_add_test(tst_mouseproperties daytona-shell-core)
 add_dependencies(tst_mouseproperties daytona-cursor-theme)
 target_compile_definitions(tst_mouseproperties PRIVATE

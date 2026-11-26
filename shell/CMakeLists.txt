@@ -43,6 +43,8 @@ add_library(daytona-shell-core STATIC
     recentdocuments.h
     rundialog.cpp
     rundialog.h
+    screenmode.cpp
+    screenmode.h
     settings.cpp
     settings.h
     shutdowndialog.cpp

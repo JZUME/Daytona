@@ -299,6 +299,7 @@ Accepted configuration, Display Properties equivalents:
 * colour scheme and fonts (normally applied via `.theme` files)
 * wallpaper
 * the Start button logo: the operating system's or Daytona's (approved exception)
+* desktop area (resolution) and refresh frequency, per screen, on the Settings tab as in NT (applied through wlr-output-management, confirmed by a 15-second keep-or-revert prompt instead of NT's Test button, and remembered per screen like the font size)
 * clock format (follows the system locale)
 * high-contrast schemes and font size, as accessibility options. Font size is NT's Settings tab choice (Small Fonts 100%, Large Fonts 150% (see approved exceptions), custom 100-300%), applied as each screen's scale through wlr-output-management and remembered per screen.
 

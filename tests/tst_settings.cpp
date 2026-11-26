@@ -173,6 +173,29 @@ private Q_SLOTS:
         QCOMPARE(Settings(file).systemStartLogo(), false);
     }
 
+    void screenModes()
+    {
+        const QString file = path(QStringLiteral("modes.ini"));
+        {
+            Settings s(file);
+            QVERIFY(!s.outputMode(QStringLiteral("eDP-1")).isValid());
+            Daytona::ScreenMode mode;
+            mode.size = QSize(1920, 1080);
+            mode.refresh = 59940;
+            s.setOutputMode(QStringLiteral("eDP-1"), mode);
+            s.setOutputMode(QStringLiteral("DP-1"), Daytona::ScreenMode()); // ignored
+        }
+        Settings s(file);
+        QCOMPARE(s.outputMode(QStringLiteral("eDP-1")).size, QSize(1920, 1080));
+        QCOMPARE(s.outputMode(QStringLiteral("eDP-1")).refresh, 59940);
+        QVERIFY(!s.outputMode(QStringLiteral("DP-1")).isValid());
+        const QString bad = path(QStringLiteral("badmodes.ini"));
+        writeFile(bad, "[ScreenMode]\neDP-1=huge\nDP-1=800x600\n");
+        QVERIFY(!Settings(bad).outputMode(QStringLiteral("eDP-1")).isValid());
+        QCOMPARE(Settings(bad).outputMode(QStringLiteral("DP-1")).size, QSize(800, 600));
+        QCOMPARE(Settings(bad).outputMode(QStringLiteral("DP-1")).refresh, 0);
+    }
+
     void screenScales()
     {
         const QString file = path(QStringLiteral("scales.ini"));

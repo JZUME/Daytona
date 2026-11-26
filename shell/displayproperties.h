@@ -3,6 +3,7 @@
 #pragma once
 
 #include "colours.h"
+#include "screenmode.h"
 #include "settings.h"
 
 #include <QDialog>
@@ -15,10 +16,11 @@ class QLabel;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
+class QSlider;
 
 namespace Daytona {
 
-class ScreenScaler;
+class ScreenSettings;
 
 // Image files directly in each directory (no subdirectories), sorted by
 // name within each, without duplicates. At most limit files.
@@ -106,11 +108,11 @@ public:
     // The theme tool run on Apply; the one next to the shell by default.
     void setThemeTool(const QString &program) { m_themeTool = program; }
 
-    // What changes screen scales; without one the font size cannot be
-    // changed.
-    void setScreenScaler(ScreenScaler *scaler) { m_scaler = scaler; }
-    // Asks whether to keep a new font size and calls done(keep). By default
-    // a message box that reverts after 15 seconds.
+    // What changes screen modes and scales; without one the Settings tab
+    // cannot change anything.
+    void setScreenSettings(ScreenSettings *screens) { m_screens = screens; }
+    // Asks whether to keep new display settings and calls done(keep). By
+    // default a message box that reverts after 15 seconds.
     using Confirmation = std::function<void(const std::function<void(bool)> &done)>;
     void setScaleConfirmation(Confirmation confirm) { m_confirm = std::move(confirm); }
     // The screen the Settings tab changes; the dialog's own by default.
@@ -119,6 +121,12 @@ public:
     QListWidget *wallpaperList() const { return m_wallpapers; }
     QComboBox *fontSizeBox() const { return m_fontSize; }
     QPushButton *customFontSizeButton() const { return m_customFontSize; }
+    QSlider *desktopAreaSlider() const { return m_desktopArea; }
+    QLabel *desktopAreaLabel() const { return m_areaLabel; }
+    QComboBox *refreshBox() const { return m_refresh; }
+    // The mode the Desktop Area and Refresh Frequency choose.
+    ScreenMode selectedScreenMode() const;
+    void selectScreenMode(const ScreenMode &mode);
     double selectedScale() const;
     // Selects scale in the font size list, adding a custom entry if needed.
     void selectScale(double scale);
@@ -145,8 +153,9 @@ private:
     QWidget *createAppearanceTab();
     QWidget *createSettingsTab();
     QString screenName() const;
-    void applyScale();
-    void confirmScale(const std::function<void(bool)> &done);
+    void applyScreen();
+    void confirmSettings(const std::function<void(bool)> &done);
+    void updateRefreshList(int keepRefresh);
     void selectWallpaper(const QString &path);
     void browse();
     void updateBackgroundPreview();
@@ -163,13 +172,19 @@ private:
     QComboBox *m_schemes;
     QCheckBox *m_systemLogo;
     QPushButton *m_apply;
-    ScreenScaler *m_scaler = nullptr;
+    ScreenSettings *m_screens = nullptr;
     Confirmation m_confirm;
     QString m_screenName;
     QLabel *m_screenLabel;
     QComboBox *m_fontSize;
     QPushButton *m_customFontSize;
     double m_appliedScale = 1.0;
+    QSlider *m_desktopArea;
+    QLabel *m_areaLabel;
+    QComboBox *m_refresh;
+    QList<ScreenMode> m_modes;
+    QList<QSize> m_sizes;
+    ScreenMode m_appliedMode;
     QString m_appliedScheme; // what the combo showed when last prepared or applied
     bool m_preparing = false;
 };

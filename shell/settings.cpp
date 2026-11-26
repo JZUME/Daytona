@@ -351,15 +351,40 @@ namespace {
 
     // The key for a screen's scale. '/' and '\\' would start a subgroup in
     // QSettings; QSettings escapes everything else itself.
-    QString scaleKey(const QString &screen)
+    // The key for a screen's setting in group. '/' and '\\' would start a
+    // subgroup in QSettings; QSettings escapes everything else itself.
+    QString screenKey(const QString &group, const QString &screen)
     {
         QString name = screen;
         name.replace(QLatin1Char('/'), QLatin1Char('_'));
         name.replace(QLatin1Char('\\'), QLatin1Char('_'));
-        return QStringLiteral("ScreenScale/") + name;
+        return group + QLatin1Char('/') + name;
+    }
+
+    QString scaleKey(const QString &screen)
+    {
+        return screenKey(QStringLiteral("ScreenScale"), screen);
     }
 
 } // namespace
+
+ScreenMode Settings::outputMode(const QString &screen) const
+{
+    const QString key = screenKey(QStringLiteral("ScreenMode"), screen);
+    if (screen.isEmpty() || !m_settings.contains(key))
+        return {};
+    const ScreenMode mode = parseModeKey(m_settings.value(key).toString());
+    if (!mode.isValid())
+        qCWarning(lcSettings) << "Invalid value for" << key << "- ignoring it";
+    return mode;
+}
+
+void Settings::setOutputMode(const QString &screen, const ScreenMode &mode)
+{
+    if (screen.isEmpty() || !mode.isValid())
+        return;
+    write(screenKey(QStringLiteral("ScreenMode"), screen), modeKey(mode));
+}
 
 double Settings::outputScale(const QString &screen) const
 {

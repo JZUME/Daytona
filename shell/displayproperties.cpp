@@ -30,10 +30,12 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScreen>
+#include <QSlider>
 #include <QStandardPaths>
 #include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 
@@ -414,21 +416,49 @@ void DisplayPropertiesDialog::prepare()
     // Nothing to choose between when the system has no logo.
     m_systemLogo->setEnabled(!systemLogo().isNull());
 
-    // Settings: the font size of the screen the dialog is on.
+    // Settings: the screen the dialog is on.
     const QString name = screenName();
-    const double reported = m_scaler ? m_scaler->scale(name) : 0.0;
+    const double reported = m_screens ? m_screens->scale(name) : 0.0;
     const double currentScale
         = reported > 0 ? reported : (screen() ? screen()->devicePixelRatio() : 1.0);
     while (m_fontSize->count() > 2)
         m_fontSize->removeItem(2);
     selectScale(currentScale);
     m_appliedScale = currentScale;
-    const bool canScale = reported > 0;
-    m_fontSize->setEnabled(canScale);
-    m_customFontSize->setEnabled(canScale);
-    m_screenLabel->setText(canScale
-            ? tr("The font size applies to this screen (%1) and is remembered for it.").arg(name)
-            : tr("The font size cannot be changed in this session."));
+    const bool canChange = reported > 0;
+    m_fontSize->setEnabled(canChange);
+    m_customFontSize->setEnabled(canChange);
+
+    m_modes = m_screens ? m_screens->modes(name) : QList<ScreenMode>();
+    m_sizes.clear();
+    for (const ScreenMode &mode : std::as_const(m_modes)) {
+        if (mode.isValid() && !m_sizes.contains(mode.size))
+            m_sizes.append(mode.size);
+    }
+    // Less to more: by area, then width.
+    std::sort(m_sizes.begin(), m_sizes.end(), [](const QSize &a, const QSize &b) {
+        const qint64 areaA = qint64(a.width()) * a.height();
+        const qint64 areaB = qint64(b.width()) * b.height();
+        return areaA != areaB ? areaA < areaB : a.width() < b.width();
+    });
+    ScreenMode currentScreenMode = m_screens ? m_screens->currentMode(name) : ScreenMode();
+    if (!currentScreenMode.isValid()) {
+        for (const ScreenMode &mode : std::as_const(m_modes)) {
+            if (mode.preferred)
+                currentScreenMode = mode;
+        }
+    }
+    m_appliedMode = currentScreenMode;
+    const bool canMode = canChange && !m_sizes.isEmpty();
+    m_desktopArea->setEnabled(canMode);
+    m_refresh->setEnabled(canMode);
+    m_desktopArea->setRange(0, qMax(0, int(m_sizes.size()) - 1));
+    selectScreenMode(currentScreenMode);
+    if (!canMode)
+        m_areaLabel->setText(tr("Not available"));
+    m_screenLabel->setText(canChange
+            ? tr("These settings apply to this screen (%1) and are remembered for it.").arg(name)
+            : tr("The display settings cannot be changed in this session."));
 
     m_preparing = false;
     updateBackgroundPreview();
@@ -561,7 +591,7 @@ void DisplayPropertiesDialog::apply()
         process->start(m_themeTool, arguments);
         m_appliedScheme = m_schemes->currentText();
     }
-    applyScale();
+    applyScreen();
     m_apply->setEnabled(false);
 }
 
@@ -579,14 +609,42 @@ namespace {
 
 QWidget *DisplayPropertiesDialog::createSettingsTab()
 {
+    // Laid out as NT's Settings tab: Desktop Area and Refresh Frequency on
+    // one side, Font Size on the other.
     auto *page = new QWidget;
-    auto *group = new QGroupBox(tr("Font Size"), page);
-    m_fontSize = new QComboBox(group);
+
+    auto *area = new QGroupBox(tr("Desktop Area"), page);
+    m_desktopArea = new QSlider(Qt::Horizontal, area);
+    m_desktopArea->setPageStep(1);
+    m_desktopArea->setTickPosition(QSlider::TicksBelow);
+    m_desktopArea->setTickInterval(1);
+    m_areaLabel = new QLabel(area);
+    m_areaLabel->setAlignment(Qt::AlignCenter);
+    connect(m_desktopArea, &QSlider::valueChanged, this, [this] {
+        updateRefreshList(selectedScreenMode().refresh);
+        changed();
+    });
+    auto *sliderRow = new QHBoxLayout;
+    sliderRow->addWidget(new QLabel(tr("Less"), area));
+    sliderRow->addWidget(m_desktopArea, 1);
+    sliderRow->addWidget(new QLabel(tr("More"), area));
+    auto *areaLayout = new QVBoxLayout(area);
+    areaLayout->addLayout(sliderRow);
+    areaLayout->addWidget(m_areaLabel);
+
+    auto *refresh = new QGroupBox(tr("Refresh Frequency"), page);
+    m_refresh = new QComboBox(refresh);
+    connect(m_refresh, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::changed);
+    auto *refreshLayout = new QVBoxLayout(refresh);
+    refreshLayout->addWidget(m_refresh);
+
+    auto *font = new QGroupBox(tr("Font Size"), page);
+    m_fontSize = new QComboBox(font);
     m_fontSize->addItem(tr("Small Fonts"), 1.0);
     // NT's Large Fonts was 125% (120 DPI); Daytona's is 150%, the more useful
     // size on today's high-density screens (AGENT.md, approved exceptions).
     m_fontSize->addItem(tr("Large Fonts"), 1.5);
-    m_customFontSize = new QPushButton(tr("&Custom..."), group);
+    m_customFontSize = new QPushButton(tr("&Custom..."), font);
     m_customFontSize->setMinimumSize(75, 23);
     connect(m_fontSize, &QComboBox::currentIndexChanged, this, &DisplayPropertiesDialog::changed);
     connect(m_customFontSize, &QPushButton::clicked, this, [this] {
@@ -595,19 +653,77 @@ QWidget *DisplayPropertiesDialog::createSettingsTab()
         if (custom.exec() == QDialog::Accepted)
             selectScale(custom.percent() / 100.0);
     });
-    m_screenLabel = new QLabel(group);
+    auto *fontLayout = new QVBoxLayout(font);
+    fontLayout->addWidget(m_fontSize);
+    fontLayout->addWidget(m_customFontSize, 0, Qt::AlignRight);
+
+    m_screenLabel = new QLabel(page);
     m_screenLabel->setWordWrap(true);
 
-    auto *row = new QHBoxLayout;
-    row->addWidget(m_fontSize, 1);
-    row->addWidget(m_customFontSize);
-    auto *groupLayout = new QVBoxLayout(group);
-    groupLayout->addLayout(row);
-    groupLayout->addWidget(m_screenLabel);
-    auto *layout = new QVBoxLayout(page);
-    layout->addWidget(group);
-    layout->addStretch();
+    auto *grid = new QGridLayout(page);
+    grid->addWidget(area, 0, 0);
+    grid->addWidget(font, 0, 1);
+    grid->addWidget(refresh, 1, 0);
+    grid->addWidget(m_screenLabel, 2, 0, 1, 2);
+    grid->setColumnStretch(0, 1);
+    grid->setColumnStretch(1, 1);
+    grid->setRowStretch(3, 1);
     return page;
+}
+
+ScreenMode DisplayPropertiesDialog::selectedScreenMode() const
+{
+    if (m_sizes.isEmpty())
+        return {};
+    ScreenMode wanted;
+    wanted.size = m_sizes.value(m_desktopArea->value());
+    wanted.refresh = m_refresh->currentData().toInt();
+    return matchMode(m_modes, wanted);
+}
+
+void DisplayPropertiesDialog::selectScreenMode(const ScreenMode &mode)
+{
+    const bool preparing = m_preparing;
+    m_preparing = true;
+    const int index = m_sizes.indexOf(mode.size);
+    m_desktopArea->setValue(index >= 0 ? index : 0);
+    updateRefreshList(mode.refresh);
+    m_preparing = preparing;
+}
+
+void DisplayPropertiesDialog::updateRefreshList(int keepRefresh)
+{
+    const QSize size = m_sizes.value(m_desktopArea->value());
+    m_areaLabel->setText(
+        size.isValid() ? tr("%1 by %2 pixels").arg(size.width()).arg(size.height()) : QString());
+    QList<int> rates;
+    for (const ScreenMode &mode : std::as_const(m_modes)) {
+        if (mode.size == size && !rates.contains(mode.refresh))
+            rates.append(mode.refresh);
+    }
+    std::sort(rates.begin(), rates.end());
+    const bool preparing = m_preparing;
+    m_preparing = true;
+    m_refresh->clear();
+    for (int rate : std::as_const(rates)) {
+        // Whole hertz as NT showed them, unless two rates would look alike.
+        const int whole = qRound(rate / 1000.0);
+        bool clash = false;
+        for (int other : std::as_const(rates))
+            clash |= other != rate && qRound(other / 1000.0) == whole;
+        const QString text = rate <= 0 ? tr("Default")
+            : clash                    ? tr("%1 Hertz").arg(QString::number(rate / 1000.0, 'f', 2))
+                                       : tr("%1 Hertz").arg(whole);
+        m_refresh->addItem(text, rate);
+    }
+    // The same rate if this size has it, else the size's best one.
+    ScreenMode wanted;
+    wanted.size = size;
+    wanted.refresh = keepRefresh;
+    const ScreenMode match = matchMode(m_modes, wanted);
+    const int index = m_refresh->findData(match.refresh);
+    m_refresh->setCurrentIndex(index >= 0 ? index : 0);
+    m_preparing = preparing;
 }
 
 QString DisplayPropertiesDialog::screenName() const
@@ -643,72 +759,86 @@ void DisplayPropertiesDialog::selectScale(double scale)
     m_fontSize->setCurrentIndex(2);
 }
 
-void DisplayPropertiesDialog::applyScale()
+void DisplayPropertiesDialog::applyScreen()
 {
-    if (!m_scaler)
+    if (!m_screens)
         return;
     const double scale = selectedScale();
-    if (sameScale(scale, m_appliedScale))
+    const ScreenMode mode = selectedScreenMode();
+    const bool newScale = !sameScale(scale, m_appliedScale);
+    const bool newMode = mode.isValid() && !mode.sameAs(m_appliedMode);
+    if (!newScale && !newMode)
         return;
-    const double previous = m_appliedScale;
+    const double previousScale = m_appliedScale;
+    const ScreenMode previousMode = m_appliedMode;
     const QString name = screenName();
-    const QString id = m_scaler->identity(name);
+    const QString id = m_screens->identity(name);
     m_appliedScale = scale;
+    m_appliedMode = mode;
 
     QPointer<DisplayPropertiesDialog> self(this);
-    // Back to the previous size: in the compositor and in the list.
-    const auto revert = [self, name, previous](bool tellCompositor) {
-        if (!self)
-            return;
-        self->m_appliedScale = previous;
-        if (tellCompositor)
-            self->m_scaler->setScale(name, previous);
-        const bool preparing = self->m_preparing;
-        self->m_preparing = true;
-        self->selectScale(previous);
-        self->m_preparing = preparing;
-    };
-    m_scaler->setScale(name, scale, [self, id, scale, revert](bool ok) {
-        if (!self)
-            return;
-        if (!ok) {
-            revert(false);
-            // Not modal: this runs inside the compositor's event.
-            auto *box = new QMessageBox(QMessageBox::Warning, tr("Display Properties"),
-                tr("The font size could not be changed."), QMessageBox::Ok, self);
-            box->setAttribute(Qt::WA_DeleteOnClose);
-            box->open();
-            return;
-        }
-        self->confirmScale([self, id, scale, revert](bool keep) {
+    // Back to the previous settings: in the compositor and in the tab.
+    const auto revert
+        = [self, name, previousScale, previousMode, newScale, newMode](bool tellCompositor) {
+              if (!self)
+                  return;
+              self->m_appliedScale = previousScale;
+              self->m_appliedMode = previousMode;
+              if (tellCompositor)
+                  self->m_screens->configure(
+                      name, newMode ? previousMode : ScreenMode(), newScale ? previousScale : 0.0);
+              const bool preparing = self->m_preparing;
+              self->m_preparing = true;
+              self->selectScale(previousScale);
+              self->selectScreenMode(previousMode);
+              self->m_preparing = preparing;
+          };
+    m_screens->configure(name, newMode ? mode : ScreenMode(), newScale ? scale : 0.0,
+        [self, id, scale, mode, newScale, newMode, revert](bool ok) {
             if (!self)
                 return;
-            if (!keep) {
-                revert(true);
+            if (!ok) {
+                revert(false);
+                // Not modal: this runs inside the compositor's event.
+                auto *box = new QMessageBox(QMessageBox::Warning, tr("Display Properties"),
+                    tr("The display settings could not be changed."), QMessageBox::Ok, self);
+                box->setAttribute(Qt::WA_DeleteOnClose);
+                box->open();
                 return;
             }
-            if (self->m_settings)
-                self->m_settings->setOutputScale(id, scale);
+            self->confirmSettings([self, id, scale, mode, newScale, newMode, revert](bool keep) {
+                if (!self)
+                    return;
+                if (!keep) {
+                    revert(true);
+                    return;
+                }
+                if (!self->m_settings)
+                    return;
+                if (newScale)
+                    self->m_settings->setOutputScale(id, scale);
+                if (newMode)
+                    self->m_settings->setOutputMode(id, mode);
+            });
         });
-    });
 }
 
-void DisplayPropertiesDialog::confirmScale(const std::function<void(bool)> &done)
+void DisplayPropertiesDialog::confirmSettings(const std::function<void(bool)> &done)
 {
     if (m_confirm) {
         m_confirm(done);
         return;
     }
-    // A wrong size can make the screen hard to use, so the new size is kept
-    // only when confirmed; otherwise the old one comes back by itself.
+    // A wrong size or mode can make the screen hard to use, so new settings
+    // are kept only when confirmed; otherwise the old ones come back.
     auto *box = new QMessageBox(QMessageBox::Question, tr("Display Properties"), QString(),
         QMessageBox::Yes | QMessageBox::No, this);
     box->setAttribute(Qt::WA_DeleteOnClose);
     box->setDefaultButton(QMessageBox::No);
     auto remaining = std::make_shared<int>(15);
     const auto update = [box, remaining] {
-        box->setText(tr("Do you want to keep this font size?\n\n"
-                        "The previous size will be restored in %n second(s).",
+        box->setText(tr("Do you want to keep these display settings?\n\n"
+                        "The previous settings will be restored in %n second(s).",
             nullptr, *remaining));
     };
     update();

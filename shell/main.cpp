@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
     // Display Properties, from Start > Settings > Display... and the
     // desktop's menu.
     Daytona::DisplayPropertiesDialog displayProperties(&settings);
-    displayProperties.setScreenScaler(&outputs);
+    displayProperties.setScreenSettings(&outputs);
     const auto showDisplayProperties = [&displayProperties] {
         displayProperties.prepare();
         displayProperties.show();
