@@ -36,14 +36,14 @@ rest of your system.</p>
 
 <h2>1. Add the signing key</h2>
 <pre><code>sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg \
-    https://soup-bowl.github.io/Project-Daytona/daytona-archive-keyring.gpg</code></pre>
+    https://soupbowl.io/Project-Daytona/daytona-archive-keyring.gpg</code></pre>
 <p>Key fingerprint: <code>E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090</code></p>
 
 <h2>2. Add the repository</h2>
 <p>Use <code>Suites: stable</code> for releases or <code>Suites: edge</code> for the latest build.</p>
 <pre><code>sudo tee /etc/apt/sources.list.d/daytona.sources &lt;&lt;'END'
 Types: deb
-URIs: https://soup-bowl.github.io/Project-Daytona
+URIs: https://soupbowl.io/Project-Daytona
 Suites: edge
 Components: main
 Signed-By: /etc/apt/keyrings/daytona.gpg
