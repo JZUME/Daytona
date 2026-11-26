@@ -1,12 +1,12 @@
-# Project Daytona (Qt edition)
+# Daytona Desktop Environment
 
-A Windows 95 / Windows NT 4.0 style desktop shell for Linux.
+<img width="2880" height="1800" alt="Daytona Test VM-2026-11-26-13-07-47" src="https://github.com/user-attachments/assets/e9d4e730-6e39-48c2-ac4d-58628074cf7c" />
 
-Daytona is a small, standalone Qt 6 Widgets shell (taskbar, Start menu, notification area, dialogs) that runs on the [labwc](https://github.com/labwc/labwc) Wayland compositor. It ships a Win95 Qt widget style and a converter for Windows `.theme` files, and uses [Chicago95](https://github.com/grassmunk/Chicago95) for GTK applications, icons and cursors.
+Inspired by Windows NT, [Chicago95](https://github.com/grassmunk/Chicago95) and built with Qt6 Widgets, a functional Qt desktop environment with the familiarity of the NT and 9X era.
 
-Status: early development. See [AGENT.md](AGENT.md) for the design and project rules.
+Status: early development. See [AGENT.md](AGENT.md) for the design and project rules. As a result this is currently **built for Debian 13**.
 
-Development happens on `main`. The earlier GTK edition is kept on the `legacy` branch.
+This project is **vibe-coded** - do not use if you have concerns about AI development.
 
 ## Installing on Debian 13
 
