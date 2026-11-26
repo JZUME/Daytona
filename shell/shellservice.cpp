@@ -65,7 +65,7 @@ bool ShellService::requestToggleStartMenu()
 
 bool ShellService::requestLock()
 {
-    // Long enough for swaylock to start on a slow machine; logind allows a
+    // Long enough for the locker to start on a slow machine; logind allows a
     // sleep to be delayed for 5 seconds by default anyway.
     return callShell("Lock", 10000);
 }

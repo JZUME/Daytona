@@ -2,6 +2,7 @@ usr/bin/daytona-session
 usr/bin/daytona-shell
 usr/bin/daytona-themetool
 usr/libexec/daytona/labwc
+usr/libexec/daytona/daytona-lock
 usr/lib/*/qt6/plugins/styles/libdaytonastyle.so
 usr/share/daytona
 usr/share/themes/Daytona

@@ -41,6 +41,8 @@ daytona_add_test(tst_styleplugin Qt6::Widgets)
 add_dependencies(tst_styleplugin daytona-style-plugin)
 set_tests_properties(tst_styleplugin PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_PLUGIN_PATH=${CMAKE_BINARY_DIR}/plugins;QT_STYLE_OVERRIDE=daytona;XDG_CONFIG_HOME=${CMAKE_CURRENT_SOURCE_DIR}/data/config")
+daytona_add_test(tst_lockscreen daytona-lock-core)
+set_tests_properties(tst_lockscreen PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_colours daytona-style)
 set_tests_properties(tst_colours PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 

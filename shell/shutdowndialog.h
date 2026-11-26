@@ -64,7 +64,7 @@ public:
     // Enables or disables the shut down and restart options, as NT did, and
     // shows stand by and hibernate only where the machine can do them.
     void setAvailability(const PowerAvailability &available);
-    // Whether the lock option is offered (swaylock is installed).
+    // Whether the lock option is offered (daytona-lock is installed).
     void setLockAvailable(bool available);
 
     SessionAction chosen() const;

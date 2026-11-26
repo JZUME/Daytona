@@ -1,0 +1,3 @@
+#%PAM-1.0
+# daytona-lock checks the password that unlocks a locked Daytona session.
+@include common-auth

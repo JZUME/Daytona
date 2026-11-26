@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "colours.h"
-
 #include <QObject>
 #include <QStringList>
 #include <functional>
@@ -16,48 +14,64 @@ class Settings;
 
 enum class LockKind
 {
-    // Lock Workstation: the desktop colour, with the password box showing.
+    // Lock Workstation: the desktop colour with NT's Workstation Locked
+    // dialog.
     Workstation,
     // A password-protected screen saver: a black screen until a key is
-    // pressed, as Blank Screen looks.
+    // pressed or the pointer moves, as Blank Screen looks, then Workstation
+    // Locked.
     ScreenSaver
 };
 
-// swaylock's arguments for a lock in the colour scheme's colours. It ignores
-// the user's own swaylock configuration, so Daytona's look and the
-// daemonising the shell relies on cannot be changed by it.
-QStringList swaylockArguments(LockKind kind, const SchemeColours &colours);
+// daytona-lock's arguments for a lock of this kind.
+QStringList lockArguments(LockKind kind);
+
+// daytona-lock next to this program: installed in libexec/daytona, or in
+// the build tree's locker/.
+QString defaultLockProgram();
 
 // swayidle's arguments: the screen saver after timeoutSeconds idle (none if
 // 0), and a lock before sleep and when logind asks (loginctl lock-session).
 // shell is daytona-shell's path; swayidle runs the commands with sh -c.
 QStringList swayidleArguments(int timeoutSeconds, const QString &shell);
 
-// Locks the session with swaylock (ext-session-lock-v1). swaylock is
-// started daemonised (-f), so it returns once the screen is locked and the
-// lock outlives the shell; a lock never depends on the shell staying up.
+// Locks the session with daytona-lock (ext-session-lock-v1), which prints
+// "locked" once the screen is locked and exits once it is unlocked. If it
+// crashes while locked, the compositor keeps the session locked and the
+// locker is started again, to take the lock over. The locker outlives the
+// shell: a lock never depends on the shell staying up.
 class ScreenLocker : public QObject
 {
     Q_OBJECT
 
 public:
     explicit ScreenLocker(QObject *parent = nullptr);
+    // Leaves a running locker running.
+    ~ScreenLocker() override;
 
-    // Whether swaylock is installed.
+    // Whether daytona-lock is installed.
     bool isAvailable() const;
-    // The locker; swaylock on PATH by default. For tests.
+    // The locker; defaultLockProgram() by default. For tests.
     void setProgram(const QString &program) { m_program = program; }
 
     // Locks the session and calls done once it is locked, or once locking
     // failed (logged), so a caller waiting to suspend is never held up.
-    // While a lock is starting, further requests wait for that one.
+    // While a lock is starting, further requests wait for that one; while
+    // locked, they are done at once.
     void lock(LockKind kind, std::function<void()> done = {});
 
+    // Whether this shell's locker has the session locked.
+    bool isLocked() const { return m_locked; }
+
 private:
+    void start();
     void finish();
 
     QString m_program;
     QProcess *m_process = nullptr;
+    LockKind m_kind = LockKind::Workstation;
+    bool m_locked = false;
+    QList<qint64> m_restarts;
     QList<std::function<void()>> m_waiting;
 };
 

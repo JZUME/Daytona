@@ -22,20 +22,32 @@ using namespace Daytona;
 
 namespace {
 
-// A stand-in for swaylock or swayidle that records its arguments, one per
-// line, and then sleeps for the given number of seconds (0: exits at once).
-QString fakeProgram(const QTemporaryDir &dir, const QString &name, int sleepSeconds)
+// A stand-in for daytona-lock or swayidle that records its arguments, one
+// per line, adds a line to NAME.starts, runs then (shell commands) and then
+// sleeps for the given number of seconds (0: exits at once).
+QString fakeProgram(
+    const QTemporaryDir &dir, const QString &name, int sleepSeconds, const QString &then = {})
 {
     const QString path = dir.filePath(name);
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return {};
-    file.write(QStringLiteral("#!/bin/sh\nprintf '%s\\n' \"$@\" > '%1.args'\nexec sleep %2\n")
+    file.write(QStringLiteral("#!/bin/sh\nprintf '%s\\n' \"$@\" > '%1.args'\n"
+                              "echo started >> '%1.starts'\n%3\nexec sleep %2\n")
             .arg(path)
             .arg(sleepSeconds)
+            .arg(then)
             .toUtf8());
     file.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
     return path;
+}
+
+int starts(const QString &program)
+{
+    QFile file(program + QStringLiteral(".starts"));
+    if (!file.open(QIODevice::ReadOnly))
+        return 0;
+    return int(file.readAll().count('\n'));
 }
 
 QStringList recordedArguments(const QString &program)
@@ -44,12 +56,6 @@ QStringList recordedArguments(const QString &program)
     if (!file.open(QIODevice::ReadOnly))
         return {};
     return QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-}
-
-QString value(const QStringList &arguments, const QString &option)
-{
-    const qsizetype i = arguments.indexOf(option);
-    return i >= 0 && i + 1 < arguments.size() ? arguments.at(i + 1) : QString();
 }
 
 // Calls the service in this process without blocking it.
@@ -76,26 +82,11 @@ class TestScreenLock : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void swaylockForLockWorkstation()
+    void lockArgumentsTest()
     {
-        SchemeColours colours = standardColours();
-        colours.insert(QStringLiteral("Background"), QColor(0x12, 0x34, 0x56));
-        const QStringList arguments = swaylockArguments(LockKind::Workstation, colours);
-        // Daemonised, so the shell knows when the screen is locked, and
-        // never with the user's own configuration, which could undo that.
-        QVERIFY(arguments.contains(QStringLiteral("--daemonize")));
-        QCOMPARE(value(arguments, QStringLiteral("--config")), QStringLiteral("/dev/null"));
-        QCOMPARE(value(arguments, QStringLiteral("--color")), QStringLiteral("123456"));
-        QCOMPARE(value(arguments, QStringLiteral("--inside-color")), QStringLiteral("c0c0c0"));
-        QCOMPARE(value(arguments, QStringLiteral("--key-hl-color")), QStringLiteral("000080"));
-        QVERIFY(arguments.contains(QStringLiteral("--indicator-idle-visible")));
-    }
-
-    void swaylockForScreenSaver()
-    {
-        const QStringList arguments = swaylockArguments(LockKind::ScreenSaver, standardColours());
-        QCOMPARE(value(arguments, QStringLiteral("--color")), QStringLiteral("000000"));
-        QVERIFY(!arguments.contains(QStringLiteral("--indicator-idle-visible")));
+        QCOMPARE(lockArguments(LockKind::Workstation), QStringList());
+        QCOMPARE(
+            lockArguments(LockKind::ScreenSaver), QStringList { QStringLiteral("--screen-saver") });
     }
 
     void swayidleArgumentsTest()
@@ -117,22 +108,62 @@ private Q_SLOTS:
     void lockerReportsWhenLocked()
     {
         QTemporaryDir dir;
-        ScreenLocker locker;
-        locker.setProgram(fakeProgram(dir, QStringLiteral("swaylock"), 0));
-        QVERIFY(locker.isAvailable());
-        int done = 0;
-        locker.lock(LockKind::Workstation, [&done] { ++done; });
-        // A second request while the first is starting waits for it.
-        locker.lock(LockKind::Workstation, [&done] { ++done; });
-        QTRY_COMPARE(done, 2);
-        QVERIFY(recordedArguments(dir.filePath(QStringLiteral("swaylock")))
-                .contains(QStringLiteral("--daemonize")));
+        const QString program
+            = fakeProgram(dir, QStringLiteral("daytona-lock"), 1, QStringLiteral("echo locked"));
+        {
+            ScreenLocker locker;
+            locker.setProgram(program);
+            QVERIFY(locker.isAvailable());
+            int done = 0;
+            locker.lock(LockKind::ScreenSaver, [&done] { ++done; });
+            // A second request while the first is starting waits for it.
+            locker.lock(LockKind::Workstation, [&done] { ++done; });
+            QTRY_COMPARE(done, 2);
+            QVERIFY(locker.isLocked());
+            QCOMPARE(recordedArguments(program), QStringList { QStringLiteral("--screen-saver") });
+            // Already locked: done at once, with no second locker.
+            locker.lock(LockKind::Workstation, [&done] { ++done; });
+            QCOMPARE(done, 3);
+            QCOMPARE(starts(program), 1);
+            // Unlocked: the locker exits.
+            QTRY_VERIFY_WITH_TIMEOUT(!locker.isLocked(), 5000);
+        }
+        QCOMPARE(starts(program), 1);
     }
 
-    void lockerWithoutSwaylockStillAnswers()
+    void lockerThatCannotLockStillAnswers()
+    {
+        QTemporaryDir dir;
+        ScreenLocker locker;
+        locker.setProgram(
+            fakeProgram(dir, QStringLiteral("daytona-lock"), 0, QStringLiteral("exit 1")));
+        bool done = false;
+        locker.lock(LockKind::Workstation, [&done] { done = true; });
+        QTRY_VERIFY(done);
+        QVERIFY(!locker.isLocked());
+    }
+
+    void lockerIsRestartedAfterACrash()
+    {
+        QTemporaryDir dir;
+        const QString program = fakeProgram(dir, QStringLiteral("daytona-lock"), 0,
+            QStringLiteral("echo locked; sleep 0.1; kill -SEGV $$"));
+        ScreenLocker locker;
+        locker.setProgram(program);
+        bool done = false;
+        locker.lock(LockKind::Workstation, [&done] { done = true; });
+        QTRY_VERIFY(done);
+        // Started again to take the lock over, but not forever.
+        QTRY_COMPARE_WITH_TIMEOUT(starts(program), 6, 10000);
+        QTRY_VERIFY(!locker.isLocked());
+        QTest::qWait(500);
+        QCOMPARE(starts(program), 6);
+    }
+
+    void lockerWithoutTheLockerStillAnswers()
     {
         ScreenLocker locker;
-        locker.setProgram(QStringLiteral("/nonexistent/swaylock"));
+        locker.setProgram(QStringLiteral("/nonexistent/daytona-lock"));
         QVERIFY(!locker.isAvailable());
         bool done = false;
         locker.lock(LockKind::Workstation, [&done] { done = true; });

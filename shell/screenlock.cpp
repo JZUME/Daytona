@@ -2,9 +2,12 @@
 
 #include "screenlock.h"
 
-#include "daytonastyle.h"
 #include "settings.h"
 
+#include <QCoreApplication>
+#include <QDir>
+#include <QElapsedTimer>
+#include <QFileInfo>
 #include <QLoggingCategory>
 #include <QProcess>
 #include <QStandardPaths>
@@ -17,11 +20,9 @@ namespace Daytona {
 
 namespace {
 
-    QString rgb(const SchemeColours &colours, const QString &key)
-    {
-        const QColor colour = colours.value(key, standardColours().value(key));
-        return colour.name(QColor::HexRgb).mid(1);
-    }
+    // A locker that keeps crashing is not restarted more than this often a
+    // minute; the session stays locked by the compositor regardless.
+    constexpr int MaxRestartsPerMinute = 5;
 
     // Single quotes for sh -c, which swayidle runs its commands with.
     QString shellQuote(const QString &text)
@@ -33,54 +34,22 @@ namespace {
 
 } // namespace
 
-QStringList swaylockArguments(LockKind kind, const SchemeColours &colours)
+QStringList lockArguments(LockKind kind)
 {
-    const auto c = [&colours](const char *key) { return rgb(colours, QLatin1String(key)); };
-    QStringList arguments {
-        // No user configuration: the look is Daytona's, and -f must hold.
-        QStringLiteral("--config"),
-        QStringLiteral("/dev/null"),
-        QStringLiteral("--daemonize"),
-        // A key pressed only to wake the screen is not a failed attempt.
-        QStringLiteral("--ignore-empty-password"),
-        QStringLiteral("--show-failed-attempts"),
-        // The password ring in the colour scheme's dialog colours.
-        QStringLiteral("--inside-color"),
-        c("ButtonFace"),
-        QStringLiteral("--ring-color"),
-        c("ButtonShadow"),
-        QStringLiteral("--key-hl-color"),
-        c("Hilight"),
-        QStringLiteral("--line-color"),
-        c("WindowFrame"),
-        QStringLiteral("--separator-color"),
-        c("WindowFrame"),
-        QStringLiteral("--text-color"),
-        c("ButtonText"),
-        QStringLiteral("--inside-clear-color"),
-        c("ButtonFace"),
-        QStringLiteral("--text-clear-color"),
-        c("ButtonText"),
-        QStringLiteral("--inside-ver-color"),
-        c("ButtonFace"),
-        QStringLiteral("--text-ver-color"),
-        c("ButtonText"),
-        QStringLiteral("--inside-wrong-color"),
-        c("ButtonFace"),
-        QStringLiteral("--text-wrong-color"),
-        c("ButtonText"),
-    };
-    if (kind == LockKind::Workstation) {
-        // Lock Workstation shows that the computer is locked and waits for
-        // the password, on the desktop colour.
-        arguments << QStringLiteral("--color") << c("Background")
-                  << QStringLiteral("--indicator-idle-visible");
-    } else {
-        // A password-protected Blank Screen stays black until a key is
-        // pressed.
-        arguments << QStringLiteral("--color") << QStringLiteral("000000");
+    if (kind == LockKind::ScreenSaver)
+        return { QStringLiteral("--screen-saver") };
+    return {};
+}
+
+QString defaultLockProgram()
+{
+    const QDir here(QCoreApplication::applicationDirPath());
+    for (const char *path : { "../libexec/daytona/daytona-lock", "../locker/daytona-lock" }) {
+        const QString candidate = QDir::cleanPath(here.filePath(QString::fromLatin1(path)));
+        if (QFileInfo(candidate).isExecutable())
+            return candidate;
     }
-    return arguments;
+    return QDir::cleanPath(here.filePath(QStringLiteral("../libexec/daytona/daytona-lock")));
 }
 
 QStringList swayidleArguments(int timeoutSeconds, const QString &shell)
@@ -99,52 +68,92 @@ QStringList swayidleArguments(int timeoutSeconds, const QString &shell)
 
 ScreenLocker::ScreenLocker(QObject *parent)
     : QObject(parent)
-    , m_program(QStringLiteral("swaylock"))
+    , m_program(defaultLockProgram())
 {
+}
+
+ScreenLocker::~ScreenLocker()
+{
+    // Destroying the QProcess would kill the locker and leave the session
+    // locked with nothing to unlock it, so let it go instead.
+    if (m_process) {
+        m_process->disconnect(this);
+        m_process->setParent(nullptr);
+        m_process = nullptr;
+    }
 }
 
 bool ScreenLocker::isAvailable() const
 {
-    return !QStandardPaths::findExecutable(m_program).isEmpty();
+    return QFileInfo(m_program).isExecutable()
+        || (!m_program.contains(QLatin1Char('/'))
+            && !QStandardPaths::findExecutable(m_program).isEmpty());
 }
 
 void ScreenLocker::lock(LockKind kind, std::function<void()> done)
 {
+    if (m_locked) {
+        if (done)
+            done();
+        return;
+    }
     if (done)
         m_waiting.append(std::move(done));
     if (m_process)
         return;
+    m_kind = kind;
+    m_restarts.clear();
+    start();
+}
 
-    SchemeColours colours;
-    for (const QString &key : colourKeys())
-        colours.insert(key, Style::schemeColour(key));
-
+void ScreenLocker::start()
+{
     m_process = new QProcess(this);
-    // The daemonised locker keeps no pipe to the shell open.
-    m_process->setStandardOutputFile(QProcess::nullDevice());
-    m_process->setStandardErrorFile(QProcess::nullDevice());
+    m_process->setProcessChannelMode(QProcess::ForwardedErrorChannel);
+    connect(m_process, &QProcess::readyReadStandardOutput, this, [this] {
+        if (!m_process->readAllStandardOutput().contains("locked"))
+            return;
+        m_locked = true;
+        finish();
+    });
     connect(m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
-        // swaylock -f exits once the session is locked. It fails if the
-        // session is already locked, which is just as good.
-        if (status != QProcess::NormalExit || code != 0)
-            qCInfo(lcLock) << "swaylock exited with code" << code << "(already locked?)";
+        const bool wasLocked = std::exchange(m_locked, false);
+        m_process->deleteLater();
+        m_process = nullptr;
+        if (status == QProcess::CrashExit && wasLocked) {
+            // The compositor still has the session locked, with nothing
+            // to unlock it: start the locker again to take the lock over.
+            static QElapsedTimer clock;
+            if (!clock.isValid())
+                clock.start();
+            const qint64 now = clock.elapsed();
+            m_restarts.removeIf([now](qint64 at) { return now - at > 60 * 1000; });
+            if (m_restarts.size() < MaxRestartsPerMinute) {
+                qCWarning(lcLock) << "The screen locker crashed; starting it again";
+                m_restarts.append(now);
+                start();
+                return;
+            }
+            // loginctl lock-session (from a text console) starts it again.
+            qCCritical(lcLock) << "The screen locker keeps crashing; not starting it again";
+        } else if (!wasLocked) {
+            qCInfo(lcLock) << "The screen locker exited without locking, code" << code;
+        }
         finish();
     });
     connect(m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
-        if (error != QProcess::FailedToStart)
+        if (error != QProcess::FailedToStart || !m_process)
             return;
         qCWarning(lcLock) << "Cannot start" << m_program << "- the session cannot be locked";
+        m_process->deleteLater();
+        m_process = nullptr;
         finish();
     });
-    m_process->start(m_program, swaylockArguments(kind, colours));
+    m_process->start(m_program, lockArguments(m_kind));
 }
 
 void ScreenLocker::finish()
 {
-    if (m_process) {
-        m_process->deleteLater();
-        m_process = nullptr;
-    }
     const QList<std::function<void()>> waiting = std::exchange(m_waiting, {});
     for (const auto &done : waiting)
         done();

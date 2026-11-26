@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # The shell runs swayidle with the screen saver's wait; the screen saver
 # (Blank Screen) covers every screen in black and ends when the pointer
-# moves; Lock Workstation covers the screen with swaylock in the desktop
-# colour.
+# moves; Lock Workstation covers the screen with daytona-lock in the desktop
+# colour, with the Workstation Locked dialog in the middle.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
@@ -55,7 +55,7 @@ until wlrctl pointer move 40 0 && sleep 0.3 && grim "$XDG_RUNTIME_DIR/s.png" \
     fi
 done
 
-# Lock Workstation returns once the screen is locked: swaylock covers the
-# taskbar in the desktop colour.
+# Lock Workstation returns once the screen is locked: daytona-lock covers
+# the taskbar in the desktop colour, with its dialog (button face) centred.
 daytona-shell --lock
-wait_for_pixels 10 512 $taskbar '#008080' 5 5 '#008080'
+wait_for_pixels 10 512 $taskbar '#008080' 5 5 '#008080' 512 384 '#c0c0c0'

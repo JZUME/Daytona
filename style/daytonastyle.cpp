@@ -541,6 +541,9 @@ int Style::styleHint(
     case SH_Menu_MouseTracking:
     case SH_MenuBar_MouseTracking:
         return 1;
+    case SH_LineEdit_PasswordCharacter:
+        // NT hides passwords behind asterisks.
+        return '*';
     default:
         return QProxyStyle::styleHint(hint, option, widget, data);
     }

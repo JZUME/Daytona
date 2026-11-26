@@ -22,8 +22,9 @@ Ask the running shell to open or close its Start menu. labwc runs this for the
 Windows keys and Ctrl+Esc.
 .TP
 .B \-\-lock
-Ask the running shell to lock the session with \fBswaylock\fR(1), and return
-once it is locked. labwc runs this for Win+L, and \fBswayidle\fR(1), which the
+Ask the running shell to lock the session (Lock Workstation), and return once
+it is locked. The shell runs Daytona's locker, which shows NT's Workstation
+Locked dialog; press Ctrl+Alt+Delete and type the password to unlock. labwc runs this for Win+L, and \fBswayidle\fR(1), which the
 shell starts, before the computer sleeps and for \fBloginctl lock-session\fR.
 .TP
 .B \-\-screen\-saver
@@ -43,5 +44,4 @@ The colour scheme, written by \fBdaytona-themetool\fR(1).
 .BR daytona-session (1),
 .BR daytona-themetool (1),
 .BR labwc (1),
-.BR swayidle (1),
-.BR swaylock (1)
+.BR swayidle (1)

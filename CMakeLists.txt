@@ -28,6 +28,7 @@ set(DAYTONA_LABWC_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/daytona/labwc")
 
 add_subdirectory(style)
 add_subdirectory(shell)
+add_subdirectory(locker)
 add_subdirectory(themetool)
 add_subdirectory(labwc)
 add_subdirectory(session)

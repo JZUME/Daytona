@@ -32,6 +32,9 @@ Build-Depends:
  librsvg2-dev,
  libsfdo-dev,
  libpulse-dev,
+ libpam0g-dev,
+ qt6-base-private-dev,
+ qt6-wayland-private-dev,
 Standards-Version: 4.7.2
 Homepage: https://github.com/soup-bowl/Project-Daytona
 Vcs-Browser: https://github.com/soup-bowl/Project-Daytona/tree/main
@@ -54,7 +57,6 @@ Recommends:
  lxqt-policykit,
  pavucontrol-qt | pavucontrol,
  swayidle,
- swaylock,
  upower,
  wireplumber,
  xdg-utils,
@@ -67,7 +69,8 @@ Description: Windows NT 4.0-style desktop shell for labwc
  volume control, battery and balloons) and clock, a desktop with NT
  wallpaper modes, and NT's Run, Shut Down (with Stand by and Hibernate),
  Taskbar Properties and Display Properties dialogs, and a screen saver
- and Lock Workstation through swayidle and swaylock. labwc provides the
+ and NT's Workstation Locked screen through swayidle and Daytona's own
+ locker. labwc provides the
  window management, configured with NT key bindings, window menu and theme;
  the package includes its own build of labwc 0.8.3 with a small patch that
  draws NT's raised 3D window frames, installed privately in

@@ -241,10 +241,10 @@ int main(int argc, char *argv[])
     QObject::connect(
         &startMenu, &Daytona::StartMenu::closed, &taskbar, &Daytona::Taskbar::collapseLater);
 
-    // Locking (swaylock) and the screen saver (swayidle's timeout).
+    // Locking (daytona-lock) and the screen saver (swayidle's timeout).
     Daytona::ScreenLocker locker;
     if (!locker.isAvailable())
-        qCWarning(lcShell) << "swaylock is not installed: the session cannot be locked";
+        qCWarning(lcShell) << "daytona-lock is not installed: the session cannot be locked";
     Daytona::BlankScreen blankScreen;
     QObject::connect(&service, &Daytona::ShellService::lockRequested, &locker,
         [&locker](const std::function<void()> &done) {
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
         });
     QObject::connect(&service, &Daytona::ShellService::screenSaverRequested, &blankScreen,
         [&settings, &locker, &blankScreen] {
-            if (settings.screenSaver() == Daytona::ScreenSaver::None)
+            if (settings.screenSaver() == Daytona::ScreenSaver::None || locker.isLocked())
                 return;
             if (settings.screenSaverPassword())
                 locker.lock(Daytona::LockKind::ScreenSaver);

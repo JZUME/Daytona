@@ -121,7 +121,7 @@ private Q_SLOTS:
         QCOMPARE(dialog.chosen(), SessionAction::Lock);
         dialog.accept();
         QCOMPARE(actions.performed, QList<SessionAction> { SessionAction::Lock });
-        // Remembered, unless swaylock has gone.
+        // Remembered, unless the locker has gone.
         dialog.prepare();
         QCOMPARE(dialog.chosen(), SessionAction::Lock);
         dialog.setLockAvailable(false);
