@@ -1,12 +1,32 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: CI
 
+# Changes that can't affect the build, tests or packages don't run CI.
+# Markdown docs (README.md, docs/) are packaged, but a docs-only change
+# waits for the next real build rather than costing a full run. Path
+# filters don't apply to tag pushes, so releases always build.
+# debian/changelog (the package version) is not ignored. Keep both
+# lists the same.
 on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.vscode/**'
+      - '.devcontainer/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.vscode/**'
+      - '.devcontainer/**'
 
 jobs:
   build:
