@@ -4,9 +4,11 @@
 
 Inspired by Windows NT, [Chicago95](https://github.com/grassmunk/Chicago95) and built with Qt6 Widgets, a functional Qt desktop environment with the familiarity of the NT and 9X era.
 
-Status: early development. See [AGENT.md](AGENT.md) for the design and project rules. As a result this is currently **built for Debian 13**.
+> [!WARNING]
+> **Early development.** Daytona currently targets **Debian 13** and may contain incomplete features, bugs or breaking changes. See [AGENT.md](AGENT.md) for the project's design principles and development rules.
 
-This project is **vibe-coded** - do not use if you have concerns about AI development.
+> [!IMPORTANT]
+> **THIS PROJECT IS VIBE-CODED.** Development is primarily performed by AI agents working from GitHub issues and defined project rules. Code may not have undergone comprehensive human review. Users should exercise appropriate caution, particularly when installing on their primary systems.
 
 ## Installing on Debian 13
 
