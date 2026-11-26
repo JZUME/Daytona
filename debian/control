@@ -31,6 +31,7 @@ Build-Depends:
  libpng-dev,
  librsvg2-dev,
  libsfdo-dev,
+ libpulse-dev,
 Standards-Version: 4.7.2
 Homepage: https://github.com/soup-bowl/Project-Daytona
 Vcs-Browser: https://github.com/soup-bowl/Project-Daytona/tree/main
@@ -50,14 +51,16 @@ Recommends:
  dex,
  libglib2.0-bin,
  lxqt-policykit,
+ pavucontrol-qt | pavucontrol,
+ wireplumber,
  xdg-utils,
  xwayland,
 Suggests:
  systemd,
 Description: Windows NT 4.0-style desktop shell for labwc
  Daytona recreates the Windows NT 4.0 desktop on Wayland: a taskbar with
- Start button, Start menu, window buttons, notification area (tray icons and
- balloons) and clock, a desktop with NT wallpaper modes, and NT's Run, Shut
+ Start button, Start menu, window buttons, notification area (tray icons,
+ volume control and balloons) and clock, a desktop with NT wallpaper modes, and NT's Run, Shut
  Down, Taskbar Properties and Display Properties dialogs. labwc provides the
  window management, configured with NT key bindings, window menu and theme;
  the package includes its own build of labwc 0.8.3 with a small patch that

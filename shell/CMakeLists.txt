@@ -4,6 +4,8 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Concurrent DBus WaylandClient)
 find_package(LayerShellQt 6.3 REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WaylandClient REQUIRED IMPORTED_TARGET wayland-client)
+# The notification area's volume control (PulseAudio or pipewire-pulse).
+pkg_check_modules(PulseAudio REQUIRED IMPORTED_TARGET libpulse libpulse-mainloop-glib)
 
 # Shell logic lives in a static library so tests can link it.
 add_library(daytona-shell-core STATIC
@@ -65,6 +67,12 @@ add_library(daytona-shell-core STATIC
     tasklist.h
     trayicon.cpp
     trayicon.h
+    volumecontrol.cpp
+    volumecontrol.h
+    volumeicon.cpp
+    volumeicon.h
+    volumepopup.cpp
+    volumepopup.h
     taskbar.cpp
     taskbar.h
     taskbarplacement.cpp
@@ -86,6 +94,7 @@ target_include_directories(daytona-shell-core PUBLIC
 target_link_libraries(daytona-shell-core PUBLIC
     Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient LayerShellQt::Interface
     daytona-style daytona-theme-core)
+target_link_libraries(daytona-shell-core PRIVATE PkgConfig::PulseAudio)
 qt_generate_wayland_protocol_client_sources(daytona-shell-core
     FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml
           ${PROJECT_SOURCE_DIR}/protocols/wlr-output-management-unstable-v1.xml)

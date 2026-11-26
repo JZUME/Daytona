@@ -24,6 +24,7 @@
 #include "taskbarproperties.h"
 #include "tasklist.h"
 #include "toplevelmanager.h"
+#include "volumecontrol.h"
 #include "waylandcheck.h"
 
 #include <QApplication>
@@ -141,6 +142,10 @@ int main(int argc, char *argv[])
         taskbar.notificationArea()->setHost(&trayHost);
     else
         qCWarning(lcShell) << "No D-Bus session bus: the notification area shows no tray icons";
+    // The speaker icon, for the default sound output.
+    Daytona::VolumeControl volume;
+    if (volume.start())
+        taskbar.notificationArea()->setVolumeControl(&volume);
     // One taskbar, on the primary output, as in NT 4.0.
     taskbar.winId();
     taskbar.windowHandle()->setScreen(QGuiApplication::primaryScreen());

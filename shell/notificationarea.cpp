@@ -7,6 +7,7 @@
 #include "statusnotifierhost.h"
 #include "statusnotifieritem.h"
 #include "trayicon.h"
+#include "volumeicon.h"
 
 #include <QHBoxLayout>
 #include <QPainter>
@@ -43,10 +44,19 @@ QList<TrayIcon *> NotificationArea::trayIcons() const
     return icons;
 }
 
+void NotificationArea::setVolumeControl(VolumeControl *control)
+{
+    delete m_volumeIcon;
+    m_volumeIcon = new VolumeIcon(control, this);
+    m_layout->insertWidget(m_layout->indexOf(m_clock), m_volumeIcon);
+}
+
 void NotificationArea::addItem(StatusNotifierItem *item)
 {
-    // New icons go to the right of existing ones; the clock stays last.
-    m_layout->insertWidget(m_layout->indexOf(m_clock), new TrayIcon(item, this));
+    // New icons go to the right of existing ones; the speaker and the clock
+    // stay last.
+    QWidget *next = m_volumeIcon ? static_cast<QWidget *>(m_volumeIcon) : m_clock;
+    m_layout->insertWidget(m_layout->indexOf(next), new TrayIcon(item, this));
 }
 
 void NotificationArea::removeItem(StatusNotifierItem *item)

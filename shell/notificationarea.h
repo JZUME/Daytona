@@ -12,6 +12,8 @@ class Clock;
 class StatusNotifierHost;
 class StatusNotifierItem;
 class TrayIcon;
+class VolumeControl;
+class VolumeIcon;
 
 // The sunken area at the right of the taskbar. Tray icons are added to its
 // left; the clock is always rightmost.
@@ -28,6 +30,11 @@ public:
     void setHost(StatusNotifierHost *host);
     QList<TrayIcon *> trayIcons() const;
 
+    // Shows the speaker icon for control, between the tray icons and the
+    // clock.
+    void setVolumeControl(VolumeControl *control);
+    VolumeIcon *volumeIcon() const { return m_volumeIcon; }
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 
@@ -37,6 +44,7 @@ private:
 
     QHBoxLayout *m_layout;
     Clock *m_clock;
+    VolumeIcon *m_volumeIcon = nullptr;
 };
 
 } // namespace Daytona

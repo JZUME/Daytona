@@ -58,7 +58,8 @@ The packages:
 - `daytona` holds the shell, the `daytona` Qt style, `daytona-themetool`, the labwc configuration
   and the session file, and its own build of labwc with Daytona's window frame patch, installed
   privately in `/usr/libexec/daytona` so a system labwc is left alone. It pulls in the Qt
-  runtime it needs.
+  runtime it needs. It recommends WirePlumber, for the volume keys, and pavucontrol-qt, the
+  mixer that the speaker icon opens and the Control Panel lists.
 - `daytona-chicago95` holds the Chicago95 GTK theme, icons and cursors, built from the pinned
   submodule.
 
@@ -122,7 +123,7 @@ Daytona targets Debian 13 (trixie). Install the build dependencies:
 ```bash
 sudo apt install build-essential cmake ninja-build pkgconf qt6-base-dev \
     liblayershellqtinterface-dev libwayland-dev libwayland-bin \
-    qt6-wayland-dev qt6-wayland-dev-tools qt6-svg-plugins clang-format
+    qt6-wayland-dev qt6-wayland-dev-tools qt6-svg-plugins libpulse-dev clang-format
 ```
 
 The build also compiles labwc from its submodule with Daytona's patch for NT's raised window
