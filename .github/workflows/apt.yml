@@ -104,5 +104,21 @@ jobs:
         with:
           path: site
 
+      # deploy-pages looks the artifact up once, straight away, and fails
+      # if the artifacts API doesn't list it yet. Wait until it does.
+      - name: Wait for the Pages artifact to be listed
+        run: |
+          for _ in $(seq 1 36); do
+            count=$(gh api "repos/$GH_REPO/actions/runs/$GITHUB_RUN_ID/artifacts?name=github-pages" \
+                --jq '[.artifacts[] | select(.expired | not)] | length')
+            if [[ "$count" -gt 0 ]]; then
+              echo "Listed after waiting."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The github-pages artifact was not listed after 3 minutes."
+          exit 1
+
       - id: deploy
         uses: actions/deploy-pages@v4
