@@ -15,7 +15,7 @@ set -euo pipefail
 
 site="$(realpath "$1")"
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
-key="${DAYTONA_APT_KEY:-E359F3E21E4145F2C163F6AAFA49BF57BC03E090}"
+key="${DAYTONA_APT_KEY:-3AED05B96FFEF7E87C6B72496099938881738EAD}"
 suites=(stable edge)
 architectures=(amd64 arm64)
 

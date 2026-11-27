@@ -18,7 +18,7 @@ Daytona has an apt repository for Debian 13 (amd64 and arm64) at
 - `stable`: tagged releases.
 - `edge`: a nightly build of `main`, for testing. Only the newest builds are kept.
 
-Add the signing key (fingerprint `E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090`):
+Add the signing key (fingerprint `3AED 05B9 6FFE F7E8 7C6B 7249 6099 9388 8173 8EAD`):
 
 ```bash
 sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg https://jzume.github.io/Daytona/daytona-archive-keyring.gpg
