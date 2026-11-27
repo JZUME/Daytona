@@ -1,29 +1,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: CI
 
-# Actions minutes are limited, so each kind of run does only what it needs:
-#
-# - Pull requests: one job that checks formatting, builds with warnings as
-#   errors and runs every test, including the smoke tests. Packages are
-#   built (amd64 only) only when the pull request changes packaging.
-# - main: nothing on push, because the code was built and tested on its
-#   pull request. Once a night, if main has moved since the last edge
-#   build, the amd64 and arm64 packages are built for the edge suite of the
-#   apt repository. The package builds run the unit tests too.
-# - Run workflow (workflow_dispatch) on main: build and test, plus packages
-#   for edge straight away.
-# - vX.Y.Z tags: everything, for the release.
-#
-# A newer run for the same pull request or branch cancels an older one.
-# Release tags are never cancelled.
-#
-# Changes that can't affect the build, tests or packages don't run CI on
-# pull requests. Markdown docs (README.md, docs/) are packaged, but a
-# docs-only change waits for the next real build rather than costing a
-# full run. debian/changelog (the package version) is not ignored.
+# Changes that can't affect the build, tests or packages don't run CI.
+# Markdown docs (README.md, docs/) are packaged, but a docs-only change
+# waits for the next real build rather than costing a full run. Path
+# filters don't apply to tag pushes, so releases always build.
+# debian/changelog (the package version) is not ignored. Keep both
+# lists the same.
 on:
   push:
+    branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.vscode/**'
+      - '.devcontainer/**'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -33,26 +27,19 @@ on:
       - '.github/ISSUE_TEMPLATE/**'
       - '.vscode/**'
       - '.devcontainer/**'
-  schedule:
-    - cron: '17 2 * * *'
-  workflow_dispatch:
 
+# A newer push to the same pull request or branch cancels the older run.
+# Release tags are never cancelled.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
-  check:
+  build:
     name: Build and test (Debian 13)
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container: debian:trixie
-    outputs:
-      packaging: ${{ steps.changes.outputs.packaging }}
-    env:
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_MAXSIZE: 400M
     steps:
       # git must be present before checkout, otherwise actions/checkout falls
       # back to downloading an archive without submodules.
@@ -60,108 +47,36 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates \
-            build-essential cmake ninja-build pkgconf qt6-base-dev ccache clang-format \
+            build-essential cmake ninja-build pkgconf qt6-base-dev \
             liblayershellqtinterface-dev libwayland-dev libwayland-bin \
             qt6-wayland-dev qt6-wayland-dev-tools \
             labwc grim wlr-randr wlrctl qt6-wayland qt6-svg-plugins dbus dex libglib2.0-bin \
             meson libwlroots-0.18-dev wayland-protocols libxkbcommon-dev libxcb1-dev libxcb-icccm4-dev libdrm-dev libxml2-dev libglib2.0-dev libcairo2-dev libpango1.0-dev libinput-dev libpixman-1-dev libpng-dev librsvg2-dev libsfdo-dev \
             libpulse-dev libpam0g-dev qt6-base-private-dev qt6-wayland-private-dev swayidle wl-clipboard
 
-      - id: checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: true
-          # A pull request's merge commit and its first parent (main), to
-          # see which files it changes.
-          fetch-depth: 2
-
-      # Formatting and the build both run even if the other fails, so one
-      # run reports both.
-      - name: Check formatting
-        run: |
-          git config --global --add safe.directory '*'
-          git ls-files -z '*.cpp' '*.h' | xargs -0 clang-format --dry-run --Werror
-
-      - name: Does the pull request change packaging?
-        id: changes
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && github.event_name == 'pull_request' }}
-        run: |
-          if git diff --name-only HEAD^1 HEAD | grep -qE '^(debian/|packaging/|scripts/snapshot-version\.sh$|\.github/workflows/)'; then
-            echo "packaging=true" >>"$GITHUB_OUTPUT"
-          fi
-
-      # Compiler cache. A pull request reads its own caches, then main's
-      # (saved by manual runs on main), so later pushes to a pull request
-      # rebuild only what changed.
-      - name: Restore the compiler cache
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
-        uses: actions/cache@v4
-        with:
-          path: .ccache
-          key: ccache-trixie-${{ github.ref }}-${{ github.sha }}
-          restore-keys: |
-            ccache-trixie-${{ github.ref }}-
-            ccache-trixie-refs/heads/main-
 
       - name: Configure
-        id: configure
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
-        run: >-
-          cmake -S . -B build -G Ninja -DDAYTONA_WERROR=ON
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        run: cmake -S . -B build -G Ninja -DDAYTONA_WERROR=ON
 
       - name: Build
-        id: build
-        if: ${{ !cancelled() && steps.configure.outcome == 'success' }}
-        run: |
-          ccache --zero-stats
-          cmake --build build
-          ccache --show-stats
+        run: cmake --build build
 
-      # A failing test is tried once more before the job fails, so a flaky
-      # smoke test doesn't cost a rerun of the whole workflow.
       - name: Test
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: ctest --test-dir build --output-on-failure --repeat until-pass:2
-
-  # The nightly build only runs when main has moved since the commit the
-  # edge prerelease was built from.
-  nightly:
-    name: Has main changed?
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      build: ${{ steps.compare.outputs.build }}
-    steps:
-      - id: compare
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          edge="$(gh api "repos/$GH_REPO/commits/edge" --jq .sha 2>/dev/null || true)"
-          echo "edge: ${edge:-none}, main: $GITHUB_SHA"
-          if [ "$edge" != "$GITHUB_SHA" ]; then
-            echo "build=true" >>"$GITHUB_OUTPUT"
-          fi
+        run: ctest --test-dir build --output-on-failure
 
   package:
     name: Debian packages (${{ matrix.arch }})
-    needs: [check, nightly]
-    # Not after a failed or cancelled check. Pull requests only when they
-    # change packaging; nightly only when main has changed.
-    if: >-
-      !cancelled() && needs.check.result != 'failure' && needs.nightly.result != 'failure' &&
-      (github.event_name != 'pull_request' || needs.check.outputs.packaging == 'true') &&
-      (github.event_name != 'schedule' || needs.nightly.outputs.build == 'true')
     strategy:
       fail-fast: false
       matrix:
-        # Pull requests build amd64 only.
-        include: >-
-          ${{ fromJSON(github.event_name == 'pull_request'
-            && '[{"arch":"amd64","runner":"ubuntu-latest"}]'
-            || '[{"arch":"amd64","runner":"ubuntu-latest"},{"arch":"arm64","runner":"ubuntu-24.04-arm"}]') }}
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     container: debian:trixie
@@ -216,4 +131,21 @@ jobs:
         with:
           name: Packages (${{ matrix.arch }})
           path: dist/*.deb
-          retention-days: 7
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: debian:trixie
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates clang-format
+
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git ls-files -z '*.cpp' '*.h' | xargs -0 clang-format --dry-run --Werror
