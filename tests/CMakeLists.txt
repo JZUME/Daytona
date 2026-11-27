@@ -37,6 +37,8 @@ set_tests_properties(tst_bevel PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_clock daytona-shell-core)
 set_tests_properties(tst_clock PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_volume daytona-shell-core)
+daytona_add_test(tst_sounds daytona-shell-core)
+set_tests_properties(tst_sounds PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 daytona_add_test(tst_keyboard daytona-shell-core)
 target_compile_definitions(tst_keyboard PRIVATE
     DAYTONA_TEST_XKB="${CMAKE_CURRENT_SOURCE_DIR}/data/xkb")

@@ -185,7 +185,7 @@ private Q_SLOTS:
         QTRY_VERIFY(caps.isFinished());
         QCOMPARE(QDBusReply<QStringList>(caps).value(),
             QStringList({ QStringLiteral("body"), QStringLiteral("actions"),
-                QStringLiteral("icon-static") }));
+                QStringLiteral("icon-static"), QStringLiteral("sound") }));
 
         QDBusPendingCall notify = call(QStringLiteral("Notify"),
             { QStringLiteral("app"), 0u, QString(), QStringLiteral("Hello"),
@@ -207,6 +207,37 @@ private Q_SLOTS:
         NotificationService second(&other,
             QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("second")));
         QVERIFY(!second.registerOnBus());
+    }
+
+    void soundHints()
+    {
+        NotificationQueue queue;
+        NotificationService service(&queue, QDBusConnection(QStringLiteral("none")));
+        QSignalSpy sounds(&service, &NotificationService::soundRequested);
+        const auto notify = [&service](const QVariantMap &hints, uint replaces = 0) {
+            return service.Notify(QStringLiteral("app"), replaces, QString(),
+                QStringLiteral("Hello"), QString(), {}, hints, -1);
+        };
+
+        // Without a hint, a new notification plays message-new-instant...
+        const uint id = notify({});
+        QCOMPARE(
+            sounds.takeFirst(), QVariantList({ QStringLiteral("message-new-instant"), QString() }));
+        // ...but an update to it stays quiet.
+        notify({}, id);
+        QCOMPARE(sounds.count(), 0);
+        notify({ { QStringLiteral("sound-name"), QStringLiteral("dialog-warning") } });
+        QCOMPARE(sounds.takeFirst(), QVariantList({ QStringLiteral("dialog-warning"), QString() }));
+        // A file wins over a name; only absolute paths are taken.
+        notify({ { QStringLiteral("sound-name"), QStringLiteral("bell") },
+            { QStringLiteral("sound-file"), QStringLiteral("/tmp/ring.oga") } });
+        QCOMPARE(sounds.takeFirst(), QVariantList({ QString(), QStringLiteral("/tmp/ring.oga") }));
+        notify({ { QStringLiteral("sound-file"), QStringLiteral("ring.oga") } });
+        QCOMPARE(
+            sounds.takeFirst(), QVariantList({ QStringLiteral("message-new-instant"), QString() }));
+        notify({ { QStringLiteral("sound-name"), QStringLiteral("dialog-warning") },
+            { QStringLiteral("suppress-sound"), true } });
+        QCOMPARE(sounds.count(), 0);
     }
 
 public Q_SLOTS:

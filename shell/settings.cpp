@@ -316,6 +316,34 @@ void Settings::setDesktopIconPositions(const QHash<QString, QPoint> &positions)
     write(KeyIconPositions, stored);
 }
 
+const QString Settings::EventSoundNone = QStringLiteral("none");
+
+QString Settings::eventSound(const QString &name) const
+{
+    if (name.isEmpty() || name.contains(QLatin1Char('/')))
+        return {};
+    const QString value = m_settings.value(QStringLiteral("Sounds/") + name).toString();
+    // A file must be absolute: the INI file is not tied to a directory.
+    if (value == EventSoundNone || QDir::isAbsolutePath(value))
+        return value;
+    return {};
+}
+void Settings::setEventSound(const QString &name, const QString &sound)
+{
+    if (name.isEmpty() || name.contains(QLatin1Char('/')))
+        return;
+    const QString key = QStringLiteral("Sounds/") + name;
+    if (sound.isEmpty()) {
+        if (!m_settings.contains(key))
+            return;
+        m_settings.remove(key);
+        m_settings.sync();
+        Q_EMIT changed(key);
+        return;
+    }
+    write(key, sound);
+}
+
 bool Settings::desktopAutoArrange() const
 {
     return readBool(KeyAutoArrange, false);

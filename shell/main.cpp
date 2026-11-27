@@ -11,6 +11,7 @@
 #include "desktop.h"
 #include "displayproperties.h"
 #include "endsession.h"
+#include "eventsounds.h"
 #include "gtktheme.h"
 #include "inputlocaleicon.h"
 #include "inputlocales.h"
@@ -28,6 +29,7 @@
 #include "settings.h"
 #include "shellservice.h"
 #include "shutdowndialog.h"
+#include "soundsproperties.h"
 #include "startbutton.h"
 #include "startmenu.h"
 #include "statusnotifierhost.h"
@@ -255,9 +257,22 @@ int main(int argc, char *argv[])
     // The Start menu: its own layer surface, so it has no parent window.
     settings.watchFile();
 
+    // Event sounds (the freedesktop sound theme), and NT's message box
+    // sounds for every message box the shell shows.
+    Daytona::EventSounds eventSounds(&settings);
+    Daytona::MessageBoxSounds messageBoxSounds(&eventSounds);
+    app.installEventFilter(&messageBoxSounds);
+
     // Notification balloons (org.freedesktop.Notifications).
     Daytona::NotificationQueue notifications;
     Daytona::NotificationService notificationService(&notifications, QDBusConnection::sessionBus());
+    QObject::connect(&notificationService, &Daytona::NotificationService::soundRequested,
+        &eventSounds, [&eventSounds](const QString &name, const QString &file) {
+            if (file.isEmpty())
+                eventSounds.play(name);
+            else
+                eventSounds.playFile(file);
+        });
     if (!notificationService.registerOnBus()) {
         qCWarning(lcShell) << "Another notification server owns org.freedesktop.Notifications;"
                            << "notification balloons will not be shown";
@@ -290,8 +305,10 @@ int main(int argc, char *argv[])
     // battery balloons.
     Daytona::BatteryMonitor battery;
     QObject::connect(&battery, &Daytona::BatteryMonitor::lowBattery, &notifications,
-        [&notifications](const Daytona::BatteryState &state) {
+        [&notifications, &eventSounds](const Daytona::BatteryState &state) {
             const bool critical = state.warning >= Daytona::BatteryState::Warning::Critical;
+            eventSounds.play(
+                critical ? QStringLiteral("battery-low") : QStringLiteral("battery-caution"));
             Daytona::Notification warning;
             warning.appName = QCoreApplication::translate("main", "Power");
             warning.appIcon = QStringLiteral("battery-caution");
@@ -547,12 +564,27 @@ int main(int argc, char *argv[])
         &mouseProperties, showMouseProperties);
     QObject::connect(&controlPanel, &Daytona::ControlPanel::taskbarPropertiesRequested,
         &taskbarProperties, showTaskbarProperties);
+    // Sounds Properties, from the Control Panel only, as in NT.
+    Daytona::SoundsPropertiesDialog soundsProperties(&settings, &eventSounds);
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::soundsPropertiesRequested,
+        &soundsProperties, [&soundsProperties] {
+            if (!soundsProperties.isVisible())
+                soundsProperties.prepare();
+            soundsProperties.show();
+            soundsProperties.raise();
+            soundsProperties.activateWindow();
+        });
 
     // Programs are asked to close before the session ends.
     Daytona::ProgramCloser programCloser(
         &toplevels.list(), [&toplevels](quint32 id) { toplevels.close(id); });
     Daytona::SessionActions sessionActions;
     sessionActions.setProgramCloser(&programCloser);
+    // The log off sound, once programs have closed; the session ends when
+    // it has played.
+    sessionActions.setBeforeEnd([&eventSounds](const std::function<void()> &then) {
+        eventSounds.play(QStringLiteral("desktop-logout"), then);
+    });
     Daytona::ShutDownDialog shutDownDialog(&sessionActions);
     shutDownDialog.setLockAvailable(locker.isAvailable());
     QObject::connect(&sessionActions, &Daytona::SessionActions::lockRequested, &locker,
@@ -564,6 +596,16 @@ int main(int argc, char *argv[])
             shutDownDialog.raise();
             shutDownDialog.activateWindow();
         });
+
+    // The log on sound, once the desktop is up: once a session (labwc's
+    // process), not each time the shell starts.
+    eventSounds.loadScheme([&eventSounds] {
+        const QString runtime = qEnvironmentVariable("XDG_RUNTIME_DIR");
+        if (!runtime.isEmpty()
+            && Daytona::firstStartInSession(runtime + QStringLiteral("/daytona-logon-sound"),
+                qEnvironmentVariable("LABWC_PID")))
+            eventSounds.play(QStringLiteral("desktop-login"));
+    });
 
     return app.exec();
 }

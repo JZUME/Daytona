@@ -28,6 +28,7 @@ struct ControlPanelApplet
         Display,
         Keyboard,
         Mouse,
+        Sounds,
         Taskbar
     };
 
@@ -91,6 +92,7 @@ Q_SIGNALS:
     void displayPropertiesRequested();
     void keyboardPropertiesRequested();
     void mousePropertiesRequested();
+    void soundsPropertiesRequested();
     void taskbarPropertiesRequested();
 
 protected:

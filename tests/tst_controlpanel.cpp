@@ -59,14 +59,15 @@ private Q_SLOTS:
         // Daytona's own dialogs first, then the applications, each by name.
         QCOMPARE(got,
             QStringList({ QStringLiteral("Date/Time"), QStringLiteral("Display"),
-                QStringLiteral("Keyboard"), QStringLiteral("Mouse"), QStringLiteral("Taskbar"),
-                QStringLiteral("Printers"), QStringLiteral("Sound") }));
+                QStringLiteral("Keyboard"), QStringLiteral("Mouse"), QStringLiteral("Sounds"),
+                QStringLiteral("Taskbar"), QStringLiteral("Printers"), QStringLiteral("Sound") }));
         QCOMPARE(applets.at(0).builtin, ControlPanelApplet::Builtin::DateTime);
         QCOMPARE(applets.at(1).builtin, ControlPanelApplet::Builtin::Display);
         QCOMPARE(applets.at(2).builtin, ControlPanelApplet::Builtin::Keyboard);
-        QCOMPARE(applets.at(5).builtin, ControlPanelApplet::Builtin::None);
-        QCOMPARE(applets.at(5).comment, QStringLiteral("Printers settings"));
-        QCOMPARE(applets.at(5).entry.id, QStringLiteral("printers.desktop"));
+        QCOMPARE(applets.at(4).builtin, ControlPanelApplet::Builtin::Sounds);
+        QCOMPARE(applets.at(6).builtin, ControlPanelApplet::Builtin::None);
+        QCOMPARE(applets.at(6).comment, QStringLiteral("Printers settings"));
+        QCOMPARE(applets.at(6).entry.id, QStringLiteral("printers.desktop"));
     }
 
     void builtinsOnly()
@@ -75,11 +76,12 @@ private Q_SLOTS:
         QCOMPARE(panel.windowTitle(), QStringLiteral("Control Panel"));
         QCOMPARE(names(panel.builtinView()),
             QStringList({ QStringLiteral("Date/Time"), QStringLiteral("Display"),
-                QStringLiteral("Keyboard"), QStringLiteral("Mouse"), QStringLiteral("Taskbar") }));
+                QStringLiteral("Keyboard"), QStringLiteral("Mouse"), QStringLiteral("Sounds"),
+                QStringLiteral("Taskbar") }));
         QCOMPARE(panel.applicationView()->count(), 0);
         // With no applications, their heading is not shown.
         QVERIFY(panel.applicationHeading()->isHidden());
-        QCOMPARE(panel.statusText()->text(), QStringLiteral("5 object(s)"));
+        QCOMPARE(panel.statusText()->text(), QStringLiteral("6 object(s)"));
         QVERIFY(!panel.openAction()->isEnabled());
     }
 
@@ -90,6 +92,7 @@ private Q_SLOTS:
         QSignalSpy display(&panel, &ControlPanel::displayPropertiesRequested);
         QSignalSpy keyboard(&panel, &ControlPanel::keyboardPropertiesRequested);
         QSignalSpy mouse(&panel, &ControlPanel::mousePropertiesRequested);
+        QSignalSpy sounds(&panel, &ControlPanel::soundsPropertiesRequested);
         QSignalSpy taskbar(&panel, &ControlPanel::taskbarPropertiesRequested);
 
         QListWidget *view = panel.builtinView();
@@ -105,6 +108,8 @@ private Q_SLOTS:
         Q_EMIT view->itemActivated(view->item(1));
         QCOMPARE(display.count(), 1);
         Q_EMIT view->itemActivated(view->item(4));
+        QCOMPARE(sounds.count(), 1);
+        Q_EMIT view->itemActivated(view->item(5));
         QCOMPARE(taskbar.count(), 1);
         Q_EMIT view->itemActivated(view->item(2));
         QCOMPARE(keyboard.count(), 1);
@@ -135,7 +140,7 @@ private Q_SLOTS:
         ControlPanel panel(&index);
         QCOMPARE(names(panel.applicationView()), QStringList({ QStringLiteral("Printers") }));
         QVERIFY(!panel.applicationHeading()->isHidden());
-        QCOMPARE(panel.statusText()->text(), QStringLiteral("6 object(s)"));
+        QCOMPARE(panel.statusText()->text(), QStringLiteral("7 object(s)"));
 
         // One selection across both groups.
         panel.builtinView()->setCurrentRow(0);
@@ -161,7 +166,7 @@ private Q_SLOTS:
         panel.setViewMode(ControlPanel::ViewMode::List);
         QCOMPARE(panel.builtinView()->flow(), QListView::TopToBottom);
         // One row per applet in a list.
-        QCOMPARE(panel.builtinView()->height(), 5 * panel.builtinView()->gridSize().height());
+        QCOMPARE(panel.builtinView()->height(), 6 * panel.builtinView()->gridSize().height());
     }
 };
 

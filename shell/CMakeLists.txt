@@ -6,6 +6,8 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(WaylandClient REQUIRED IMPORTED_TARGET wayland-client)
 # The notification area's volume control (PulseAudio or pipewire-pulse).
 pkg_check_modules(PulseAudio REQUIRED IMPORTED_TARGET libpulse libpulse-mainloop-glib)
+# Event sounds through the freedesktop sound theme.
+pkg_check_modules(Canberra REQUIRED IMPORTED_TARGET libcanberra)
 
 # Shell logic lives in a static library so tests can link it.
 add_library(daytona-shell-core STATIC
@@ -35,6 +37,8 @@ add_library(daytona-shell-core STATIC
     displayproperties.h
     endsession.cpp
     endsession.h
+    eventsounds.cpp
+    eventsounds.h
     inputlocaleicon.cpp
     inputlocaleicon.h
     inputlocales.cpp
@@ -85,6 +89,10 @@ add_library(daytona-shell-core STATIC
     settings.h
     shutdowndialog.cpp
     shutdowndialog.h
+    soundsproperties.cpp
+    soundsproperties.h
+    soundtheme.cpp
+    soundtheme.h
     systemlogo.cpp
     systemlogo.h
     shellservice.cpp
@@ -130,7 +138,7 @@ target_include_directories(daytona-shell-core PUBLIC
 target_link_libraries(daytona-shell-core PUBLIC
     Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient Qt6::Xml LayerShellQt::Interface
     daytona-style daytona-theme-core)
-target_link_libraries(daytona-shell-core PRIVATE PkgConfig::PulseAudio PkgConfig::WaylandClient)
+target_link_libraries(daytona-shell-core PRIVATE PkgConfig::PulseAudio PkgConfig::Canberra PkgConfig::WaylandClient)
 qt_generate_wayland_protocol_client_sources(daytona-shell-core
     FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml
           ${PROJECT_SOURCE_DIR}/protocols/wlr-output-management-unstable-v1.xml)

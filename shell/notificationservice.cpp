@@ -4,6 +4,7 @@
 
 #include <QDBusArgument>
 #include <QDBusMetaType>
+#include <QDir>
 #include <QLoggingCategory>
 
 Q_LOGGING_CATEGORY(lcNotifications, "daytona.notifications", QtInfoMsg)
@@ -106,7 +107,25 @@ uint NotificationService::Notify(const QString &appName, uint replacesId, const 
             }
         }
     }
-    return m_queue->notify(notification, replacesId);
+    const uint id = m_queue->notify(notification, replacesId);
+
+    // Sounds (the specification's "sound" capability).
+    const auto hint = [&hints](const char *key) { return hints.value(QLatin1String(key)); };
+    const QVariant suppress = hint("suppress-sound");
+    if (suppress.typeId() == QMetaType::Bool && suppress.toBool())
+        return id;
+    const QVariant file = hint("sound-file");
+    const QVariant name = hint("sound-name");
+    if (file.typeId() == QMetaType::QString && QDir::isAbsolutePath(file.toString())) {
+        Q_EMIT soundRequested({}, file.toString().left(4096));
+    } else if (name.typeId() == QMetaType::QString && !name.toString().isEmpty()
+        && !name.toString().contains(QLatin1Char('/'))) {
+        Q_EMIT soundRequested(name.toString().left(MaxSummary), {});
+    } else if (replacesId == 0) {
+        // Updates to a shown notification (progress, say) stay quiet.
+        Q_EMIT soundRequested(QStringLiteral("message-new-instant"), {});
+    }
+    return id;
 }
 
 void NotificationService::CloseNotification(uint id)
@@ -117,7 +136,8 @@ void NotificationService::CloseNotification(uint id)
 QStringList NotificationService::GetCapabilities()
 {
     // Markup is not supported: bodies are shown as plain text.
-    return { QStringLiteral("body"), QStringLiteral("actions"), QStringLiteral("icon-static") };
+    return { QStringLiteral("body"), QStringLiteral("actions"), QStringLiteral("icon-static"),
+        QStringLiteral("sound") };
 }
 
 QString NotificationService::GetServerInformation(

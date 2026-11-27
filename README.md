@@ -61,7 +61,8 @@ The packages:
   and the session file, and its own build of labwc with Daytona's window frame patch, installed
   privately in `/usr/libexec/daytona` so a system labwc is left alone. It pulls in the Qt
   runtime it needs. It recommends WirePlumber, for the volume keys, pavucontrol-qt, the
-  mixer that the speaker icon opens and the Control Panel lists, UPower, for the battery icon,
+  mixer that the speaker icon opens and the Control Panel lists, sound-theme-freedesktop and
+  libcanberra-pulse, for event sounds (log on, log off, message boxes, balloons), UPower, for the battery icon,
   and brightnessctl, for the brightness keys (members of the `video` group can change the
   backlight; Debian's installer adds the first user to it), and grim and wl-clipboard, for Print
   Screen.
@@ -128,7 +129,7 @@ Daytona targets Debian 13 (trixie). Install the build dependencies:
 ```bash
 sudo apt install build-essential cmake ninja-build pkgconf qt6-base-dev \
     liblayershellqtinterface-dev libwayland-dev libwayland-bin \
-    qt6-wayland-dev qt6-wayland-dev-tools qt6-svg-plugins libpulse-dev clang-format
+    qt6-wayland-dev qt6-wayland-dev-tools qt6-svg-plugins libpulse-dev libcanberra-dev clang-format
 ```
 
 The build also compiles labwc from its submodule with Daytona's patch for NT's raised window

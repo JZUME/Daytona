@@ -53,6 +53,10 @@ public:
     // Closes programs before the session ends; without one the session
     // ends straight away.
     void setProgramCloser(ProgramCloser *closer) { m_closer = closer; }
+    // Runs once programs have closed, just before the session ends (the log
+    // off sound), and calls its argument when done.
+    using BeforeEnd = std::function<void(std::function<void()> then)>;
+    void setBeforeEnd(BeforeEnd beforeEnd) { m_beforeEnd = std::move(beforeEnd); }
 
 Q_SIGNALS:
     void lockRequested();
@@ -61,6 +65,7 @@ private:
     void performNow(SessionAction action, const Failure &failed);
 
     ProgramCloser *m_closer = nullptr;
+    BeforeEnd m_beforeEnd;
 };
 
 // NT's Shut Down dialog.

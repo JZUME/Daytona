@@ -80,6 +80,7 @@ Before writing a component, check whether an established Linux component already
 * idle timeout, lock before sleep and on logind's `Lock`: **swayidle** (the lock screen itself is Daytona's `daytona-lock`, as no existing locker can show NT's dialogs)
 * sound server and volume keys: **PipeWire** (through pipewire-pulse) and **WirePlumber**'s `wpctl`
 * sound mixer (Control Panel applet, Open Volume Control): **pavucontrol-qt**
+* event sounds: the freedesktop **sound theme** (**sound-theme-freedesktop** by default), played with **libcanberra**
 * file dialogs and screen sharing for sandboxed and portal-using applications: **xdg-desktop-portal** with LXQt's (**xdg-desktop-portal-lxqt**) file dialog, **xdg-desktop-portal-wlr** for screen sharing (with Daytona's Share Screen dialog as its chooser) and **xdg-desktop-portal-gtk** for the rest
 * Print Screen capture and the clipboard: **grim** and **wl-clipboard**'s `wl-copy`
 * suspend, hibernate, lid and power button: **systemd-logind**; battery state: **UPower**; brightness keys: **brightnessctl**
@@ -201,7 +202,7 @@ Daytona
 │   ├── Taskbar (Start button, window buttons, notification area, clock)
 │   ├── Start menu
 │   ├── Run and Shut Down dialogs
-│   ├── Control Panel; Taskbar, Display, Keyboard, Mouse and Date/Time Properties dialogs
+│   ├── Control Panel; Taskbar, Display, Keyboard, Mouse, Date/Time and Sounds Properties dialogs
 │   ├── Notification balloons
 │   ├── Desktop (background, icons, context menus)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
@@ -334,6 +335,11 @@ Accepted configuration, Date/Time Properties equivalents (NT's Control Panel app
 
 * the date and time on the Date & Time tab, the time zone on the Time Zone tab (a list in place of NT's world map) and Windows 2000's network time ("Automatically synchronise with an Internet time server", one check box). These are system settings, kept by systemd-timedated, not in Daytona's INI file. NT's "Automatically adjust clock for daylight saving changes" is not offered (the time zone always does), nor XP's Internet Time tab (choosing time servers).
 
+Accepted configuration, Sounds Properties equivalents (NT's Control Panel applet, issue #15):
+
+* the sound theme (NT's sound scheme), or No sounds: the desktop-wide freedesktop setting, not Daytona's INI file (see Sounds)
+* a sound file, or none, for each of the shell's events, in `[Sounds]`
+
 Accepted configuration, Taskbar Properties equivalents:
 
 * taskbar edge (set by dragging, not by a setting in a dialog)
@@ -380,7 +386,7 @@ NT's **Help** item is omitted; there is no system-wide help viewer to open.
 
 Start > Settings > Control Panel opens NT's Control Panel: a folder window of applet icons, with File (Open, Close) and View (Status Bar, Large Icons, Small Icons, List, Refresh) menus and a status bar showing the object count or the selected applet's description.
 
-* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Date/Time, Display, Keyboard, Mouse, Taskbar), then **Applications**.
+* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Date/Time, Display, Keyboard, Mouse, Sounds, Taskbar), then **Applications**.
 * **Applications** lists every installed application the Start menu would show whose `.desktop` file has `Settings` in `Categories`. This is the registration mechanism: an application adds a Control Panel applet with a standard freedesktop `.desktop` file, and the list follows installs and removals. There is no Daytona-specific applet API or plugin system.
 * Opening a Daytona applet opens its dialog in the shell; opening an application launches it as the Start menu does.
 * A new Daytona settings dialog is added to the Daytona group as well as (where NT had one) its own Start > Settings item.
@@ -403,7 +409,7 @@ The shell implements the `org.freedesktop.Notifications` D-Bus service.
 * Each notification appears as a Windows 2000-style balloon pointing at the notification area: yellow tooltip background (`QPalette::ToolTipBase`), bold title, body text, optional icon, close button.
 * One balloon at a time; further notifications queue.
 * A balloon closes on click, on its close button, or after its timeout (application timeout, else 10 seconds). Clicking the body invokes the `default` action if present.
-* Supported capabilities: `body`, `actions` (default action only), `icon-static`. Markup, sounds and persistence are not supported.
+* Supported capabilities: `body`, `actions` (default action only), `icon-static`, `sound` (see Sounds). Markup and persistence are not supported.
 * No notification history, do-not-disturb or notification centre: none existed up to Windows XP.
 
 ---
@@ -417,7 +423,22 @@ NT 4.0's speaker icon in the notification area, built into the shell (no existin
 * The shell talks to the sound server with libpulse on Qt's GLib event loop, and follows changes made elsewhere (keys, mixers) through PulseAudio's change subscription. Nothing is polled.
 * The volume keys (`XF86AudioRaiseVolume`, `XF86AudioLowerVolume`, `XF86AudioMute`, `XF86AudioMicMute`) are labwc keybindings running `wpctl`; raising stops at 100%.
 * The Control Panel's sound applet is the mixer's own `.desktop` file (pavucontrol-qt lists `Settings`), not a Daytona dialog.
-* NT's system sounds and sound schemes are out of scope.
+* Event sounds and NT's Sounds applet are separate (see Sounds).
+
+---
+
+## Sounds
+
+NT's system sounds and Control Panel > Sounds, in freedesktop terms so that one setting serves Daytona and every other program (issue #15):
+
+* **Events are freedesktop sound names** (Sound Naming Specification), shown by those names in Sounds Properties and grouped as the specification groups them: Alerts (`battery-low`, `dialog-error`) and Notifications (`battery-caution`, `bell`, `desktop-login`, `desktop-logout`, `dialog-information`, `dialog-question`, `dialog-warning`, `message-new-instant`). Where the theme lacks a name the shell tries another: `desktop-login`/`desktop-logout` play `service-login`/`service-logout`, `dialog-question` `window-question`, `battery-caution`/`battery-low` `dialog-warning`/`dialog-error` (the freedesktop theme has none of the first ones).
+* **When they play:** `desktop-login` once a session (labwc's process id is noted in `$XDG_RUNTIME_DIR/daytona-logon-sound`, so a restarted shell stays quiet); `desktop-logout` after programs have closed for Log off, Shut down or Restart, the session ending once it has played (at most 10 seconds); every message box the shell shows plays its icon's sound (`dialog-error`, `dialog-warning`, `dialog-information`, `dialog-question`, `bell` without an icon), as NT did; low battery balloons play `battery-caution` (low) or `battery-low` (critical); notification balloons play their `sound-file` or `sound-name` hint, nothing with `suppress-sound`, otherwise `message-new-instant` for a new notification (not for updates to one). Daytona does not see devices being added or removed, so it plays no `device-added`/`device-removed`.
+* **Playback** is libcanberra, the specification's reference implementation (theme lookup and inheritance, and decoding the Ogg Vorbis files themes ship; the shell's libpulse could not decode them), through its PulseAudio backend.
+* **The sound theme** is the desktop-wide setting: GTK's `gtk-sound-theme-name` and `gtk-enable-event-sounds` in `settings.ini`, and GSettings' `org.gnome.desktop.sound` `theme-name` and `event-sounds` (written with `gsettings` when it is installed), which GTK 3 on Wayland, libcanberra's GTK module and GSound read. The shell reads `settings.ini`, else GSettings, else uses `freedesktop`.
+* **Sounds Properties** (Control Panel > Sounds; NT had no Start menu item for it) has NT's layout: the Events list (selecting one shows its description), the selected event's sound (Name: `(None)`, the theme's sound files, or a file chosen with Browse..., and Preview), and **Sound theme** in place of NT's Schemes: the installed themes ("Name (id)") and "No sounds", which turns event sounds off. As NT's schemes did, choosing a theme gives every event that theme's sound again. A sound chosen for one event, or `(None)`, is kept in Daytona's INI file (`[Sounds]`, by sound name) and applies to the shell's own sounds only; other programs use the theme. NT's Save As and Delete scheme buttons are not offered.
+* The mixer stays the Control Panel's "Sound" application (pavucontrol-qt, under its own name), as NT had Sounds beside Multimedia.
+* **Sound files:** Daytona ships none. Chicago95's sound theme is not installed: it is built from Windows 95's sounds (its commit says so, and `Extras/` holds the Windows 95 startup sound). The package recommends `sound-theme-freedesktop`.
+* Not provided: per-application sounds, NT's Multimedia applet, sound recording.
 
 ---
 
@@ -547,6 +568,7 @@ Dependencies must earn their place. Current expected dependencies:
 * labwc (built from the `third_party/labwc` submodule with `patches/labwc/`; needs meson and labwc's build dependencies, such as wlroots 0.18)
 * QtDBus (part of Qt)
 * libpulse and libpulse-mainloop-glib (the notification area's volume control; talks to PipeWire through pipewire-pulse, or to PulseAudio)
+* libcanberra (event sounds from the freedesktop sound theme; plays through pipewire-pulse or PulseAudio with libcanberra-pulse)
 * Chicago95 (git submodule; GTK theme, icons and cursors)
 
 Runtime, recommended: grim and wl-clipboard (Print Screen).
