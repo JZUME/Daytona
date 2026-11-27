@@ -24,6 +24,9 @@ class Settings;
 // Where icons go: NT's grid of columns from the top left of the area they
 // may use, CellSize apart. index counts down each column, then across.
 QPoint desktopGridCell(const QRect &area, int index);
+// An icon's image, size logical pixels square: exactly size * ratio device
+// pixels, with that device pixel ratio, whatever size QIcon has.
+QPixmap desktopIconImage(const QIcon &icon, int size, qreal ratio);
 // The grid cell nearest point (a cell's top left) inside area.
 QPoint nearestGridCell(const QRect &area, const QPoint &point);
 
@@ -97,6 +100,10 @@ private:
     {
         DesktopItem item;
         QIcon icon;
+        // The icon drawn at the desktop's device pixel ratio, with its
+        // shortcut arrow; made when first painted at that ratio.
+        mutable QPixmap image;
+        mutable qreal imageRatio = 0;
         QPoint pos; // top left of its cell
         bool selected = false;
     };
