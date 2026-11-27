@@ -39,10 +39,6 @@ struct DesktopEntry
     // NotShowIn and TryExec.
     bool shouldShow(const QString &desktopName) const;
 
-    // The freedesktop main category this entry belongs in, or an empty
-    // string if it has none.
-    QString mainCategory() const;
-
     // Expands Exec field codes into a program and arguments, without any
     // shell. files are local paths or URLs passed for %f/%F/%u/%U. Returns
     // nothing if Exec is empty or malformed.
@@ -53,14 +49,5 @@ struct DesktopEntry
 // Desktop Entry specification: lang_COUNTRY@MODIFIER, lang_COUNTRY,
 // lang@MODIFIER, lang.
 QStringList localeKeys(const QString &localeName);
-
-// The main categories in the order the Start menu lists them, with display
-// names.
-struct MainCategory
-{
-    const char *key;
-    const char *displayName;
-};
-const QList<MainCategory> &mainCategories();
 
 } // namespace Daytona

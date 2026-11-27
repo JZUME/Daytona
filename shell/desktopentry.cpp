@@ -150,25 +150,6 @@ QStringList localeKeys(const QString &localeName)
     return keys;
 }
 
-const QList<MainCategory> &mainCategories()
-{
-    // Display names follow NT where it had an equivalent (Accessories).
-    static const QList<MainCategory> categories = {
-        { "Utility", "Accessories" },
-        { "Development", "Development" },
-        { "Education", "Education" },
-        { "Game", "Games" },
-        { "Graphics", "Graphics" },
-        { "Network", "Internet" },
-        { "AudioVideo", "Multimedia" },
-        { "Office", "Office" },
-        { "Science", "Science" },
-        { "Settings", "Settings" },
-        { "System", "System Tools" },
-    };
-    return categories;
-}
-
 std::optional<DesktopEntry> DesktopEntry::parse(
     const QString &filePath, const QString &id, const QString &localeName)
 {
@@ -249,18 +230,6 @@ bool DesktopEntry::shouldShow(const QString &desktopName) const
         }
     }
     return true;
-}
-
-QString DesktopEntry::mainCategory() const
-{
-    // The first main category listed wins.
-    for (const QString &category : categories) {
-        for (const MainCategory &main : mainCategories()) {
-            if (category == QLatin1String(main.key))
-                return category;
-        }
-    }
-    return {};
 }
 
 std::optional<QStringList> DesktopEntry::commandLine(const QStringList &files) const

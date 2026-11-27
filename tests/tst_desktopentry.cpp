@@ -155,16 +155,6 @@ private Q_SLOTS:
         QVERIFY(!e.shouldShow(QStringLiteral("Daytona")));
     }
 
-    void mainCategory()
-    {
-        DesktopEntry e;
-        e.categories
-            = { QStringLiteral("GTK"), QStringLiteral("Office"), QStringLiteral("Utility") };
-        QCOMPARE(e.mainCategory(), QStringLiteral("Office")); // first main category listed
-        e.categories = { QStringLiteral("GTK"), QStringLiteral("TextEditor") };
-        QCOMPARE(e.mainCategory(), QString());
-    }
-
     void execFieldCodes_data()
     {
         QTest::addColumn<QString>("exec");

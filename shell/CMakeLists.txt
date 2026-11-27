@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Concurrent DBus WaylandClient)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Concurrent DBus WaylandClient Xml)
 find_package(LayerShellQt 6.3 REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WaylandClient REQUIRED IMPORTED_TARGET wayland-client)
@@ -121,12 +121,14 @@ add_library(daytona-shell-core STATIC
     toplevelmanager.h
     windowmenu.cpp
     windowmenu.h
+    xdgmenu.cpp
+    xdgmenu.h
 )
 # The binary dir holds the generated Wayland protocol headers.
 target_include_directories(daytona-shell-core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(daytona-shell-core PUBLIC
-    Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient LayerShellQt::Interface
+    Qt6::Widgets Qt6::Concurrent Qt6::DBus Qt6::WaylandClient Qt6::Xml LayerShellQt::Interface
     daytona-style daytona-theme-core)
 target_link_libraries(daytona-shell-core PRIVATE PkgConfig::PulseAudio PkgConfig::WaylandClient)
 qt_generate_wayland_protocol_client_sources(daytona-shell-core
@@ -139,6 +141,11 @@ qt_add_resources(daytona-shell-core artwork
     PREFIX /daytona
     BASE ${PROJECT_SOURCE_DIR}/artwork
     FILES ${PROJECT_SOURCE_DIR}/artwork/start-logo.svg)
+# Start > Programs when no menu file is installed (see xdgmenu.h).
+qt_add_resources(daytona-shell-core menu
+    PREFIX /daytona
+    BASE ${PROJECT_SOURCE_DIR}/xdg/menus
+    FILES ${PROJECT_SOURCE_DIR}/xdg/menus/daytona-applications.menu)
 
 add_executable(daytona-shell
     main.cpp

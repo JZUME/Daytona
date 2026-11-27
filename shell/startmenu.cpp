@@ -45,24 +45,6 @@ namespace {
         return icon.isNull() ? QIcon::fromTheme(QStringLiteral("application-x-executable")) : icon;
     }
 
-    const char *categoryIcon(const QString &key)
-    {
-        static const QHash<QString, const char *> icons = {
-            { QStringLiteral("Utility"), "applications-accessories" },
-            { QStringLiteral("Development"), "applications-development" },
-            { QStringLiteral("Education"), "applications-education" },
-            { QStringLiteral("Game"), "applications-games" },
-            { QStringLiteral("Graphics"), "applications-graphics" },
-            { QStringLiteral("Network"), "applications-internet" },
-            { QStringLiteral("AudioVideo"), "applications-multimedia" },
-            { QStringLiteral("Office"), "applications-office" },
-            { QStringLiteral("Science"), "applications-science" },
-            { QStringLiteral("Settings"), "preferences-desktop" },
-            { QStringLiteral("System"), "applications-system" },
-        };
-        return icons.value(key, "applications-other");
-    }
-
     // Menu text uses '&' for mnemonics; application names must not create
     // mnemonics of their own.
     QString menuText(const QString &name)
@@ -94,29 +76,6 @@ namespace {
     }
 
 } // namespace
-
-QList<ProgramGroup> groupPrograms(const QList<DesktopEntry> &entries)
-{
-    QList<ProgramGroup> groups;
-    for (const MainCategory &category : mainCategories()) {
-        ProgramGroup group { QString::fromLatin1(category.key),
-            QCoreApplication::translate("Daytona::StartMenu", category.displayName), {} };
-        for (const DesktopEntry &entry : entries) {
-            if (entry.mainCategory() == group.key)
-                group.entries.append(entry);
-        }
-        if (!group.entries.isEmpty())
-            groups.append(group);
-    }
-    ProgramGroup other;
-    for (const DesktopEntry &entry : entries) {
-        if (entry.mainCategory().isEmpty())
-            other.entries.append(entry);
-    }
-    if (!other.entries.isEmpty())
-        groups.append(other);
-    return groups;
-}
 
 StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *parent)
     : QWidget(parent, Qt::Window | Qt::FramelessWindowHint)
@@ -191,6 +150,12 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
 
     if (m_index)
         connect(m_index, &ApplicationIndex::changed, this, &StartMenu::rebuildPrograms);
+    if (m_settings) {
+        connect(m_settings, &Settings::changed, this, [this](const QString &key) {
+            if (key.isEmpty() || key == Settings::FlatProgramsKey)
+                rebuildPrograms();
+        });
+    }
     rebuildPrograms();
     updateCommandItems();
 }
@@ -544,22 +509,47 @@ void StartMenu::rebuildPrograms()
     }
     m_rebuildPending = false;
     m_programs->clear();
-    const QList<DesktopEntry> entries = m_index ? m_index->entries() : QList<DesktopEntry>();
-    const QList<ProgramGroup> groups = groupPrograms(entries);
-    for (const ProgramGroup &group : groups) {
-        QMenu *target = m_programs;
-        if (!group.key.isEmpty())
-            target = m_programs->addMenu(themeIcon(categoryIcon(group.key)), group.displayName);
-        for (const DesktopEntry &entry : group.entries) {
+    const MenuNode programs = m_index ? m_index->programs() : MenuNode();
+    if (m_settings && m_settings->flatProgramsMenu()) {
+        // Every program in one list, without folders.
+        MenuNode flat;
+        for (const DesktopEntry &entry : flattenMenu(programs)) {
+            MenuNode item;
+            item.kind = MenuNode::Kind::Entry;
+            item.entry = entry;
+            flat.children.append(item);
+        }
+        addPrograms(m_programs, flat);
+    } else {
+        addPrograms(m_programs, programs);
+    }
+    if (m_programs->isEmpty()) {
+        QAction *none = m_programs->addAction(tr("(Empty)"));
+        none->setEnabled(false);
+    }
+}
+
+void StartMenu::addPrograms(QMenu *menu, const MenuNode &folder)
+{
+    for (const MenuNode &item : folder.children) {
+        switch (item.kind) {
+        case MenuNode::Kind::Folder:
+            // Every folder has NT's program-group icon, whatever its
+            // .directory file says.
+            addPrograms(menu->addMenu(themeIcon("applications-other"), menuText(item.name)), item);
+            break;
+        case MenuNode::Kind::Entry: {
+            const DesktopEntry entry = item.entry;
             QIcon icon = QIcon::fromTheme(entry.icon);
             if (icon.isNull())
                 icon = themeIcon("application-x-executable");
-            target->addAction(icon, menuText(entry.name), this, [entry] { launchEntry(entry); });
+            menu->addAction(icon, menuText(entry.name), this, [entry] { launchEntry(entry); });
+            break;
         }
-    }
-    if (groups.isEmpty()) {
-        QAction *none = m_programs->addAction(tr("(Empty)"));
-        none->setEnabled(false);
+        case MenuNode::Kind::Separator:
+            menu->addSeparator();
+            break;
+        }
     }
 }
 

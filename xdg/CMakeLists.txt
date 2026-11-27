@@ -25,3 +25,24 @@ install(FILES applications/daytona-mimeapps.list
 # only takes effect when sysconfdir is /etc, as for the Debian package.
 install(FILES chromium.d/daytona
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/chromium.d)
+
+# Start > Programs: the session's menu file (XDG_MENU_PREFIX=daytona-) and
+# its folder names. The shell has a built-in copy of the menu file for when
+# it is not installed. Menu files are looked for in the config directories
+# only, so the menu takes effect when sysconfdir is /etc, as for the Debian
+# package.
+install(FILES menus/daytona-applications.menu
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/xdg/menus)
+install(FILES
+    desktop-directories/daytona-accessories.directory
+    desktop-directories/daytona-development.directory
+    desktop-directories/daytona-education.directory
+    desktop-directories/daytona-games.directory
+    desktop-directories/daytona-graphics.directory
+    desktop-directories/daytona-internet.directory
+    desktop-directories/daytona-multimedia.directory
+    desktop-directories/daytona-office.directory
+    desktop-directories/daytona-science.directory
+    desktop-directories/daytona-settings.directory
+    desktop-directories/daytona-system-tools.directory
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/desktop-directories)

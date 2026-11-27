@@ -1,0 +1,87 @@
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+ "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
+<!--
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  Start > Programs in the Daytona session (XDG_MENU_PREFIX=daytona-). One
+  folder per freedesktop main category, with NT's names where NT had one
+  (Accessories); programs with no main category sit in Programs itself.
+  Distributions and administrators add to it through applications-merged/,
+  and menu editors through ~/.config/menus/daytona-applications.menu.
+-->
+<Menu>
+  <Name>Applications</Name>
+  <DefaultAppDirs/>
+  <DefaultDirectoryDirs/>
+  <DefaultMergeDirs/>
+
+  <!-- What no folder takes. -->
+  <OnlyUnallocated/>
+  <Include><All/></Include>
+
+  <Menu>
+    <Name>Accessories</Name>
+    <Directory>daytona-accessories.directory</Directory>
+    <Include><Category>Utility</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Development</Name>
+    <Directory>daytona-development.directory</Directory>
+    <Include><Category>Development</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Education</Name>
+    <Directory>daytona-education.directory</Directory>
+    <Include><And><Category>Education</Category><Not><Category>Science</Category></Not></And></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Games</Name>
+    <Directory>daytona-games.directory</Directory>
+    <Include><Category>Game</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Graphics</Name>
+    <Directory>daytona-graphics.directory</Directory>
+    <Include><Category>Graphics</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Internet</Name>
+    <Directory>daytona-internet.directory</Directory>
+    <Include><Category>Network</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Multimedia</Name>
+    <Directory>daytona-multimedia.directory</Directory>
+    <Include><Category>AudioVideo</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Office</Name>
+    <Directory>daytona-office.directory</Directory>
+    <Include><Category>Office</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Science</Name>
+    <Directory>daytona-science.directory</Directory>
+    <Include><Category>Science</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>Settings</Name>
+    <Directory>daytona-settings.directory</Directory>
+    <Include><Category>Settings</Category></Include>
+  </Menu>
+
+  <Menu>
+    <Name>System Tools</Name>
+    <Directory>daytona-system-tools.directory</Directory>
+    <Include><And><Category>System</Category><Not><Category>Settings</Category></Not></And></Include>
+  </Menu>
+</Menu>

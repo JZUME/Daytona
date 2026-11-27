@@ -343,6 +343,10 @@ Accepted configuration, Taskbar Properties equivalents:
 * show small icons in Start menu
 * show clock
 
+Accepted configuration, INI file only (no dialog):
+
+* `StartMenu/FlatPrograms`: Start > Programs as one alphabetical list of every program, without folders (requested on issue #5; off by default, when folders come from the freedesktop menu file).
+
 Settings are stored with `QSettings` in a single INI file. No other configuration mechanism is used.
 
 Fixed:
@@ -360,7 +364,7 @@ Do not add settings outside Design Scope, such as taskbar transparency, alternat
 
 Top to bottom, matching NT 4.0:
 
-* **Programs**: cascading submenus built from `.desktop` files, grouped by freedesktop main categories, alphabetical within each. Entries with `NoDisplay=true`, `Hidden=true`, or `OnlyShowIn`/`NotShowIn` excluding Daytona are omitted.
+* **Programs**: cascading submenus built by the freedesktop Desktop Menu Specification from `${XDG_MENU_PREFIX}applications.menu` (daytona-session sets the prefix to `daytona-`; Daytona ships `/etc/xdg/menus/daytona-applications.menu` with one folder per freedesktop main category, NT's names where NT had one, such as Accessories, and a built-in copy for when no menu file is installed). Distribution and administrator additions in `applications-merged/`, `.directory` folder names and menu editors' changes in `~/.config/menus` all apply, and the menu is rebuilt when they change. Daytona reads the menu files itself (`shell/xdgmenu.cpp`, Qt XML): LXQt's `libqtxdg` is ruled out below, libmenu-cache needs its own daemon, and GNOME's libgnome-menu brings GObject file monitoring the off-UI-thread scan cannot use. Every folder has the same program-group icon (`applications-other`), as NT's program groups did, whatever the `.directory` file says; programs keep their own icons. Folders come first, then programs, alphabetical within each unless the menu file has a `<Layout>`; empty folders are omitted. Entries with `NoDisplay=true`, `Hidden=true`, `OnlyShowIn`/`NotShowIn` excluding Daytona, or a missing `TryExec` program are omitted. `StartMenu/FlatPrograms=true` in the INI file (no dialog) lists every program in Programs itself instead, without folders.
 * **Documents**: the 15 most recent items from `~/.local/share/recently-used.xbel`.
 * **Settings**: Control Panel (see Control Panel below), Taskbar... (Taskbar Properties), Display... (Display Properties, colours/wallpaper/`.theme`), Keyboard... (Keyboard Properties, input locales), Mouse... (Mouse Properties, pointer scheme).
 * **Find**: Files or Folders... launches the file-search command set in Daytona's INI file (`Commands/Find`), else PCManFM-Qt's Find Files (`pcmanfm-qt --find-files ~`) when it is installed; greyed out if neither.
@@ -630,7 +634,7 @@ Prefer automated tests (Qt Test) for:
 
 * `.theme` parsing and colour conversion
 * labwc theme / Qt palette / GTK output generation
-* `.desktop` parsing and Start menu category building
+* `.desktop` parsing and building Start > Programs from menu files
 * `Exec` field-code expansion
 * taskbar ordering and state transitions given toplevel events
 * geometry and scaling calculations in the style
