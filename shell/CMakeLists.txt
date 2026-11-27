@@ -27,6 +27,10 @@ add_library(daytona-shell-core STATIC
     datetimeproperties.h
     desktop.cpp
     desktop.h
+    desktopfiles.cpp
+    desktopfiles.h
+    desktopicons.cpp
+    desktopicons.h
     displayproperties.cpp
     displayproperties.h
     endsession.cpp

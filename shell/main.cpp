@@ -316,6 +316,42 @@ int main(int argc, char *argv[])
     // The desktop: colour and wallpaper behind every window.
     Daytona::DesktopManager desktops(&settings);
     desktops.start();
+    // NT's desktop icons, on the taskbar's monitor, kept clear of it.
+    QTimer placeIcons;
+    placeIcons.setSingleShot(true);
+    placeIcons.setInterval(0);
+    QObject::connect(&placeIcons, &QTimer::timeout, &desktops, [&desktops, &taskbar] {
+        QMargins margins;
+        if (!taskbar.isAutoHide()) {
+            switch (taskbar.edge()) {
+            case Daytona::TaskbarEdge::Bottom:
+                margins.setBottom(taskbar.height());
+                break;
+            case Daytona::TaskbarEdge::Top:
+                margins.setTop(taskbar.height());
+                break;
+            case Daytona::TaskbarEdge::Left:
+                margins.setLeft(taskbar.width());
+                break;
+            case Daytona::TaskbarEdge::Right:
+                margins.setRight(taskbar.width());
+                break;
+            }
+        }
+        desktops.setIconScreen(taskbar.screen(), margins);
+    });
+    const auto updateIcons = [&placeIcons] { placeIcons.start(); };
+    QObject::connect(taskbar.windowHandle(), &QWindow::screenChanged, &placeIcons, updateIcons);
+    QObject::connect(taskbar.windowHandle(), &QWindow::widthChanged, &placeIcons, updateIcons);
+    QObject::connect(taskbar.windowHandle(), &QWindow::heightChanged, &placeIcons, updateIcons);
+    QObject::connect(&taskbar, &Daytona::Taskbar::edgeChanged, &placeIcons, updateIcons);
+    QObject::connect(qApp, &QGuiApplication::screenAdded, &placeIcons, updateIcons);
+    QObject::connect(
+        &settings, &Daytona::Settings::changed, &placeIcons, [updateIcons](const QString &key) {
+            if (key.isEmpty() || key.startsWith(QLatin1String("Taskbar/")))
+                updateIcons();
+        });
+    placeIcons.start();
     Daytona::ApplicationIndex applications;
     applications.start();
     Daytona::StartMenu startMenu(&applications, &settings);

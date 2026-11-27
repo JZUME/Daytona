@@ -27,6 +27,8 @@ namespace {
     const QString KeySmallIcons = QStringLiteral("Taskbar/SmallStartMenuIcons");
     const QString KeyFind = QStringLiteral("Commands/Find");
     const QString KeyRunHistory = QStringLiteral("Run/History");
+    const QString KeyIconPositions = QStringLiteral("Desktop/IconPositions");
+    const QString KeyAutoArrange = QStringLiteral("Desktop/AutoArrange");
     const QString KeyWallpaper = QStringLiteral("Appearance/Wallpaper");
     const QString KeyWallpaperMode = QStringLiteral("Appearance/WallpaperMode");
     const QString KeyScheme = QStringLiteral("Appearance/ColourScheme");
@@ -270,6 +272,46 @@ void Settings::addToRunHistory(const QString &command)
     while (history.size() > MaxRunHistory)
         history.removeLast();
     write(KeyRunHistory, history);
+}
+
+QHash<QString, QPoint> Settings::desktopIconPositions() const
+{
+    // One "x,y,name" string per icon: names may hold any character but "/",
+    // which INI keys would not keep.
+    QHash<QString, QPoint> positions;
+    const QStringList stored = m_settings.value(KeyIconPositions).toStringList();
+    for (const QString &entry : stored) {
+        const int first = entry.indexOf(QLatin1Char(','));
+        const int second = entry.indexOf(QLatin1Char(','), first + 1);
+        if (first < 0 || second < 0 || second + 1 >= entry.size())
+            continue;
+        bool okX = false;
+        bool okY = false;
+        const int x = entry.left(first).toInt(&okX);
+        const int y = entry.mid(first + 1, second - first - 1).toInt(&okY);
+        if (okX && okY && x >= 0 && y >= 0)
+            positions.insert(entry.mid(second + 1), QPoint(x, y));
+    }
+    return positions;
+}
+void Settings::setDesktopIconPositions(const QHash<QString, QPoint> &positions)
+{
+    QStringList stored;
+    for (auto it = positions.cbegin(); it != positions.cend(); ++it) {
+        stored.append(
+            QStringLiteral("%1,%2,%3").arg(it.value().x()).arg(it.value().y()).arg(it.key()));
+    }
+    stored.sort();
+    write(KeyIconPositions, stored);
+}
+
+bool Settings::desktopAutoArrange() const
+{
+    return readBool(KeyAutoArrange, false);
+}
+void Settings::setDesktopAutoArrange(bool autoArrange)
+{
+    write(KeyAutoArrange, autoArrange);
 }
 
 QString Settings::wallpaperPath() const
