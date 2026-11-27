@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Read by Debian's chromium wrapper (/usr/bin/chromium), which sources every
+# file in /etc/chromium.d.
+#
+# Chromium chooses where to keep saved passwords from the desktop's name. It
+# does not know Daytona, so it would keep them in its "basic" store,
+# encrypted with a key that is the same on every computer. In the Daytona
+# session, keep them in the keyring (the Secret Service, gnome-keyring)
+# instead. A --password-store given on Chromium's own command line comes
+# later and wins. See docs/third-party-apps.md.
+case ":${XDG_CURRENT_DESKTOP:-}:" in
+*:Daytona:*)
+    export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --password-store=gnome-libsecret"
+    ;;
+esac

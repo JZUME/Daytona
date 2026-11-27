@@ -12,6 +12,9 @@
 # each showing the same icon, and the system entries start both. Daytona's
 # own entries replace them, so only one starts: nm-applet, once, with
 # --indicator (its tooltip says how it was started).
+#
+# The keyring: autostart/bin has a stand-in for gnome-keyring-daemon, which
+# the session starts once, for the Secret Service, before the entries.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
@@ -58,6 +61,13 @@ for item in $(grep -o "'[^']*'" <<<"$items" | tr -d "'"); do
 done
 if ((found != 1)); then
     echo "expected one nm-applet --indicator icon, found $found: $items" >&2
+    exit 1
+fi
+
+# The keyring daemon was started once, for the Secret Service.
+keyring=$(cat "$XDG_RUNTIME_DIR/gnome-keyring-daemon.args")
+if [[ "$keyring" != "--start --components=secrets" ]]; then
+    echo "expected gnome-keyring-daemon --start --components=secrets once, got: $keyring" >&2
     exit 1
 fi
 

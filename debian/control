@@ -54,8 +54,10 @@ Depends:
 Recommends:
  brightnessctl,
  dex,
+ gnome-keyring,
  grim,
  libglib2.0-bin,
+ libpam-gnome-keyring,
  lxqt-policykit,
  network-manager-applet | network-manager-gnome,
  pavucontrol-qt | pavucontrol,

@@ -19,3 +19,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/xdg-desktop-portal-wlr/Daytona
 # Default applications for the session: folders open in the file manager.
 install(FILES applications/daytona-mimeapps.list
     DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+
+# Chromium keeps saved passwords in the keyring in the Daytona session (see
+# the file). Debian's chromium wrapper reads only /etc/chromium.d, so this
+# only takes effect when sysconfdir is /etc, as for the Debian package.
+install(FILES chromium.d/daytona
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/chromium.d)

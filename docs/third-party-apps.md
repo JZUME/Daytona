@@ -113,9 +113,10 @@ applications above), and the session uses it for folders and searching.
 At log on, after the shell has started, Daytona starts the applications in
 the XDG autostart directories, as other desktops do: `~/.config/autostart`
 (`$XDG_CONFIG_HOME/autostart`) and `/etc/xdg/autostart` (each directory in
-`$XDG_CONFIG_DIRS`). This is how tray helpers such as `nm-applet`,
-`blueman-applet`, polkit agents, `gnome-keyring` and `xdg-user-dirs-update`
-start.
+`$XDG_CONFIG_DIRS`). This is how tray helpers such as `blueman-applet`
+and programs such as `xdg-user-dirs-update` start. A few helpers whose own
+entries leave Daytona out are started by the labwc `autostart` file
+instead: the polkit agent, the keyring and the network icon (see below).
 
 The rules are those of the freedesktop Desktop Application Autostart
 specification:
@@ -237,6 +238,68 @@ To check it works:
 
 ```bash
 pkexec true
+```
+
+## Saved passwords (keyring)
+
+Applications keep saved passwords (Wi-Fi and VPN keys, mail accounts,
+browser passwords, sign-ins of Electron applications) in the keyring, through
+the freedesktop Secret Service (`org.freedesktop.secrets`). Daytona uses
+GNOME's keyring, `gnome-keyring-daemon` from the `gnome-keyring` package,
+which the Daytona package recommends. LXQt has no keyring of its own, and
+gnome-keyring is the one libsecret applications expect. It has no window of
+its own in Daytona; there is no keyring manager in the Control Panel.
+
+Its own autostart entry is limited to GNOME, Unity and MATE, so Daytona's
+labwc `autostart` file starts it
+(`gnome-keyring-daemon --start --components=secrets`), before the autostart
+applications.
+
+**Unlocked at log on.** The keyring is unlocked with the log-on password
+when `libpam-gnome-keyring` (also recommended) is installed. The login
+managers in Debian 13, GDM, LightDM, SDDM and greetd, already have
+`pam_gnome_keyring` in their PAM settings; it starts the daemon while
+logging on and unlocks the "Login" keyring with the password typed there.
+The `autostart` line then finishes starting that daemon instead of starting
+a second one. The first time, the Login keyring is created with the log-on
+password. Without the PAM module, or after an automatic log on (no password
+is typed), the keyring is locked, and the first application to use it asks
+for the keyring's password (or, the first time, for a password for a new
+keyring) in a GTK 3 dialog. Changing the log-on password with `passwd`
+changes the keyring's too.
+
+**Chromium and Electron applications** choose where to keep passwords from
+the desktop's name (`XDG_CURRENT_DESKTOP`). They know GNOME, KDE, Xfce,
+Cinnamon and a few others; for any other desktop, Daytona and LXQt included,
+they use their "basic" store, which encrypts with a key that is the same on
+every computer, and VS Code warns that it could not identify the keyring.
+Daytona does not pretend to be another desktop to change this: a desktop
+name such as `Daytona:GNOME` would also start GNOME's autostart entries, make
+Qt load its GTK platform theme and make Chromium read GNOME's proxy settings,
+and the older `GNOME_DESKTOP_SESSION_ID` makes `xdg-open` and
+`xdg-screensaver` treat the session as GNOME. Instead, they are told to use
+the keyring with `--password-store=gnome-libsecret`:
+
+- **Chromium** (Debian's package): Daytona installs
+  `/etc/chromium.d/daytona`, which Debian's `chromium` wrapper reads, and
+  which adds the option in the Daytona session only.
+- **VS Code**: add `"password-store": "gnome-libsecret"` to
+  `~/.vscode/argv.json` (Command Palette, Preferences: Configure Runtime
+  Arguments).
+- **Google Chrome and other Electron applications** have no file for
+  options: add `--password-store=gnome-libsecret` to the `Exec` line of a
+  copy of the application's `.desktop` file in
+  `~/.local/share/applications`.
+
+Passwords an application already saved in its basic store stay readable
+after the switch. Firefox and Thunderbird keep passwords in their own
+profile and do not use the keyring.
+
+To check the keyring works (`secret-tool` is in `libsecret-tools`):
+
+```bash
+echo hello | secret-tool store --label=Test daytona test
+secret-tool lookup daytona test
 ```
 
 ## Network
