@@ -16,7 +16,7 @@ dir="$1"
 commit="$2"
 tag=edge
 keep=2
-notes="Latest packages built from main (commit $commit), for testing. Also available as the edge suite of the apt repository: https://jzume.github.io/Daytona/"
+notes="Latest packages built from main (commit $commit), for testing. Also available as the edge suite of the apt repository: https://jzu.me/daytona/"
 
 if gh release view "$tag" >/dev/null 2>&1; then
     # Move the tag to the commit the packages were built from.

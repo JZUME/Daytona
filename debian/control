@@ -37,9 +37,9 @@ Build-Depends:
  qt6-base-private-dev,
  qt6-wayland-private-dev,
 Standards-Version: 4.7.2
-Homepage: https://github.com/JZUME/Daytona
-Vcs-Browser: https://github.com/JZUME/Daytona/tree/main
-Vcs-Git: https://github.com/JZUME/Daytona.git
+Homepage: https://github.com/JZUME/daytona
+Vcs-Browser: https://github.com/JZUME/daytona/tree/main
+Vcs-Git: https://github.com/JZUME/daytona.git
 Rules-Requires-Root: no
 
 Package: daytona
