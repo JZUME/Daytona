@@ -23,6 +23,8 @@ add_library(daytona-shell-core STATIC
     clickcatcher.h
     dbusmenu.cpp
     dbusmenu.h
+    datetimeproperties.cpp
+    datetimeproperties.h
     desktop.cpp
     desktop.h
     displayproperties.cpp
@@ -91,6 +93,8 @@ add_library(daytona-shell-core STATIC
     tasklayout.h
     tasklist.cpp
     tasklist.h
+    timedate.cpp
+    timedate.h
     trayicon.cpp
     trayicon.h
     volumecontrol.cpp

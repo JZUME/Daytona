@@ -24,6 +24,7 @@ struct ControlPanelApplet
     enum class Builtin
     {
         None, // an application, from entry
+        DateTime,
         Display,
         Keyboard,
         Mouse,
@@ -86,6 +87,7 @@ public Q_SLOTS:
     void refresh();
 
 Q_SIGNALS:
+    void dateTimePropertiesRequested();
     void displayPropertiesRequested();
     void keyboardPropertiesRequested();
     void mousePropertiesRequested();

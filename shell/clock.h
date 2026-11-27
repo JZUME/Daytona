@@ -10,7 +10,8 @@
 namespace Daytona {
 
 // The taskbar clock: the time in the locale's short format, updated exactly
-// on each minute, with the long date as its tooltip.
+// on each minute, with the long date as its tooltip. Double-clicking it
+// asks for Date/Time Properties.
 class Clock : public QLabel
 {
     Q_OBJECT
@@ -27,6 +28,17 @@ public:
     static QString dateText(const QDateTime &when, const QLocale &locale);
 
     QSize sizeHint() const override;
+
+public Q_SLOTS:
+    // Shows the time now, as after the time or time zone changes.
+    void refresh();
+
+Q_SIGNALS:
+    // Double-clicked: NT opened Date/Time Properties.
+    void propertiesRequested();
+
+protected:
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
     void update();
