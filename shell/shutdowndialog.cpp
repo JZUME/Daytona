@@ -84,11 +84,20 @@ void SessionActions::perform(SessionAction action, Failure failed)
     // work could be saved. Standing by, hibernating and locking keep them.
     const bool endsSession = action == SessionAction::ShutDown || action == SessionAction::Restart
         || action == SessionAction::LogOff;
-    if (endsSession && m_closer) {
-        m_closer->closeAll([this, action, failed] { performNow(action, failed); });
+    if (!endsSession) {
+        performNow(action, failed);
         return;
     }
-    performNow(action, failed);
+    auto end = [this, action, failed] {
+        if (m_beforeEnd)
+            m_beforeEnd([this, action, failed] { performNow(action, failed); });
+        else
+            performNow(action, failed);
+    };
+    if (m_closer)
+        m_closer->closeAll(end);
+    else
+        end();
 }
 
 void SessionActions::performNow(SessionAction action, const Failure &failed)

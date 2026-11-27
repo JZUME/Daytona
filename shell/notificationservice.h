@@ -45,6 +45,11 @@ public Q_SLOTS:
 Q_SIGNALS:
     Q_SCRIPTABLE void NotificationClosed(uint id, uint reason);
     Q_SCRIPTABLE void ActionInvoked(uint id, const QString &actionKey);
+    // Not on the bus: the sound a notification asks for, as a freedesktop
+    // sound name or a file (one of the two is empty). New notifications
+    // without a sound hint play message-new-instant; suppress-sound plays
+    // nothing.
+    void soundRequested(const QString &name, const QString &file);
 
 private:
     NotificationQueue *m_queue;

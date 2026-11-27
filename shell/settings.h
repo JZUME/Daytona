@@ -165,6 +165,13 @@ public:
     bool desktopAutoArrange() const;
     void setDesktopAutoArrange(bool autoArrange);
 
+    // The sound Sounds Properties chose for an event, by its freedesktop
+    // sound name ("dialog-warning"): a file, EventSoundNone for no sound, or
+    // empty for the sound theme's own.
+    static const QString EventSoundNone;
+    QString eventSound(const QString &name) const;
+    void setEventSound(const QString &name, const QString &sound);
+
     // Follows changes other programs make to the file, such as
     // daytona-themetool recording a new wallpaper.
     void watchFile();

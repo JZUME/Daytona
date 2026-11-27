@@ -33,6 +33,7 @@ Build-Depends:
  librsvg2-dev,
  libsfdo-dev,
  libpulse-dev,
+ libcanberra-dev,
  libpam0g-dev,
  qt6-base-private-dev,
  qt6-wayland-private-dev,
@@ -56,12 +57,14 @@ Recommends:
  dex,
  gnome-keyring,
  grim,
+ libcanberra-pulse,
  libglib2.0-bin,
  libpam-gnome-keyring,
  lxqt-policykit,
  network-manager-applet | network-manager-gnome,
  pavucontrol-qt | pavucontrol,
  pcmanfm-qt,
+ sound-theme-freedesktop,
  swayidle,
  upower,
  wireplumber,
@@ -81,7 +84,8 @@ Description: Windows NT 4.0-style desktop shell for labwc
  volume control, battery, input locale, network through
  nm-applet, and balloons) and clock, a desktop with NT
  wallpaper modes, and NT's Run, Shut Down (with Stand by and Hibernate),
- Taskbar Properties, Display Properties and Date/Time Properties dialogs,
+ Taskbar Properties, Display Properties, Date/Time Properties and Sounds
+ Properties dialogs, event sounds from the freedesktop sound theme,
  and a screen saver
  and NT's Workstation Locked screen through swayidle and Daytona's own
  locker. labwc provides the
