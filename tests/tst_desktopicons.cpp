@@ -67,6 +67,36 @@ private Q_SLOTS:
         QCOMPARE(nearestGridCell(area, QPoint(-500, 9000)), QPoint(10, 170));
     }
 
+    void iconImage_data()
+    {
+        QTest::addColumn<int>("source");
+        QTest::addColumn<qreal>("ratio");
+        QTest::addColumn<int>("pixels");
+        QTest::newRow("32 at 100%") << 32 << 1.0 << 32;
+        QTest::newRow("32 at 200%") << 32 << 2.0 << 64;
+        QTest::newRow("48 at 200%") << 48 << 2.0 << 64;
+        QTest::newRow("32 at 150%") << 32 << 1.5 << 48;
+        QTest::newRow("64 at 100%") << 64 << 1.0 << 32;
+    }
+
+    void iconImage()
+    {
+        // Whatever size the icon has, its image covers the same 32 logical
+        // pixels: the icon never shows at half or double size.
+        QFETCH(int, source);
+        QFETCH(qreal, ratio);
+        QFETCH(int, pixels);
+        QPixmap red(source, source);
+        red.fill(Qt::red);
+        const QPixmap image = desktopIconImage(QIcon(red), 32, ratio);
+        QCOMPARE(image.size(), QSize(pixels, pixels));
+        QCOMPARE(image.devicePixelRatio(), ratio);
+        QCOMPARE(image.deviceIndependentSize(), QSizeF(32, 32));
+        const QImage pixelsDrawn = image.toImage();
+        QCOMPARE(pixelsDrawn.pixelColor(0, 0), QColor(Qt::red));
+        QCOMPARE(pixelsDrawn.pixelColor(pixels - 1, pixels - 1), QColor(Qt::red));
+    }
+
     void readFolder()
     {
         QTemporaryDir dir;

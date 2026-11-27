@@ -102,6 +102,34 @@ namespace {
 
 } // namespace
 
+// An icon's image size logical pixels square, exactly size * ratio device
+// pixels, with that ratio. QIcon::pixmap() can hand back another size or
+// ratio than asked for (the theme has no image that size, or a cached one
+// has another ratio, as Qt 6.8 does at 200%), and drawing that as it is
+// shows the icon at half or double size.
+QPixmap desktopIconImage(const QIcon &icon, int size, qreal ratio)
+{
+    const int pixels = qRound(size * ratio);
+    const QSize device(pixels, pixels);
+    QPixmap image(device);
+    image.fill(Qt::transparent);
+    QPixmap source = icon.pixmap(device, 1.0);
+    if (!source.isNull()) {
+        source.setDevicePixelRatio(1.0);
+        if (source.size() != device) {
+            // Whole-number enlargements stay sharp, as NT's pixel art.
+            const bool whole = source.width() > 0 && pixels % source.width() == 0
+                && source.width() == source.height();
+            source = source.scaled(device, Qt::KeepAspectRatio,
+                whole ? Qt::FastTransformation : Qt::SmoothTransformation);
+        }
+        QPainter painter(&image);
+        painter.drawPixmap((pixels - source.width()) / 2, (pixels - source.height()) / 2, source);
+    }
+    image.setDevicePixelRatio(ratio);
+    return image;
+}
+
 QPoint desktopGridCell(const QRect &area, int index)
 {
     const int rows = std::max(1, area.height() / Cell);
@@ -497,16 +525,18 @@ void DesktopIconView::paintEvent(QPaintEvent *event)
             }
             return;
         }
-        QPixmap pixmap = icon.icon.pixmap(QSize(IconPx, IconPx), ratio);
-        if (icon.item.isLink) {
-            // NT's shortcut arrow, in the bottom left corner.
-            const QPixmap arrow = QIcon::fromTheme(QStringLiteral("emblem-symbolic-link"))
-                                      .pixmap(QSize(IconPx / 2, IconPx / 2), ratio);
-            if (!arrow.isNull()) {
-                QPainter overlay(&pixmap);
+        if (icon.imageRatio != ratio || icon.image.isNull()) {
+            icon.image = desktopIconImage(icon.icon, IconPx, ratio);
+            if (icon.item.isLink) {
+                // NT's shortcut arrow, in the bottom left corner.
+                const QPixmap arrow = desktopIconImage(
+                    QIcon::fromTheme(QStringLiteral("emblem-symbolic-link")), IconPx / 2, ratio);
+                QPainter overlay(&icon.image);
                 overlay.drawPixmap(QPoint(0, IconPx / 2), arrow);
             }
+            icon.imageRatio = ratio;
         }
+        QPixmap pixmap = icon.image;
         if (icon.selected) {
             // Selected icons are dithered with the highlight colour, as NT.
             QPainter tint(&pixmap);
@@ -514,7 +544,7 @@ void DesktopIconView::paintEvent(QPaintEvent *event)
             tint.fillRect(QRect(QPoint(0, 0), pixmap.deviceIndependentSize().toSize()),
                 QBrush(pal.color(QPalette::Highlight), Qt::Dense4Pattern));
         }
-        painter.drawPixmap(iconBox.topLeft(), pixmap);
+        painter.drawPixmap(iconBox, pixmap);
         painter.fillRect(label, icon.selected ? pal.color(QPalette::Highlight) : desktop);
     };
     for (bool names : { false, true }) {
