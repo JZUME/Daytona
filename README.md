@@ -13,7 +13,7 @@ Inspired by Windows NT, [Chicago95](https://github.com/grassmunk/Chicago95) and 
 ## Installing on Debian 13
 
 Daytona has an apt repository for Debian 13 (amd64 and arm64) at
-<https://jzume.github.io/Daytona/>, with two suites:
+<https://jzu.me/daytona/>, with two suites:
 
 - `stable`: tagged releases.
 - `edge`: a nightly build of `main`, for testing. Only the newest builds are kept.
@@ -21,7 +21,7 @@ Daytona has an apt repository for Debian 13 (amd64 and arm64) at
 Add the signing key (fingerprint `3AED 05B9 6FFE F7E8 7C6B 7249 6099 9388 8173 8EAD`):
 
 ```bash
-sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg https://jzume.github.io/Daytona/daytona-archive-keyring.gpg
+sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg https://jzu.me/daytona/daytona-archive-keyring.gpg
 ```
 
 Add the repository, with `Suites: stable` or `Suites: edge`:
@@ -29,7 +29,7 @@ Add the repository, with `Suites: stable` or `Suites: edge`:
 ```bash
 sudo tee /etc/apt/sources.list.d/daytona.sources <<'END'
 Types: deb
-URIs: https://jzume.github.io/Daytona
+URIs: https://jzu.me/daytona
 Suites: edge
 Components: main
 Signed-By: /etc/apt/keyrings/daytona.gpg
