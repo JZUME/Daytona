@@ -11,7 +11,7 @@ It is a **shell**, not a compositor and not a toolkit. It provides the desktop e
 * Taskbar window buttons
 * Notification area and clock
 * Notification balloons (Windows 2000 style)
-* Desktop background and desktop context menu
+* Desktop background, desktop icons and desktop context menus
 * Run and Shut Down dialogs
 * Window switching UI where the compositor does not already provide it
 * A Win95-style Qt widget style
@@ -202,7 +202,7 @@ Daytona
 │   ├── Run and Shut Down dialogs
 │   ├── Control Panel; Taskbar, Display, Keyboard, Mouse and Date/Time Properties dialogs
 │   ├── Notification balloons
-│   ├── Desktop (background, context menu)
+│   ├── Desktop (background, icons, context menus)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
 ├── locker/       daytona-lock: Workstation Locked screen (ext-session-lock, PAM)
 ├── style/        Win95 QStyle plugin, usable by the shell and any Qt 6 app
@@ -472,9 +472,19 @@ Laptop support from Windows 98 and 2000, on top of logind and UPower:
 
 ## Desktop
 
-The desktop is a background layer-shell surface on each output showing the wallpaper or desktop colour, plus a right-click menu containing **Properties**, which opens Display Properties. NT's other desktop menu items (Arrange Icons, Line up Icons, Paste, Paste Shortcut, New) act on desktop icons and are omitted while icons are out of scope.
+The desktop is a background layer-shell surface on each output showing the wallpaper or desktop colour, with a right-click menu whose **Properties** opens Display Properties.
 
-**Desktop icons are out of scope** until explicitly approved. Do not draw files from `~/Desktop`.
+The primary monitor's desktop (the taskbar's) also shows NT's desktop icons (issue #2, approved). Daytona draws them itself; PCManFM-Qt's `--desktop` mode is never used, because it covers Daytona's wallpaper and has LXQt's menus, not NT's. Everything beyond the desktop's own small set of operations is handed to the file manager through standard formats, so the two never conflict:
+
+* **Icons:** My Computer, Network Neighborhood and Recycle Bin (empty or full) at the top left, then the files and folders in the XDG Desktop directory (`~/Desktop`), in NT's grid of columns from the top left, kept clear of the taskbar. Hidden files are not shown. Icons are Chicago95's system icons (MIME types, places); `.desktop` files show their own Name and Icon, as NT showed a shortcut's, and applications' icons are never replaced. Labels are drawn in the scheme's colours, NT's way.
+* **Opening:** double-click or Enter. My Computer, Network Neighborhood and Recycle Bin open `computer:///`, `network:///` and `trash:///` in PCManFM-Qt (the home folder, nothing and the trash folder through `xdg-open` without it). Files and folders open with `xdg-open`, so folders go to PCManFM-Qt (`daytona-mimeapps.list`); `.desktop` files are launched as the Start menu launches them.
+* **Selection and placement, as NT:** click selects, Ctrl+click adds, a rubber band selects several, arrow keys move between icons, typing a letter selects the next icon starting with it. Dragging moves icons anywhere on the desktop; positions are remembered per name in Daytona's INI file. Dragging between the desktop and other programs is not provided.
+* **Desktop menu:** Arrange Icons (by Name, Type, Size, Date; Auto Arrange), Line up Icons, Paste, Paste Shortcut, New (Folder, Text Document), Properties. NT's Undo and New > Shortcut (a wizard) and Briefcase are not offered.
+* **Icon menu:** Open (bold), Cut, Copy, Create Shortcut, Delete, Rename for files; Open for My Computer and Network Neighborhood; Open and Empty Recycle Bin for the Recycle Bin. NT's Properties sheets for files, My Computer and Network Neighborhood are not offered; PCManFM-Qt has its own.
+* **File operations stay standard:** Delete moves to the freedesktop trash (with NT's confirmation), so items appear in PCManFM-Qt's Trash and can be restored there. Cut, Copy and Paste use `text/uri-list` with `x-special/gnome-copied-files`, so they work both ways with PCManFM-Qt and other file managers. A shortcut is a symbolic link ("Shortcut to X"). A pasted item that would replace one gets NT's "Copy of X" name instead. Rename is in place (F2 or the menu). Copying shows no progress dialog; large copies belong in the file manager.
+* The desktop follows changes to `~/Desktop` and the trash made by any program, through a file watcher, reading the folder off the UI thread.
+
+Not provided: Active Desktop, web content on the desktop, icons on other monitors, the Briefcase, and NT's icon spacing settings.
 
 ---
 

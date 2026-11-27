@@ -6,6 +6,7 @@
 #include "screenmode.h"
 #include "xcursor.h"
 
+#include <QHash>
 #include <QObject>
 #include <QPoint>
 #include <QSettings>
@@ -148,6 +149,15 @@ public:
     // filed the same way; empty to leave it to the compositor's first.
     QString primaryOutput() const;
     void setPrimaryOutput(const QString &screen);
+
+    // Where each desktop icon was put, in logical pixels from the top left of
+    // the desktop, by name: a file name in the Desktop folder, or
+    // DesktopItem::key() for My Computer and the other system icons.
+    QHash<QString, QPoint> desktopIconPositions() const;
+    void setDesktopIconPositions(const QHash<QString, QPoint> &positions);
+    // The desktop menu's Arrange Icons > Auto Arrange.
+    bool desktopAutoArrange() const;
+    void setDesktopAutoArrange(bool autoArrange);
 
     // Follows changes other programs make to the file, such as
     // daytona-themetool recording a new wallpaper.

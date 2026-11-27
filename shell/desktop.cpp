@@ -3,6 +3,7 @@
 #include "desktop.h"
 
 #include "daytonastyle.h"
+#include "desktopicons.h"
 
 #include <LayerShellQt/Window>
 #include <QApplication>
@@ -48,10 +49,10 @@ Desktop::Desktop(Settings *settings, QWidget *parent)
     , m_menu(new QMenu(this))
 {
     setAttribute(Qt::WA_OpaquePaintEvent);
-    // NT's desktop menu without its icon commands (no desktop icons yet).
-    QAction *properties = m_menu->addAction(tr("P&roperties"));
-    properties->setObjectName(QStringLiteral("properties"));
-    connect(properties, &QAction::triggered, this, &Desktop::propertiesRequested);
+    // Other monitors' desktops have no icons, so their menu is only this.
+    m_properties = m_menu->addAction(tr("P&roperties"));
+    m_properties->setObjectName(QStringLiteral("properties"));
+    connect(m_properties, &QAction::triggered, this, &Desktop::propertiesRequested);
 
     connect(&m_loader, &QFutureWatcher<QImage>::finished, this, [this] {
         m_wallpaper = m_loader.result();
@@ -84,6 +85,44 @@ void Desktop::attachToLayerShell(QScreen *screen)
     // The whole screen, including under the taskbar, as in NT.
     layer->setExclusiveZone(-1);
     layer->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
+}
+
+void Desktop::setShowIcons(bool show)
+{
+    if (show == (m_icons != nullptr))
+        return;
+    if (show) {
+        m_icons = new DesktopIconView(m_settings, m_properties, this);
+        m_icons->setGeometry(rect());
+        m_icons->setMargins(m_iconMargins);
+        m_icons->show();
+        m_icons->setFocus();
+    } else {
+        delete m_icons;
+        m_icons = nullptr;
+    }
+    // Keyboard focus on click, for the icons' keys; none without them.
+    if (windowHandle()) {
+        if (auto *layer = LayerShellQt::Window::get(windowHandle())) {
+            layer->setKeyboardInteractivity(show
+                    ? LayerShellQt::Window::KeyboardInteractivityOnDemand
+                    : LayerShellQt::Window::KeyboardInteractivityNone);
+        }
+    }
+}
+
+void Desktop::setIconMargins(const QMargins &margins)
+{
+    m_iconMargins = margins;
+    if (m_icons)
+        m_icons->setMargins(margins);
+}
+
+void Desktop::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    if (m_icons)
+        m_icons->setGeometry(rect());
 }
 
 void Desktop::loadWallpaper()
@@ -178,11 +217,27 @@ void DesktopManager::add(QScreen *screen)
     desktop->attachToLayerShell(screen);
     desktop->show();
     m_desktops.insert(screen, desktop);
+    if (screen == m_iconScreen) {
+        desktop->setIconMargins(m_iconMargins);
+        desktop->setShowIcons(true);
+    }
+}
+
+void DesktopManager::setIconScreen(QScreen *screen, const QMargins &margins)
+{
+    m_iconScreen = screen;
+    m_iconMargins = margins;
+    for (auto it = m_desktops.cbegin(); it != m_desktops.cend(); ++it) {
+        it.value()->setIconMargins(margins);
+        it.value()->setShowIcons(it.key() == screen);
+    }
 }
 
 void DesktopManager::remove(QScreen *screen)
 {
     // The output is gone; so is its desktop.
+    if (screen == m_iconScreen)
+        m_iconScreen = nullptr;
     delete m_desktops.take(screen);
 }
 

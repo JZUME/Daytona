@@ -14,6 +14,8 @@ class QScreen;
 
 namespace Daytona {
 
+class DesktopIconView;
+
 // Where the wallpaper goes on the desktop, in device pixels, for every mode
 // but Tile (which repeats it from the top-left corner):
 // - Centre: unscaled, centred on the desktop colour, as NT drew it.
@@ -35,6 +37,14 @@ public:
     // own screen if null). Call before show().
     void attachToLayerShell(QScreen *screen = nullptr);
 
+    // Shows NT's desktop icons on this desktop (the primary monitor's), or
+    // takes them away. While shown, the desktop takes keyboard focus when
+    // clicked, and the icons' menu replaces contextMenu().
+    void setShowIcons(bool show);
+    DesktopIconView *icons() const { return m_icons; }
+    // The edges icons keep clear of (the taskbar), in logical pixels.
+    void setIconMargins(const QMargins &margins);
+
     QMenu *contextMenu() const { return m_menu; }
     // The wallpaper being shown; null while there is none or it is loading.
     QImage wallpaper() const { return m_wallpaper; }
@@ -48,12 +58,16 @@ Q_SIGNALS:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void loadWallpaper();
 
     Settings *m_settings;
     QMenu *m_menu;
+    QAction *m_properties;
+    DesktopIconView *m_icons = nullptr;
+    QMargins m_iconMargins;
     QString m_wallpaperPath;
     WallpaperMode m_mode = WallpaperMode::Centre;
     QImage m_wallpaper;
@@ -76,6 +90,10 @@ public:
     QList<Desktop *> desktops() const { return m_desktops.values(); }
     Desktop *desktop(QScreen *screen) const { return m_desktops.value(screen); }
 
+    // Shows the desktop icons on screen's desktop (the taskbar's), keeping
+    // clear of margins.
+    void setIconScreen(QScreen *screen, const QMargins &margins);
+
 Q_SIGNALS:
     // Properties was chosen on any desktop.
     void propertiesRequested();
@@ -86,6 +104,8 @@ private:
 
     Settings *m_settings;
     QHash<QScreen *, Desktop *> m_desktops;
+    QScreen *m_iconScreen = nullptr;
+    QMargins m_iconMargins;
 };
 
 } // namespace Daytona
