@@ -13,7 +13,7 @@ Inspired by Windows NT, [Chicago95](https://github.com/grassmunk/Chicago95) and 
 ## Installing on Debian 13
 
 Daytona has an apt repository for Debian 13 (amd64 and arm64) at
-<https://soupbowl.io/Project-Daytona/>, with two suites:
+<https://jzume.github.io/Daytona/>, with two suites:
 
 - `stable`: tagged releases.
 - `edge`: a nightly build of `main`, for testing. Only the newest builds are kept.
@@ -21,7 +21,7 @@ Daytona has an apt repository for Debian 13 (amd64 and arm64) at
 Add the signing key (fingerprint `E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090`):
 
 ```bash
-sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg https://soupbowl.io/Project-Daytona/daytona-archive-keyring.gpg
+sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg https://jzume.github.io/Daytona/daytona-archive-keyring.gpg
 ```
 
 Add the repository, with `Suites: stable` or `Suites: edge`:
@@ -29,7 +29,7 @@ Add the repository, with `Suites: stable` or `Suites: edge`:
 ```bash
 sudo tee /etc/apt/sources.list.d/daytona.sources <<'END'
 Types: deb
-URIs: https://soupbowl.io/Project-Daytona
+URIs: https://jzume.github.io/Daytona
 Suites: edge
 Components: main
 Signed-By: /etc/apt/keyrings/daytona.gpg
@@ -115,7 +115,7 @@ builds leave it, and the repository is signed with the key in the `GPG_SIGN_PRIV
 Daytona uses git submodules for [Chicago95](https://github.com/grassmunk/Chicago95) and [labwc](https://github.com/labwc/labwc). Clone with:
 
 ```bash
-git clone --recurse-submodules https://github.com/soup-bowl/Project-Daytona.git
+git clone --recurse-submodules https://github.com/JZUME/Daytona.git
 ```
 
 or, in an existing clone:

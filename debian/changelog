@@ -15,4 +15,4 @@ daytona (0.1.0) unstable; urgency=medium
   * labwc with a small patch for NT's raised 3D window frames and pressed
     caption buttons, installed privately in /usr/libexec/daytona.
 
- -- soup-bowl <soup-bowl@users.noreply.github.com>  Thu, 26 Nov 2026 18:07:50 +0000
+ -- Jzume - JZUME <hi@jzu.me>  Thu, 26 Nov 2026 18:07:50 +0000

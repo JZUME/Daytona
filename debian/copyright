@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Daytona
-Upstream-Contact: https://github.com/soup-bowl/Project-Daytona/issues
-Source: https://github.com/soup-bowl/Project-Daytona
+Upstream-Contact: https://github.com/JZUME/Daytona/issues
+Source: https://github.com/JZUME/Daytona
 
 Files: *
 Copyright: 2026 Daytona contributors

@@ -25,13 +25,13 @@ so they could be submitted upstream as they are.
    ```
 
    ```bash
-   git am /path/to/Project-Daytona/patches/labwc/*.patch
+   git am /path/to/Daytona/patches/labwc/*.patch
    ```
 
    Fix any conflicts, then write the patches back:
 
    ```bash
-   git format-patch <tag> -o /path/to/Project-Daytona/patches/labwc/
+   git format-patch <tag> -o /path/to/Daytona/patches/labwc/
    ```
 
 3. Rebuild (`cmake --build build`; the script notices the change) and run the

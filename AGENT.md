@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Project Daytona is a Windows NT 4.0 style desktop shell for Linux.
+Daytona is a Windows NT 4.0 style desktop shell for Linux.
 
 It is a **shell**, not a compositor and not a toolkit. It provides the desktop experience on top of an existing Wayland compositor:
 

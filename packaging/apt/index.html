@@ -24,7 +24,7 @@
 <div class="window">
 <div class="title">Daytona apt repository</div>
 <div class="body">
-<p><a href="https://github.com/soup-bowl/Project-Daytona">Daytona</a> is a Windows NT 4.0 style
+<p><a href="https://github.com/JZUME/Daytona">Daytona</a> is a Windows NT 4.0 style
 desktop for Debian 13 (trixie), on amd64 and arm64. This repository keeps it up to date with the
 rest of your system.</p>
 <p><small>Daytona is not affiliated with or endorsed by Microsoft. Windows and Windows NT are
@@ -38,14 +38,14 @@ trademarks of the Microsoft group of companies.</small></p>
 
 <h2>1. Add the signing key</h2>
 <pre><code>sudo curl -fsSLo /etc/apt/keyrings/daytona.gpg \
-    https://soupbowl.io/Project-Daytona/daytona-archive-keyring.gpg</code></pre>
+    https://jzume.github.io/Daytona/daytona-archive-keyring.gpg</code></pre>
 <p>Key fingerprint: <code>E359 F3E2 1E41 45F2 C163 F6AA FA49 BF57 BC03 E090</code></p>
 
 <h2>2. Add the repository</h2>
 <p>Use <code>Suites: stable</code> for releases or <code>Suites: edge</code> for the latest build.</p>
 <pre><code>sudo tee /etc/apt/sources.list.d/daytona.sources &lt;&lt;'END'
 Types: deb
-URIs: https://soupbowl.io/Project-Daytona
+URIs: https://jzume.github.io/Daytona
 Suites: edge
 Components: main
 Signed-By: /etc/apt/keyrings/daytona.gpg
@@ -60,7 +60,7 @@ sudo apt install daytona</code></pre>
 <h2>Notes</h2>
 <p>The <code>edge</code> suite only keeps the newest builds; older ones are removed. Every release
 and its packages stay on the
-<a href="https://github.com/soup-bowl/Project-Daytona/releases">releases page</a>.</p>
+<a href="https://github.com/JZUME/Daytona/releases">releases page</a>.</p>
 </div>
 </div>
 </body>
