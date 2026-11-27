@@ -82,6 +82,11 @@ public:
     QAction *controlPanelAction() const { return m_controlPanel; }
     QAction *findAction() const { return m_find; }
 
+    // The command Find > Files or Folders runs: Commands/Find from the
+    // settings file, else PCManFM-Qt's Find Files when it is installed,
+    // else none (the item is greyed out).
+    static QString findCommand(const Settings *settings);
+
     QSize sizeHint() const override;
 
 Q_SIGNALS:

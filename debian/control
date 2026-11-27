@@ -59,6 +59,7 @@ Recommends:
  lxqt-policykit,
  network-manager-applet | network-manager-gnome,
  pavucontrol-qt | pavucontrol,
+ pcmanfm-qt,
  swayidle,
  upower,
  wireplumber,
