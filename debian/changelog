@@ -1,3 +1,32 @@
+daytona (0.2.0) unstable; urgency=medium
+
+  * Programs from the freedesktop menu files: Start > Programs follows the
+    distribution's menu and menu editors, with one program-group icon for
+    every folder; StartMenu/FlatPrograms=true in daytona.ini gives NT's
+    flat list.
+  * NT desktop icons (My Computer, Recycle Bin and ~/Desktop), working
+    alongside PCManFM-Qt, which is now the default file manager for
+    folders and Start > Find.
+  * Date/Time Properties, opened from the clock: date, time, time zone and
+    network time.
+  * Keyboard Properties with keyboard layouts and the input locale
+    indicator.
+  * Display Properties arranges monitors, switches one off and chooses the
+    primary monitor.
+  * Network icon (nm-applet) and fixed tray icon menus.
+  * Print Screen and Alt+Print Screen.
+  * Programs are asked to close before logging off or shutting down.
+  * Portals for file dialogs and screen sharing; D-Bus-started programs get
+    the theme.
+  * The keyring (Secret Service) starts with the session, and Chromium
+    uses it.
+  * Only Chicago95's system icons are installed, without the Windows logo;
+    desktop icons keep one size on high-density screens.
+  * The project moved to JZUME/daytona and jzu.me/daytona, with a new apt
+    repository signing key.
+
+ -- Jzume - JZUME <hi@jzu.me>  Fri, 27 Nov 2026 22:07:35 +0000
+
 daytona (0.1.0) unstable; urgency=medium
 
   * First release (pre-release quality) of the Qt edition: the Daytona
