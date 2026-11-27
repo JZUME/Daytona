@@ -28,10 +28,17 @@ on:
       - '.vscode/**'
       - '.devcontainer/**'
 
+# A newer push to the same pull request or branch cancels the older run.
+# Release tags are never cancelled.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   build:
     name: Build and test (Debian 13)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     container: debian:trixie
     steps:
       # git must be present before checkout, otherwise actions/checkout falls
@@ -71,6 +78,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     container: debian:trixie
     steps:
       - name: Install packaging tools
@@ -127,6 +135,7 @@ jobs:
   format:
     name: clang-format
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     container: debian:trixie
     steps:
       - name: Install dependencies
