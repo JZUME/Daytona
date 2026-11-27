@@ -83,7 +83,8 @@ Before writing a component, check whether an established Linux component already
 * Print Screen capture and the clipboard: **grim** and **wl-clipboard**'s `wl-copy`
 * suspend, hibernate, lid and power button: **systemd-logind**; battery state: **UPower**; brightness keys: **brightnessctl**
 * keyboard layouts and switching between them: **XKB**, through labwc's `XKB_DEFAULT_*` environment; the list of layouts: **xkeyboard-config** (`evdev.xml`)
-* file manager, terminal, editor, etc.: existing lightweight applications
+* file manager (folders opened from Run, Documents and other programs) and Find > Files or Folders: **PCManFM-Qt** (never in its `--desktop` mode; the desktop is Daytona's)
+* terminal, editor, etc.: existing lightweight applications
 
 Daytona's own code should be the parts that do not exist elsewhere: the NT-style shell UI, the Win95 `QStyle`, the theme converter and the glue that makes them cohesive.
 
@@ -356,7 +357,7 @@ Top to bottom, matching NT 4.0:
 * **Programs**: cascading submenus built from `.desktop` files, grouped by freedesktop main categories, alphabetical within each. Entries with `NoDisplay=true`, `Hidden=true`, or `OnlyShowIn`/`NotShowIn` excluding Daytona are omitted.
 * **Documents**: the 15 most recent items from `~/.local/share/recently-used.xbel`.
 * **Settings**: Control Panel (see Control Panel below), Taskbar... (Taskbar Properties), Display... (Display Properties, colours/wallpaper/`.theme`), Keyboard... (Keyboard Properties, input locales), Mouse... (Mouse Properties, pointer scheme).
-* **Find**: launches a file-search command set in Daytona's INI file; greyed out if unset.
+* **Find**: Files or Folders... launches the file-search command set in Daytona's INI file (`Commands/Find`), else PCManFM-Qt's Find Files (`pcmanfm-qt --find-files ~`) when it is installed; greyed out if neither.
 * **Run...**: Daytona's Run dialog.
 * separator
 * **Shut Down...**: NT-style dialog offering Shut down, Restart and Close all programs and log on as a different user, using systemd-logind over QtDBus, plus Stand by and Hibernate (see Power) and Lock the computer (see Screen Lock and Screen Saver). Shut down and Restart are disabled when logind reports them unavailable, as NT did; Stand by and Hibernate are shown only where logind allows them. Before shutting down, restarting or logging off, every program is asked to close, as NT did (the shell sends Close to each owner window over the foreign-toplevel protocol and waits), so programs can save their work or ask to; one that has not closed after 20 seconds gets NT's End Task prompt (End Task, Wait, Cancel), which goes away by itself if the program closes meanwhile. End Task stops waiting for that program, which ends with the session.

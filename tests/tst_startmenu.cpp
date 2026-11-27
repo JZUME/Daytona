@@ -4,6 +4,8 @@
 #include "startmenu.h"
 
 #include <QAction>
+#include <QDir>
+#include <QFile>
 #include <QMenu>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -106,14 +108,48 @@ private Q_SLOTS:
 
     void commandItemsFollowSettings()
     {
+        // No file manager on the PATH: Find needs a configured command.
+        const QByteArray path = qgetenv("PATH");
+        QTemporaryDir bin;
+        qputenv("PATH", bin.path().toLocal8Bit());
         Settings settings(m_dir.filePath(QStringLiteral("daytona.ini")));
         {
             StartMenu menu(nullptr, &settings);
             QVERIFY(!menu.findAction()->isEnabled());
+            QCOMPARE(StartMenu::findCommand(&settings), QString());
         }
         settings.setFindCommand(QStringLiteral("catfish --path ~"));
-        StartMenu menu(nullptr, &settings);
-        QVERIFY(menu.findAction()->isEnabled());
+        {
+            StartMenu menu(nullptr, &settings);
+            QVERIFY(menu.findAction()->isEnabled());
+        }
+        qputenv("PATH", path);
+    }
+
+    void findDefaultsToFileManager()
+    {
+        const QByteArray path = qgetenv("PATH");
+        QTemporaryDir bin;
+        QFile program(bin.filePath(QStringLiteral("pcmanfm-qt")));
+        QVERIFY(program.open(QIODevice::WriteOnly));
+        program.write("#!/bin/sh\n");
+        program.close();
+        program.setPermissions(program.permissions() | QFileDevice::ExeUser);
+        qputenv("PATH", bin.path().toLocal8Bit());
+
+        Settings settings(m_dir.filePath(QStringLiteral("find.ini")));
+        const QString expected
+            = QStringLiteral("pcmanfm-qt --find-files \"%1\"").arg(QDir::homePath());
+        QCOMPARE(StartMenu::findCommand(&settings), expected);
+        QCOMPARE(StartMenu::findCommand(nullptr), expected);
+        {
+            StartMenu menu(nullptr, &settings);
+            QVERIFY(menu.findAction()->isEnabled());
+        }
+        // A configured command wins.
+        settings.setFindCommand(QStringLiteral("catfish"));
+        QCOMPARE(StartMenu::findCommand(&settings), QStringLiteral("catfish"));
+        qputenv("PATH", path);
     }
 
     void keyboardSkipsSeparator()

@@ -11,6 +11,7 @@
 
 #include <LayerShellQt/Window>
 #include <QCoreApplication>
+#include <QDir>
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QLoggingCategory>
@@ -19,6 +20,7 @@
 #include <QMimeDatabase>
 #include <QPainter>
 #include <QProcess>
+#include <QStandardPaths>
 #include <QStyle>
 #include <QStyleOptionMenuItem>
 #include <QWindow>
@@ -149,7 +151,7 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
 
     m_findMenu = new QMenu(this);
     m_find = m_findMenu->addAction(themeIcon("folder-open"), tr("&Files or Folders..."), this,
-        [this] { runCommand(m_settings->findCommand(), tr("Find")); });
+        [this] { runCommand(findCommand(m_settings), tr("Find")); });
 
     m_items = {
         { themeIcon("applications-other"), tr("&Programs"), m_programs, {}, true, false },
@@ -516,9 +518,21 @@ void StartMenu::hideEvent(QHideEvent *event)
 
 void StartMenu::updateCommandItems()
 {
-    // Find runs a command from the settings file and is greyed out when none
-    // is set.
-    m_find->setEnabled(m_settings && !m_settings->findCommand().isEmpty());
+    // Find runs a command from the settings file, else the file manager's
+    // search, and is greyed out when there is neither.
+    m_find->setEnabled(!findCommand(m_settings).isEmpty());
+}
+
+QString StartMenu::findCommand(const Settings *settings)
+{
+    const QString configured = settings ? settings->findCommand() : QString();
+    if (!configured.isEmpty())
+        return configured;
+    // PCManFM-Qt's Find Files, looking in the home folder (NT's Find looked
+    // in the local drives).
+    if (!QStandardPaths::findExecutable(QStringLiteral("pcmanfm-qt")).isEmpty())
+        return QStringLiteral("pcmanfm-qt --find-files \"%1\"").arg(QDir::homePath());
+    return {};
 }
 
 void StartMenu::rebuildPrograms()

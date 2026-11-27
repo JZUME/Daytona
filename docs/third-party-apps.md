@@ -75,6 +75,39 @@ See `docs/colour-schemes.md`: GTK 3 applications in the session use Chicago95
 in the current colour scheme (`GTK_THEME=Daytona`). GTK 4 and libadwaita
 applications are out of scope.
 
+## File manager
+
+Daytona has no file manager of its own. PCManFM-Qt is recommended by the
+package: it is Qt 6, so it takes the `daytona` style (see Tested
+applications above), and the session uses it for folders and searching.
+
+- **Folders:** Daytona installs `share/applications/daytona-mimeapps.list`,
+  which makes `pcmanfm-qt.desktop` the default for `inode/directory` in the
+  Daytona session only (the freedesktop default-applications lists are read
+  per desktop, `daytona-mimeapps.list` for `XDG_CURRENT_DESKTOP=Daytona`).
+  `xdg-open`, GLib and Qt applications read it, so a folder typed in Run, a
+  folder in Documents and other programs' "open containing folder" open in
+  PCManFM-Qt. Choices of the user's own (`~/.config/mimeapps.list`, for
+  example from `xdg-mime default`) or the administrator's
+  (`/etc/xdg/mimeapps.list`) win. Without PCManFM-Qt, the entry is skipped
+  and the system's default file manager opens folders.
+- **Find:** Start > Find > Files or Folders runs the command in
+  `Commands/Find` in `daytona.ini`, as a command line without a shell. When
+  that is not set and PCManFM-Qt is installed, it opens PCManFM-Qt's Find
+  Files window, looking in the home folder. With neither, the item is greyed
+  out. To use another search tool:
+
+  ```ini
+  [Commands]
+  Find=catfish --path /home/me
+  ```
+
+- **Desktop:** PCManFM-Qt can also draw a desktop with icons
+  (`pcmanfm-qt --desktop`). Daytona's desktop is its own, so this must not
+  run: LXQt's autostart entry for it (`lxqt-desktop.desktop`) is
+  `OnlyShowIn=LXQt` and does not start in the Daytona session, and Daytona
+  never starts it.
+
 ## Autostart applications
 
 At log on, after the shell has started, Daytona starts the applications in

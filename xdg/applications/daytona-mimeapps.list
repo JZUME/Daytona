@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Default applications in the Daytona session (XDG_CURRENT_DESKTOP=Daytona),
+# read by xdg-open, GLib and Qt. Folders open in PCManFM-Qt, when it is
+# installed, so Run, Documents and other programs' "open folder" show them
+# in a file manager that takes the daytona style. The user's own choices
+# (~/.config/mimeapps.list) and the administrator's (/etc/xdg) win. See
+# docs/third-party-apps.md.
+[Default Applications]
+inode/directory=pcmanfm-qt.desktop;

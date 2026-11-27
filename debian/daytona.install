@@ -7,5 +7,6 @@ usr/libexec/daytona/daytona-lock
 usr/lib/*/qt6/plugins/styles/libdaytonastyle.so
 usr/share/daytona
 usr/share/themes/Daytona
+usr/share/applications/daytona-mimeapps.list
 usr/share/xdg-desktop-portal/daytona-portals.conf
 usr/share/wayland-sessions/daytona.desktop

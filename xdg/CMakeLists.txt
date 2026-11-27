@@ -15,3 +15,7 @@ install(FILES xdg-desktop-portal/daytona-portals.conf
 configure_file(xdg-desktop-portal-wlr/Daytona.in xdg-desktop-portal-wlr/Daytona @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/xdg-desktop-portal-wlr/Daytona
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/xdg/xdg-desktop-portal-wlr)
+
+# Default applications for the session: folders open in the file manager.
+install(FILES applications/daytona-mimeapps.list
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
