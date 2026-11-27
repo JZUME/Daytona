@@ -1,3 +1,4 @@
+etc/chromium.d/daytona
 etc/xdg/xdg-desktop-portal-wlr/Daytona
 usr/bin/daytona-session
 usr/bin/daytona-shell

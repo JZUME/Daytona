@@ -1,0 +1,6 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Stands in for gnome-keyring's daemon: notes how it was started, so
+# smoke_autostart can check the session starts it once, for the Secret
+# Service.
+echo "$*" >>"$XDG_RUNTIME_DIR/gnome-keyring-daemon.args"

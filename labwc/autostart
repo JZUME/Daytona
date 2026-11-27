@@ -47,6 +47,18 @@ if command -v nm-applet >/dev/null; then
     xdg_config_dirs="$daytona_xdg:$xdg_config_dirs"
 fi
 {
+    # First, the keyring: gnome-keyring's Secret Service
+    # (org.freedesktop.secrets), where browsers, mail programs and other
+    # applications keep saved passwords. Its own autostart entry is
+    # OnlyShowIn=GNOME;Unity;MATE;, so dex would skip it. When the login
+    # manager's PAM stack has pam_gnome_keyring (libpam-gnome-keyring), PAM
+    # has already started the daemon and unlocked the login keyring with the
+    # log-on password; --start finishes starting that daemon, and starts one
+    # only if there is none. It comes before the autostart applications, so
+    # they find the keyring ready.
+    if command -v gnome-keyring-daemon >/dev/null; then
+        gnome-keyring-daemon --start --components=secrets
+    fi
     gdbus wait --session --timeout 30 org.kde.StatusNotifierWatcher
     XDG_CONFIG_DIRS="$xdg_config_dirs" dex --autostart --environment Daytona
 } >/dev/null 2>&1 &
