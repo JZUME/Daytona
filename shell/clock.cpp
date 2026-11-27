@@ -2,6 +2,7 @@
 
 #include "clock.h"
 
+#include <QMouseEvent>
 #include <QRegularExpression>
 
 namespace Daytona {
@@ -63,6 +64,21 @@ QSize Clock::sizeHint() const
         widest = qMax(
             widest, fontMetrics().horizontalAdvance(locale.toString(sample, QLocale::ShortFormat)));
     return { widest + 2 * HorizontalPadding, QLabel::sizeHint().height() };
+}
+
+void Clock::refresh()
+{
+    update();
+}
+
+void Clock::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        Q_EMIT propertiesRequested();
+        event->accept();
+        return;
+    }
+    QLabel::mouseDoubleClickEvent(event);
 }
 
 void Clock::update()

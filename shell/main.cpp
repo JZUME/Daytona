@@ -4,7 +4,9 @@
 #include "balloon.h"
 #include "battery.h"
 #include "blankscreen.h"
+#include "clock.h"
 #include "controlpanel.h"
+#include "datetimeproperties.h"
 #include "daytonastyle.h"
 #include "desktop.h"
 #include "displayproperties.h"
@@ -33,6 +35,7 @@
 #include "taskbarplacement.h"
 #include "taskbarproperties.h"
 #include "tasklist.h"
+#include "timedate.h"
 #include "toplevelmanager.h"
 #include "volumecontrol.h"
 #include "waylandcheck.h"
@@ -411,6 +414,29 @@ int main(int argc, char *argv[])
         &Daytona::InputLocaleIcon::propertiesRequested, &keyboardProperties,
         showKeyboardProperties);
 
+    // Date/Time Properties, from a double-click on the clock and the Control
+    // Panel, through systemd-timedated. The clock follows a new time zone
+    // straight away, whoever changed it.
+    Daytona::TimeDate timeDate(QDBusConnection::systemBus());
+    Daytona::Clock *clock = taskbar.notificationArea()->clock();
+    QObject::connect(&timeDate, &Daytona::TimeDate::timeZoneChanged, clock, [clock] {
+        Daytona::TimeDate::reloadLocalTimeZone();
+        clock->refresh();
+    });
+    timeDate.start();
+    Daytona::DateTimePropertiesDialog dateTimeProperties(&timeDate);
+    QObject::connect(&dateTimeProperties, &Daytona::DateTimePropertiesDialog::applied, clock,
+        &Daytona::Clock::refresh);
+    const auto showDateTimeProperties = [&dateTimeProperties] {
+        if (!dateTimeProperties.isVisible())
+            dateTimeProperties.prepare();
+        dateTimeProperties.show();
+        dateTimeProperties.raise();
+        dateTimeProperties.activateWindow();
+    };
+    QObject::connect(
+        clock, &Daytona::Clock::propertiesRequested, &dateTimeProperties, showDateTimeProperties);
+
     // Taskbar Properties, from Start > Settings > Taskbar..., the taskbar's
     // own menu and the Control Panel.
     Daytona::TaskbarPropertiesDialog taskbarProperties(&settings);
@@ -475,6 +501,8 @@ int main(int argc, char *argv[])
             controlPanel.raise();
             controlPanel.activateWindow();
         });
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::dateTimePropertiesRequested,
+        &dateTimeProperties, showDateTimeProperties);
     QObject::connect(&controlPanel, &Daytona::ControlPanel::displayPropertiesRequested,
         &displayProperties, showDisplayProperties);
     QObject::connect(&controlPanel, &Daytona::ControlPanel::keyboardPropertiesRequested,

@@ -82,6 +82,7 @@ Before writing a component, check whether an established Linux component already
 * file dialogs and screen sharing for sandboxed and portal-using applications: **xdg-desktop-portal** with LXQt's (**xdg-desktop-portal-lxqt**) file dialog, **xdg-desktop-portal-wlr** for screen sharing (with Daytona's Share Screen dialog as its chooser) and **xdg-desktop-portal-gtk** for the rest
 * Print Screen capture and the clipboard: **grim** and **wl-clipboard**'s `wl-copy`
 * suspend, hibernate, lid and power button: **systemd-logind**; battery state: **UPower**; brightness keys: **brightnessctl**
+* date, time and time zone: **systemd-timedated** (`org.freedesktop.timedate1`, which asks the polkit agent for the password); network time: whatever NTP service timedated finds (**systemd-timesyncd** on Debian)
 * keyboard layouts and switching between them: **XKB**, through labwc's `XKB_DEFAULT_*` environment; the list of layouts: **xkeyboard-config** (`evdev.xml`)
 * file manager (folders opened from Run, Documents and other programs) and Find > Files or Folders: **PCManFM-Qt** (never in its `--desktop` mode; the desktop is Daytona's)
 * terminal, editor, etc.: existing lightweight applications
@@ -199,7 +200,7 @@ Daytona
 │   ├── Taskbar (Start button, window buttons, notification area, clock)
 │   ├── Start menu
 │   ├── Run and Shut Down dialogs
-│   ├── Control Panel; Taskbar, Display, Keyboard and Mouse Properties dialogs
+│   ├── Control Panel; Taskbar, Display, Keyboard, Mouse and Date/Time Properties dialogs
 │   ├── Notification balloons
 │   ├── Desktop (background, context menu)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
@@ -328,6 +329,10 @@ Accepted configuration, Keyboard Properties equivalents (NT's Control Panel appl
 
 * the input locales on the Input Locales tab: installed keyboard layouts (any XKB layout or variant xkeyboard-config lists, added by language as NT's Add Input Locale did), the default one, and the Switch locales hot key (Left Alt+Shift, the default, Ctrl+Shift or None, done by XKB's `grp:alt_shift_toggle` and `grp:ctrl_shift_toggle`). Until something is chosen the system's keyboard is used (`/etc/default/keyboard`, as the installer set it), and the system's other XKB options are always kept. NT's Speed and General tabs are not offered.
 
+Accepted configuration, Date/Time Properties equivalents (NT's Control Panel applet, opened by double-clicking the clock, issue #3):
+
+* the date and time on the Date & Time tab, the time zone on the Time Zone tab (a list in place of NT's world map) and Windows 2000's network time ("Automatically synchronise with an Internet time server", one check box). These are system settings, kept by systemd-timedated, not in Daytona's INI file. NT's "Automatically adjust clock for daylight saving changes" is not offered (the time zone always does), nor XP's Internet Time tab (choosing time servers).
+
 Accepted configuration, Taskbar Properties equivalents:
 
 * taskbar edge (set by dragging, not by a setting in a dialog)
@@ -370,7 +375,7 @@ NT's **Help** item is omitted; there is no system-wide help viewer to open.
 
 Start > Settings > Control Panel opens NT's Control Panel: a folder window of applet icons, with File (Open, Close) and View (Status Bar, Large Icons, Small Icons, List, Refresh) menus and a status bar showing the object count or the selected applet's description.
 
-* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Display, Keyboard, Mouse, Taskbar), then **Applications**.
+* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Date/Time, Display, Keyboard, Mouse, Taskbar), then **Applications**.
 * **Applications** lists every installed application the Start menu would show whose `.desktop` file has `Settings` in `Categories`. This is the registration mechanism: an application adds a Control Panel applet with a standard freedesktop `.desktop` file, and the list follows installs and removals. There is no Daytona-specific applet API or plugin system.
 * Opening a Daytona applet opens its dialog in the shell; opening an application launches it as the Start menu does.
 * A new Daytona settings dialog is added to the Daytona group as well as (where NT had one) its own Start > Settings item.
@@ -420,6 +425,17 @@ NT's Keyboard Properties (Input Locales tab) and its input locale indicator:
 * XKB switches layouts itself on the hot key. The indicator ("En", "De": the layout's language in the selection colours) follows the keyboard's layout group, which labwc sends with the keyboard modifiers to every client, focused or not; the shell reads it from its own `wl_keyboard`. It is shown only while more than one locale is installed.
 * Clicking the indicator lists the locales; choosing one gives labwc the layouts again starting with it, as no protocol lets a client set the group. Its right-click menu opens Keyboard Properties.
 * Input methods (IBus, Fcitx) are out of scope.
+
+---
+
+## Date and Time
+
+NT's Date/Time Properties, opened by double-clicking the clock or from the Control Panel:
+
+* Date & Time tab: Date (month, year and NT's month calendar, a `QCalendarWidget` without its navigation bar, every day drawn alike) and Time (NT's analogue clock face, drawn with `QPainter` from the palette, over a time field with seconds), Windows 2000's network time check box, and the current time zone's name. The time runs while the dialog is open and stops once the date or time is changed by hand; while network time is on, the date and time cannot be changed (timedated refuses to set the clock then).
+* Time Zone tab: the zones in tzdata's `zone1970.tab`, plus UTC, listed as "(GMT+01:00) Europe/Paris" in order of their standard (winter) offset, as NT ordered its list.
+* Apply sends only what changed, to systemd-timedated over the system bus: SetNTP, then SetTimezone, then SetTime (the date and time as shown, in the chosen zone), asynchronously and interactive, so the polkit agent asks for an administrator's password. The first refusal stops the rest and is shown; OK closes the dialog once everything has been applied.
+* The shell follows timedated's PropertiesChanged signal, so a time zone set anywhere (this dialog, `timedatectl`) moves the taskbar clock at once: it makes glibc read the zone again (glibc otherwise keeps the zone it first read while `TZ` is unchanged) and redraws the clock.
 
 ---
 

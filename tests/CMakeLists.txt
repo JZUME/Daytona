@@ -126,3 +126,10 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME check_chicago95
     COMMAND Python3::Interpreter -I "${CMAKE_CURRENT_SOURCE_DIR}/check_chicago95.py"
         "${CMAKE_BINARY_DIR}/chicago95")
+
+# Date/Time Properties and the timedated client, against a fake timedated on
+# a private bus.
+add_executable(tst_datetime tst_datetime.cpp)
+target_link_libraries(tst_datetime PRIVATE Qt6::Test daytona-shell-core)
+add_test(NAME tst_datetime COMMAND dbus-run-session -- $<TARGET_FILE:tst_datetime>)
+set_tests_properties(tst_datetime PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)

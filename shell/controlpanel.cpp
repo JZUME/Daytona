@@ -60,6 +60,8 @@ QList<ControlPanelApplet> controlPanelApplets(const QList<DesktopEntry> &entries
     };
     using B = ControlPanelApplet::Builtin;
     QList<ControlPanelApplet> builtins = {
+        { tr("Date/Time"), tr("Changes the date, time and time zone."),
+            QStringLiteral("preferences-system-time"), B::DateTime, {} },
         { tr("Display"),
             tr("Changes your desktop's colours, wallpaper, screen area and font size."),
             QStringLiteral("preferences-desktop-display"), B::Display, {} },
@@ -336,6 +338,9 @@ void ControlPanel::openApplet(const ControlPanelApplet &applet)
 {
     using B = ControlPanelApplet::Builtin;
     switch (applet.builtin) {
+    case B::DateTime:
+        Q_EMIT dateTimePropertiesRequested();
+        return;
     case B::Display:
         Q_EMIT displayPropertiesRequested();
         return;
