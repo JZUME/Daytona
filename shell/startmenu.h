@@ -4,6 +4,7 @@
 
 #include "desktopentry.h"
 #include "settings.h"
+#include "xdgmenu.h"
 
 #include <QElapsedTimer>
 #include <QIcon>
@@ -19,17 +20,6 @@ namespace Daytona {
 class ApplicationIndex;
 class ClickCatcher;
 class Settings;
-
-// Programs grouped for the Start menu: one group per main category in the
-// order mainCategories() gives, then (key empty) applications that have no
-// main category.
-struct ProgramGroup
-{
-    QString key;
-    QString displayName;
-    QList<DesktopEntry> entries;
-};
-QList<ProgramGroup> groupPrograms(const QList<DesktopEntry> &entries);
 
 // The NT Start menu: a vertical banner down the left side and, top to
 // bottom, Programs, Documents, Settings, Find, Run..., Shut Down....
@@ -112,6 +102,7 @@ protected:
 private:
     void attachToLayerShell();
     void rebuildPrograms();
+    void addPrograms(QMenu *menu, const MenuNode &folder);
     void rebuildDocuments();
     void updateCommandItems();
     int iconSize() const;

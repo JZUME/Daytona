@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "applicationindex.h"
 #include "settings.h"
 #include "startmenu.h"
 
 #include <QAction>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QMenu>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -15,14 +17,21 @@ using namespace Daytona;
 
 namespace {
 
-DesktopEntry entry(const QString &name, const QStringList &categories)
+void writeApp(const QString &path, const char *name, const char *categories)
 {
-    DesktopEntry e;
-    e.name = name;
-    e.categories = categories;
-    e.type = QStringLiteral("Application");
-    e.exec = QStringLiteral("true");
-    return e;
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write(QByteArray("[Desktop Entry]\nType=Application\nExec=true\nName=") + name
+        + "\nCategories=" + categories + "\n");
+}
+
+QStringList actionTexts(QMenu *menu)
+{
+    QStringList out;
+    for (QAction *action : menu->actions())
+        out << action->text();
+    return out;
 }
 
 QStringList texts(const QList<StartMenu::Item> &items)
@@ -43,22 +52,48 @@ private:
     QTemporaryDir m_dir;
 
 private Q_SLOTS:
-    void groupsFollowMainCategoryOrder()
+    void programsFollowTheMenuFile()
     {
-        const QList<ProgramGroup> groups = groupPrograms({
-            entry(QStringLiteral("Paint"), { QStringLiteral("Graphics") }),
-            entry(QStringLiteral("Notepad"),
-                { QStringLiteral("Utility"), QStringLiteral("TextEditor") }),
-            entry(QStringLiteral("Odd"), { QStringLiteral("GTK") }),
-            entry(QStringLiteral("Calc"), { QStringLiteral("Utility") }),
-        });
-        QCOMPARE(groups.size(), 3);
-        QCOMPARE(groups[0].key, QStringLiteral("Utility"));
-        QCOMPARE(groups[0].displayName, QStringLiteral("Accessories"));
-        QCOMPARE(groups[0].entries.size(), 2);
-        QCOMPARE(groups[1].key, QStringLiteral("Graphics"));
-        QCOMPARE(groups[2].key, QString()); // uncategorised last
-        QCOMPARE(groups[2].entries.first().name, QStringLiteral("Odd"));
+        // The built-in Daytona menu over a small set of applications.
+        QTemporaryDir root;
+        const QString apps = root.filePath(QStringLiteral("share/applications"));
+        writeApp(apps + QStringLiteral("/paint.desktop"), "Paint", "Graphics;");
+        writeApp(apps + QStringLiteral("/notepad.desktop"), "Notepad", "Utility;TextEditor;");
+        writeApp(apps + QStringLiteral("/calc.desktop"), "Calc", "Utility;");
+        writeApp(apps + QStringLiteral("/odd.desktop"), "Odd", "GTK;");
+        XdgMenuPaths paths;
+        paths.configDirs = { root.filePath(QStringLiteral("config")) };
+        paths.dataDirs = { root.filePath(QStringLiteral("share")) };
+        qunsetenv("XDG_MENU_PREFIX");
+        ApplicationIndex index;
+        QSignalSpy changed(&index, &ApplicationIndex::changed);
+        index.start({ apps }, paths);
+        QVERIFY(changed.wait());
+
+        Settings settings(m_dir.filePath(QStringLiteral("programs.ini")));
+        StartMenu menu(&index, &settings);
+        QCOMPARE(actionTexts(menu.programsMenu()),
+            QStringList({ QStringLiteral("Accessories"), QStringLiteral("Graphics"),
+                QStringLiteral("Odd") }));
+        QMenu *accessories = menu.programsMenu()->actions().first()->menu();
+        QVERIFY(accessories);
+        QCOMPARE(actionTexts(accessories),
+            QStringList({ QStringLiteral("Calc"), QStringLiteral("Notepad") }));
+
+        // Every folder has the one program-group icon.
+        const QString groupIcon = QIcon::fromTheme(QStringLiteral("applications-other")).name();
+        for (QAction *action : menu.programsMenu()->actions()) {
+            if (action->menu())
+                QCOMPARE(action->icon().name(), groupIcon);
+        }
+
+        // The INI file's flat list: every program, no folders.
+        settings.setFlatProgramsMenu(true);
+        QCOMPARE(actionTexts(menu.programsMenu()),
+            QStringList({ QStringLiteral("Calc"), QStringLiteral("Notepad"), QStringLiteral("Odd"),
+                QStringLiteral("Paint") }));
+        settings.setFlatProgramsMenu(false);
+        QCOMPARE(actionTexts(menu.programsMenu()).size(), 3);
     }
 
     void itemsInNtOrder()

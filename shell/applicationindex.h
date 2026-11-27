@@ -3,6 +3,7 @@
 #pragma once
 
 #include "desktopentry.h"
+#include "xdgmenu.h"
 
 #include <QFileSystemWatcher>
 #include <QFutureWatcher>
@@ -11,8 +12,9 @@
 
 namespace Daytona {
 
-// The installed applications the Start menu lists, kept up to date as
-// .desktop files change. Scanning happens off the UI thread.
+// The installed applications, and the Start menu's Programs tree built from
+// them by the freedesktop menu file, kept up to date as .desktop, menu and
+// .directory files change. Scanning happens off the UI thread.
 class ApplicationIndex : public QObject
 {
     Q_OBJECT
@@ -32,9 +34,15 @@ public:
         const QStringList &dirs, const QString &desktopName, const QString &localeName);
 
     // Scans dirs in the background and keeps watching them for changes.
-    void start(const QStringList &dirs = defaultDirectories());
+    // The Programs tree comes from the menu file findApplicationsMenu()
+    // picks for menuPaths and $XDG_MENU_PREFIX.
+    void start(const QStringList &dirs = defaultDirectories(),
+        const XdgMenuPaths &menuPaths = XdgMenuPaths::fromEnvironment());
 
+    // Every application to show, sorted by name.
     QList<DesktopEntry> entries() const { return m_entries; }
+    // Start > Programs.
+    const MenuNode &programs() const { return m_menu.root; }
 
 Q_SIGNALS:
     void changed();
@@ -43,11 +51,19 @@ private:
     void rescan();
     void watch();
 
+    struct Result
+    {
+        QList<DesktopEntry> entries;
+        XdgMenu menu;
+    };
+
     QStringList m_dirs;
+    XdgMenuPaths m_menuPaths;
     QList<DesktopEntry> m_entries;
+    XdgMenu m_menu;
     QFileSystemWatcher m_watcher;
     QTimer m_debounce;
-    QFutureWatcher<QList<DesktopEntry>> m_scan;
+    QFutureWatcher<Result> m_scan;
     bool m_rescanPending = false;
 };
 

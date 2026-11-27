@@ -4,6 +4,7 @@
 
 #include <QDir>
 #include <QDirIterator>
+#include <QFileInfo>
 #include <QLoggingCategory>
 #include <QProcess>
 #include <QSet>
@@ -36,8 +37,12 @@ ApplicationIndex::ApplicationIndex(QObject *parent)
     connect(&m_debounce, &QTimer::timeout, this, &ApplicationIndex::rescan);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, &m_debounce,
         qOverload<>(&QTimer::start));
-    connect(&m_scan, &QFutureWatcher<QList<DesktopEntry>>::finished, this, [this] {
-        m_entries = m_scan.result();
+    // Menu editors and .directory files are often rewritten in place.
+    connect(&m_watcher, &QFileSystemWatcher::fileChanged, &m_debounce, qOverload<>(&QTimer::start));
+    connect(&m_scan, &QFutureWatcher<Result>::finished, this, [this] {
+        Result result = m_scan.result();
+        m_entries = result.entries;
+        m_menu = result.menu;
         qCDebug(lcApps) << "indexed" << m_entries.size() << "applications";
         watch();
         Q_EMIT changed();
@@ -91,9 +96,10 @@ QList<DesktopEntry> ApplicationIndex::scan(
     return entries;
 }
 
-void ApplicationIndex::start(const QStringList &dirs)
+void ApplicationIndex::start(const QStringList &dirs, const XdgMenuPaths &menuPaths)
 {
     m_dirs = dirs;
+    m_menuPaths = menuPaths;
     rescan();
 }
 
@@ -104,9 +110,16 @@ void ApplicationIndex::rescan()
         return;
     }
     const QStringList dirs = m_dirs;
+    const XdgMenuPaths menuPaths = m_menuPaths;
+    const QString prefix = qEnvironmentVariable("XDG_MENU_PREFIX");
     const QString locale = messagesLocale();
-    m_scan.setFuture(QtConcurrent::run(
-        [dirs, locale] { return scan(dirs, QString::fromLatin1(DesktopName), locale); }));
+    m_scan.setFuture(QtConcurrent::run([dirs, menuPaths, prefix, locale] {
+        const QString desktop = QString::fromLatin1(DesktopName);
+        const QString menuFile = findApplicationsMenu(menuPaths, prefix);
+        qCDebug(lcApps) << "reading menu" << menuFile;
+        return Result { scan(dirs, desktop, locale),
+            loadXdgMenu(menuFile, menuPaths, desktop, locale) };
+    }));
 }
 
 void ApplicationIndex::watch()
@@ -122,10 +135,11 @@ void ApplicationIndex::watch()
         while (it.hasNext())
             paths << it.next();
     }
-    const QStringList current = m_watcher.directories();
+    paths << m_menu.watchDirs << m_menu.watchFiles;
+    const QStringList current = m_watcher.directories() + m_watcher.files();
     QStringList toAdd;
     for (const QString &path : std::as_const(paths)) {
-        if (!current.contains(path))
+        if (!current.contains(path) && !toAdd.contains(path) && QFileInfo::exists(path))
             toAdd << path;
     }
     if (!toAdd.isEmpty())

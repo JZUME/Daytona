@@ -238,6 +238,17 @@ void Settings::setSmallStartMenuIcons(bool small)
     write(KeySmallIcons, small);
 }
 
+const QString Settings::FlatProgramsKey = QStringLiteral("StartMenu/FlatPrograms");
+
+bool Settings::flatProgramsMenu() const
+{
+    return readBool(FlatProgramsKey, false);
+}
+void Settings::setFlatProgramsMenu(bool flat)
+{
+    write(FlatProgramsKey, flat);
+}
+
 QString Settings::findCommand() const
 {
     return m_settings.value(KeyFind).toString().trimmed();

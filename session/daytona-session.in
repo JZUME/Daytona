@@ -7,6 +7,9 @@
 # usually set this from DesktopNames already; set it for direct starts too.
 export XDG_CURRENT_DESKTOP=Daytona
 export XDG_SESSION_DESKTOP=Daytona
+# Start > Programs, and menu editors, use daytona-applications.menu (as
+# other desktops use their own prefix). Kept if already set.
+export XDG_MENU_PREFIX="${XDG_MENU_PREFIX:-daytona-}"
 
 # GTK 3 applications use the Daytona GTK theme (Chicago95 in the current
 # colour scheme), and everything uses the Windows 95 cursors. Set here, for

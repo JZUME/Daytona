@@ -78,6 +78,12 @@ public:
     void setShowClock(bool show);
     bool smallStartMenuIcons() const;
     void setSmallStartMenuIcons(bool small);
+    // Start > Programs as one list of every program, without folders (set
+    // in the INI file only; there is no dialog for it). Off by default:
+    // folders come from the freedesktop menu file.
+    static const QString FlatProgramsKey;
+    bool flatProgramsMenu() const;
+    void setFlatProgramsMenu(bool flat);
 
     QString findCommand() const;
     void setFindCommand(const QString &command);
