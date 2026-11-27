@@ -346,8 +346,8 @@ int main(int argc, char *argv[])
     QObject::connect(taskbar.windowHandle(), &QWindow::heightChanged, &placeIcons, updateIcons);
     QObject::connect(&taskbar, &Daytona::Taskbar::edgeChanged, &placeIcons, updateIcons);
     QObject::connect(qApp, &QGuiApplication::screenAdded, &placeIcons, updateIcons);
-    QObject::connect(&settings, &Daytona::Settings::changed, &placeIcons,
-        [updateIcons](const QString &key) {
+    QObject::connect(
+        &settings, &Daytona::Settings::changed, &placeIcons, [updateIcons](const QString &key) {
             if (key.isEmpty() || key.startsWith(QLatin1String("Taskbar/")))
                 updateIcons();
         });

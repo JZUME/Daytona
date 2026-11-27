@@ -15,7 +15,8 @@
 # the logical size stays 1024x768, so tests use the same coordinates, and
 # screenshots are that many times larger.
 #
-# The session has its own empty configuration directory. DAYTONA_SMOKE_CONFIG
+# The session has its own empty configuration directory, and its own empty
+# Desktop folder ($XDG_RUNTIME_DIR/Desktop). DAYTONA_SMOKE_CONFIG
 # names a daytona.ini to start with instead; the output is then left as labwc
 # created it (no size or scale is set), as the test is about what the shell
 # does with that configuration.
@@ -54,6 +55,9 @@ chmod 700 "$runtime"
 export XDG_RUNTIME_DIR="$runtime"
 export XDG_CONFIG_HOME="$runtime/config"
 mkdir -p "$XDG_CONFIG_HOME/daytona"
+# The desktop icons' Desktop folder, apart from the user's own.
+mkdir -p "$runtime/Desktop"
+echo "XDG_DESKTOP_DIR=\"$runtime/Desktop\"" >"$XDG_CONFIG_HOME/user-dirs.dirs"
 if [[ -n "${DAYTONA_SMOKE_CONFIG:-}" ]]; then
     cp "$DAYTONA_SMOKE_CONFIG" "$XDG_CONFIG_HOME/daytona/daytona.ini"
 fi

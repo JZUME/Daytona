@@ -65,8 +65,8 @@ QStringList emptyTrash(const QString &trashFiles);
 // when free, else the NT-style alternatives pattern gives, where %1 is the
 // name and %2 a number from 2 ("Copy of %1", "Copy (%2) of %1"; "New Folder",
 // "New Folder (%2)").
-QString uniqueName(const QString &directory, const QString &name, const QString &first,
-    const QString &numbered);
+QString uniqueName(
+    const QString &directory, const QString &name, const QString &first, const QString &numbered);
 
 // The clipboard formats file managers share: text/uri-list, plus GNOME's
 // x-special/gnome-copied-files ("copy" or "cut", then the URLs), which

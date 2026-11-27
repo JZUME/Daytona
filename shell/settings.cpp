@@ -298,10 +298,8 @@ void Settings::setDesktopIconPositions(const QHash<QString, QPoint> &positions)
 {
     QStringList stored;
     for (auto it = positions.cbegin(); it != positions.cend(); ++it) {
-        stored.append(QStringLiteral("%1,%2,%3")
-                .arg(it.value().x())
-                .arg(it.value().y())
-                .arg(it.key()));
+        stored.append(
+            QStringLiteral("%1,%2,%3").arg(it.value().x()).arg(it.value().y()).arg(it.key()));
     }
     stored.sort();
     write(KeyIconPositions, stored);

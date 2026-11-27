@@ -84,6 +84,8 @@ set_tests_properties(themetool_apply_theme PROPERTIES
     PASS_REGULAR_EXPRESSION "Wallpaper: [^\n]*/themetool-apply-theme/data/daytona/wallpaper/Sample Wallpaper.bmp \\(tile\\).*Warning: ")
 daytona_add_test(tst_desktop daytona-shell-core)
 set_tests_properties(tst_desktop PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+daytona_add_test(tst_desktopicons daytona-shell-core)
+set_tests_properties(tst_desktopicons PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
 
 # Tray icons: a host and test items talking over a private session bus.
 add_subdirectory(sni)

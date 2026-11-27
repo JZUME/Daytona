@@ -44,8 +44,8 @@ namespace {
     constexpr int LabelTextWidth = Cell + 4;
     constexpr int MaxLabelLines = 2;
 
-    QStringList wrapLabel(const QString &text, const QFont &font, QPaintDevice *device,
-        int width, int maxLines)
+    QStringList wrapLabel(
+        const QString &text, const QFont &font, QPaintDevice *device, int width, int maxLines)
     {
         QTextLayout layout(text, font, device);
         QTextOption option(Qt::AlignHCenter);
@@ -73,9 +73,8 @@ namespace {
     QIcon iconFor(const DesktopItem &item)
     {
         if (QDir::isAbsolutePath(item.iconName)) {
-            const QIcon icon(item.iconName);
-            if (!icon.availableSizes().isEmpty())
-                return icon;
+            if (QFileInfo::exists(item.iconName))
+                return QIcon(item.iconName);
         } else if (!item.iconName.isEmpty() && QIcon::hasThemeIcon(item.iconName)) {
             return QIcon::fromTheme(item.iconName);
         }
@@ -157,7 +156,7 @@ DesktopIconView::DesktopIconView(Settings *settings, QAction *properties, QWidge
     newMenu->addAction(QIcon::fromTheme(QStringLiteral("folder")), tr("&Folder"), this,
         &DesktopIconView::newFolder);
     newMenu->addSeparator();
-    newMenu->addAction(QIcon::fromTheme(QStringLiteral("text-x-generic")), tr("Text Document"),
+    newMenu->addAction(QIcon::fromTheme(QStringLiteral("text-x-generic")), tr("&Text Document"),
         this, &DesktopIconView::newTextDocument);
     m_desktopMenu->addSeparator();
     if (properties)
@@ -294,8 +293,8 @@ void DesktopIconView::listingReady()
     // Icons already shown keep their order (for Auto Arrange); new ones go
     // after them, by name.
     QList<DesktopItem> files = listing.files;
-    std::stable_sort(files.begin(), files.end(),
-        [&previousOrder](const DesktopItem &a, const DesktopItem &b) {
+    std::stable_sort(
+        files.begin(), files.end(), [&previousOrder](const DesktopItem &a, const DesktopItem &b) {
             const qsizetype ia = previousOrder.indexOf(a.key());
             const qsizetype ib = previousOrder.indexOf(b.key());
             if (ia < 0 || ib < 0)
@@ -658,10 +657,10 @@ void DesktopIconView::mouseReleaseEvent(QMouseEvent *event)
                 return (cell.x() / Cell) * rows + cell.y() / Cell;
             };
             QList<Icon> icons = m_icons;
-            std::stable_sort(icons.begin(), icons.end(), [&](const Icon &a, const Icon &b) {
-                return slot(a.pos) < slot(b.pos);
-            });
-            const QString currentKey = m_current >= 0 ? m_icons.at(m_current).item.key() : QString();
+            std::stable_sort(icons.begin(), icons.end(),
+                [&](const Icon &a, const Icon &b) { return slot(a.pos) < slot(b.pos); });
+            const QString currentKey
+                = m_current >= 0 ? m_icons.at(m_current).item.key() : QString();
             m_icons = icons;
             m_current = indexOf(currentKey);
             for (const Icon &icon : std::as_const(m_icons))
@@ -839,11 +838,14 @@ void DesktopIconView::resizeEvent(QResizeEvent *event)
 
 bool DesktopIconView::eventFilter(QObject *watched, QEvent *event)
 {
-    // Escape cancels a rename.
-    if (watched == m_renameEditor && event->type() == QEvent::KeyPress
-        && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape) {
-        finishRename(false);
-        return true;
+    // Enter finishes a rename and Escape cancels it. Neither goes on to the
+    // desktop (QLineEdit passes Enter on), where Enter would open the icon.
+    if (watched == m_renameEditor && event->type() == QEvent::KeyPress) {
+        const int key = static_cast<QKeyEvent *>(event)->key();
+        if (key == Qt::Key_Escape || key == Qt::Key_Return || key == Qt::Key_Enter) {
+            finishRename(key != Qt::Key_Escape);
+            return true;
+        }
     }
     return QWidget::eventFilter(watched, event);
 }
@@ -891,8 +893,8 @@ QMenu *DesktopIconView::itemMenu(const QString &key)
             ->setObjectName(QStringLiteral("shortcut"));
         menu->addAction(tr("&Delete"), this, &DesktopIconView::deleteSelected)
             ->setObjectName(QStringLiteral("delete"));
-        QAction *rename = menu->addAction(
-            tr("Rena&me"), this, [this, index] { startRename(index); });
+        QAction *rename
+            = menu->addAction(tr("Rena&me"), this, [this, index] { startRename(index); });
         rename->setObjectName(QStringLiteral("rename"));
         // A .desktop file's label is its Name, not its file name.
         rename->setEnabled(one && !item.isDesktopEntry);
@@ -929,8 +931,8 @@ void DesktopIconView::open(const QString &key)
         break;
     case DesktopItem::Kind::File:
         if (item.isDesktopEntry) {
-            const std::optional<DesktopEntry> entry = DesktopEntry::parse(
-                item.path, QFileInfo(item.path).fileName(), messagesLocale());
+            const std::optional<DesktopEntry> entry
+                = DesktopEntry::parse(item.path, QFileInfo(item.path).fileName(), messagesLocale());
             if (entry && entry->type == QLatin1String("Application")) {
                 ok = launch(*entry).ok;
                 break;
@@ -1089,7 +1091,6 @@ void DesktopIconView::startRename(int index)
     const int width = std::max(Cell, label.width() + 8);
     m_renameEditor->setGeometry(label.center().x() - width / 2, label.top() - 2, width,
         m_renameEditor->sizeHint().height());
-    connect(m_renameEditor, &QLineEdit::returnPressed, this, [this] { finishRename(true); });
     connect(m_renameEditor, &QLineEdit::editingFinished, this, [this] { finishRename(true); });
     m_renameEditor->installEventFilter(this);
     m_renameEditor->show();
@@ -1113,8 +1114,8 @@ void DesktopIconView::finishRename(bool commit)
         return;
     if (newName.contains(QLatin1Char('/')) || newName == QLatin1String(".")
         || newName == QLatin1String("..")) {
-        QMessageBox::warning(nullptr, tr("Rename"),
-            tr("A filename cannot contain the character /, or be . or .."));
+        QMessageBox::warning(
+            nullptr, tr("Rename"), tr("A filename cannot contain the character /, or be . or .."));
         return;
     }
     QDir dir(m_directory);
@@ -1144,8 +1145,8 @@ void DesktopIconView::newFolder()
     const QString name = uniqueName(
         m_directory, tr("New Folder"), QStringLiteral("%1 (2)"), QStringLiteral("%1 (%2)"));
     if (!QDir(m_directory).mkdir(name)) {
-        QMessageBox::warning(nullptr, tr("Error Creating Folder"),
-            tr("Cannot create the folder '%1'.").arg(name));
+        QMessageBox::warning(
+            nullptr, tr("Error Creating Folder"), tr("Cannot create the folder '%1'.").arg(name));
         return;
     }
     m_renameWhenLoaded = name;
@@ -1158,8 +1159,8 @@ void DesktopIconView::newTextDocument()
         tr("New Text Document (2).txt"), tr("New Text Document (%2).txt"));
     QFile file(QDir(m_directory).filePath(name));
     if (!file.open(QIODevice::WriteOnly | QIODevice::NewOnly)) {
-        QMessageBox::warning(nullptr, tr("Error Creating File"),
-            tr("Cannot create the file '%1'.").arg(name));
+        QMessageBox::warning(
+            nullptr, tr("Error Creating File"), tr("Cannot create the file '%1'.").arg(name));
         return;
     }
     file.close();

@@ -36,8 +36,8 @@ namespace {
         if (!QDir().mkdir(target))
             return false;
         const QDir from(source);
-        const QStringList entries = from.entryList(
-            QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
+        const QStringList entries
+            = from.entryList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
         for (const QString &entry : entries) {
             if (!copyRecursively(from.filePath(entry), QDir(target).filePath(entry)))
                 return false;
@@ -148,8 +148,8 @@ QList<DesktopItem> readDesktopFolder(const QString &directory, const QString &lo
 
 bool trashIsFull(const QString &trashFiles)
 {
-    return !QDir(trashFiles).isEmpty(QDir::AllEntries | QDir::Hidden | QDir::System
-        | QDir::NoDotAndDotDot);
+    return !QDir(trashFiles)
+                .isEmpty(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot);
 }
 
 QStringList emptyTrash(const QString &trashFiles)
@@ -174,12 +174,13 @@ QStringList emptyTrash(const QString &trashFiles)
     return failed;
 }
 
-QString uniqueName(const QString &directory, const QString &name, const QString &first,
-    const QString &numbered)
+QString uniqueName(
+    const QString &directory, const QString &name, const QString &first, const QString &numbered)
 {
     const QDir dir(directory);
     const auto taken = [&dir](const QString &candidate) {
-        return QFileInfo::exists(dir.filePath(candidate)) || QFileInfo(dir.filePath(candidate)).isSymLink();
+        return QFileInfo::exists(dir.filePath(candidate))
+            || QFileInfo(dir.filePath(candidate)).isSymLink();
     };
     if (!taken(name))
         return name;
@@ -246,8 +247,8 @@ PasteResult pasteFiles(const QList<QUrl> &urls, const QString &directory, bool m
                 tr("Cannot copy '%1': the destination folder is inside it.").arg(info.fileName()));
             continue;
         }
-        const QString name = uniqueName(
-            directory, info.fileName(), tr("Copy of %1"), tr("Copy (%2) of %1"));
+        const QString name
+            = uniqueName(directory, info.fileName(), tr("Copy of %1"), tr("Copy (%2) of %1"));
         const QString destination = QDir(directory).filePath(name);
         bool ok = false;
         if (move) {
@@ -280,7 +281,9 @@ QStringList createShortcuts(const QStringList &paths, const QString &directory)
         const QString fileName = QFileInfo(path).fileName();
         const QDir dir(directory);
         QString name = tr("Shortcut to %1").arg(fileName);
-        for (int n = 2; QFileInfo(dir.filePath(name)).exists() || QFileInfo(dir.filePath(name)).isSymLink(); ++n)
+        for (int n = 2;
+            QFileInfo(dir.filePath(name)).exists() || QFileInfo(dir.filePath(name)).isSymLink();
+            ++n)
             name = tr("Shortcut (%2) to %1").arg(fileName).arg(n);
         if (QFile::link(QFileInfo(path).absoluteFilePath(), QDir(directory).filePath(name)))
             created.append(name);
