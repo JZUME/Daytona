@@ -57,8 +57,24 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
           pattern: Packages (*)
-          merge-multiple: true
-          path: new
+          path: artifacts
+
+      # Both architectures' artifacts carry their own copy of each
+      # Architecture: all package (daytona-chicago95). Downloading them into
+      # one directory at once wrote both copies to the same file at the same
+      # time and published a corrupt package, so each artifact gets its own
+      # directory and only amd64's copy is kept.
+      - name: Combine and check the packages
+        if: github.event_name == 'workflow_run'
+        run: |
+          mkdir new
+          for dir in "artifacts/Packages (amd64)" "artifacts/Packages (arm64)"; do
+            for deb in "$dir"/*.deb; do
+              [[ -e "new/${deb##*/}" ]] || cp "$deb" new/
+            done
+          done
+          ls -l new
+          scripts/apt/check-debs.sh new/*.deb
 
       - name: Update the edge prerelease
         if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main'
@@ -84,6 +100,8 @@ jobs:
           if gh release view edge >/dev/null 2>&1; then
             gh release download edge --pattern '*.deb' --dir site/pool/edge
           fi
+          # A broken package already on a release stays out of the index.
+          scripts/apt/check-debs.sh --drop site/pool/*/*.deb
           ls -l site/pool/*
 
       - name: Build and sign the repository
