@@ -115,7 +115,7 @@ builds leave it, and the repository is signed with the key in the `GPG_SIGN_PRIV
 Daytona uses git submodules for [Chicago95](https://github.com/grassmunk/Chicago95) and [labwc](https://github.com/labwc/labwc). Clone with:
 
 ```bash
-git clone --recurse-submodules https://github.com/JZUME/Daytona.git
+git clone --recurse-submodules https://github.com/JZUME/daytona.git
 ```
 
 or, in an existing clone:
