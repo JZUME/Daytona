@@ -79,9 +79,10 @@ private Q_SLOTS:
         {
             const QByteArray themerc
                 = labwcThemerc(builtInScheme(QStringLiteral("Daytona Standard"))->colours);
-            QCOMPARE(themercValue(themerc, "window.active.title.bg"),
-                QByteArray("Gradient Horizontal"));
-            QCOMPARE(themercValue(themerc, "window.active.title.bg.colorTo"), QByteArray("#1084d0"));
+            QCOMPARE(
+                themercValue(themerc, "window.active.title.bg"), QByteArray("Gradient Horizontal"));
+            QCOMPARE(
+                themercValue(themerc, "window.active.title.bg.colorTo"), QByteArray("#1084d0"));
             QCOMPARE(themercValue(themerc, "window.inactive.title.bg"),
                 QByteArray("Gradient Horizontal"));
             QCOMPARE(

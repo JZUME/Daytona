@@ -51,7 +51,8 @@ private Q_SLOTS:
             QColor(0, 128, 128));
         QCOMPARE(builtInScheme(QStringLiteral("daytona classic"))->name,
             QStringLiteral("Daytona Classic"));
-        QVERIFY(!titleBarHasGradient(builtInScheme(QStringLiteral("Daytona Classic"))->colours, true));
+        QVERIFY(
+            !titleBarHasGradient(builtInScheme(QStringLiteral("Daytona Classic"))->colours, true));
 
         // Daytona Standard: Classic with Windows 98 to XP Classic's two-tone
         // title bars.
