@@ -67,7 +67,7 @@ jobs:
             labwc grim wlr-randr wlrctl qt6-wayland qt6-svg-plugins dbus dex \
             libglib2.0-bin swayidle wl-clipboard xwayland
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: true
           path: daytona
@@ -118,7 +118,7 @@ jobs:
       - name: Collect
         run: mkdir dist && mv daytona_*.deb daytona-chicago95_*.deb daytona-greeter_*.deb daytona-dbgsym_*.deb daytona-greeter-dbgsym_*.deb dist/
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Packages (${{ matrix.arch }})
           path: dist/*.deb
@@ -134,7 +134,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates clang-format
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check formatting
         run: |
