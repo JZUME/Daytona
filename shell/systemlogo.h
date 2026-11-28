@@ -12,6 +12,11 @@ namespace Daytona {
 // quoted), as in /etc/os-release.
 QHash<QString, QString> parseOsRelease(const QString &text);
 
+// The operating system's name, os-release's NAME ("Debian GNU/Linux"), or
+// "Linux", the specification's default, without one. The Start menu's
+// banner shows it, as NT's showed "Windows NT". root as for systemLogo().
+QString systemName(const QString &root = QString());
+
 // The operating system's own logo, for the Start button, as NT's Start
 // button showed its own system's logo:
 //

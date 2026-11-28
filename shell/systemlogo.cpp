@@ -99,6 +99,13 @@ QHash<QString, QString> parseOsRelease(const QString &text)
     return fields;
 }
 
+QString systemName(const QString &root)
+{
+    const QString name
+        = parseOsRelease(readOsRelease(root)).value(QStringLiteral("NAME")).trimmed();
+    return name.isEmpty() ? QStringLiteral("Linux") : name;
+}
+
 QIcon systemLogo(const QString &root)
 {
     const QHash<QString, QString> release = parseOsRelease(readOsRelease(root));

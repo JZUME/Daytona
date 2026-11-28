@@ -34,6 +34,21 @@ private Q_SLOTS:
         QCOMPARE(fields.size(), 4);
     }
 
+    void name()
+    {
+        // The Start menu banner's text.
+        QTemporaryDir empty;
+        QCOMPARE(systemName(empty.path()), QStringLiteral("Linux"));
+        QTemporaryDir debian;
+        write(debian, "usr/lib/os-release", "NAME=\"Debian GNU/Linux\"\nID=debian\n");
+        QCOMPARE(systemName(debian.path()), QStringLiteral("Debian GNU/Linux"));
+        write(debian, "etc/os-release", "NAME=Ubuntu\n");
+        QCOMPARE(systemName(debian.path()), QStringLiteral("Ubuntu"));
+        QTemporaryDir noName;
+        write(noName, "etc/os-release", "ID=x\nNAME=\"\"\n");
+        QCOMPARE(systemName(noName.path()), QStringLiteral("Linux"));
+    }
+
     void logoFromOsRelease()
     {
         // A distribution that names its logo (as Ubuntu, Fedora and Arch do).
