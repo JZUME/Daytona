@@ -78,6 +78,7 @@ Recommends:
  xkb-data,
  xwayland,
 Suggests:
+ daytona-greeter,
  systemd,
  systemd-timesyncd,
 Description: Windows NT 4.0-style desktop shell for labwc
@@ -103,6 +104,29 @@ Description: Windows NT 4.0-style desktop shell for labwc
  .
  Daytona is not affiliated with or endorsed by Microsoft. Windows and
  Windows NT are trademarks of the Microsoft group of companies.
+
+Package: daytona-greeter
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ daytona (= ${binary:Version}),
+ greetd,
+ qt6-wayland,
+Recommends:
+ systemd,
+Description: Windows 98-style log on screen for greetd
+ An optional graphical log on screen that matches the Daytona desktop: a
+ Windows 98-style dialog asking for a user name and password on the desktop
+ colour, with a Session... button to choose the desktop to start (Daytona or
+ any other installed Wayland session) and a Shut Down... button. It
+ remembers the last user and session, uses the system keyboard layout and
+ shows every question and message PAM has, such as one-time codes.
+ .
+ It is a greeter for the greetd login manager, which does the PAM, logind
+ and session work, so the log on screen never runs as root. Installing it
+ changes nothing until greetd is set to use it and is the system's display
+ manager; see /usr/share/doc/daytona-greeter/greeter.md.
 
 Package: daytona-chicago95
 Architecture: all

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# greetd with Daytona's log on screen. Copy to /etc/greetd/config.toml (or
+# change [default_session]'s command there), then make greetd the display
+# manager. See /usr/share/doc/daytona-greeter/greeter.md.
+
+[terminal]
+# The virtual terminal to show the log on screen on.
+vt = 7
+
+[default_session]
+command = "daytona-greeter"
+# greetd's greeter user on Debian.
+user = "_greetd"

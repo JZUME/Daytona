@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  No menus on the log on screen: empty, so labwc's built-in ones (which can
+  start a terminal or exit labwc) are never used.
+-->
+<openbox_menu>
+  <menu id="root-menu" label="" />
+  <menu id="client-menu" label="" />
+</openbox_menu>

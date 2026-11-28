@@ -158,7 +158,7 @@ These are project constraints unless a task explicitly changes them.
 * **Initial packaging target:** Debian `.deb`
 * **Minimum platform:** Debian 13 (trixie): Qt 6.8, LayerShellQt 6.3 and the labwc version Debian 13 ships. Do not rely on protocols or labwc features newer than that without explicit approval.
 * **D-Bus:** QtDBus (part of Qt) for the notification area, notification balloons and logind. No other D-Bus library.
-* **Display/login manager:** external existing implementation
+* **Display/login manager:** external existing implementation. The optional log on screen, `daytona-greeter` (its own package, never a dependency of `daytona`), is a greeter for **greetd**, which does the PAM, logind and session work; see `docs/greeter.md`.
 * **Session:** a session file that starts labwc with Daytona's labwc configuration, which autostarts the Daytona shell
 
 The shell is a single process unless isolation gives a concrete benefit. The theme converter is a separate command-line tool because it runs rarely and must work without the shell running.
@@ -208,6 +208,7 @@ Daytona
 │   ├── Desktop (background, icons, context menus)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
 ├── locker/       daytona-lock: Workstation Locked screen (ext-session-lock, PAM)
+├── greeter/      daytona-greeter: optional log on screen for greetd (separate package)
 ├── xembed/       daytona-xembed-proxy: X11 (XEmbed) tray icons as StatusNotifierItems
 ├── style/        Win95 QStyle plugin, usable by the shell and any Qt 6 app
 ├── themetool/    .theme converter (CLI)

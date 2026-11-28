@@ -1,0 +1,44 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# daytona-greeter: Daytona's log on screen, for greetd. Set it as greetd's
+# greeter in /etc/greetd/config.toml:
+#
+#   [default_session]
+#   command = "daytona-greeter"
+#
+# It runs labwc with the log on screen's configuration, on the system's
+# keyboard layout, and labwc runs the log on dialog (daytona-logon). Both
+# end once greetd has the session to start.
+
+labwc="@DAYTONA_GREETER_LABWC@"
+[ -x "$labwc" ] || labwc=labwc
+export DAYTONA_LOGON="@DAYTONA_LOGON@"
+[ -x "$DAYTONA_LOGON" ] || DAYTONA_LOGON=daytona-logon
+
+# Wayland needs a runtime directory; logind gives greetd's greeter user one
+# when greetd's PAM configuration has pam_systemd, as Debian's does.
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "${XDG_RUNTIME_DIR:-}" ]; then
+    XDG_RUNTIME_DIR="$(mktemp -d "${TMPDIR:-/tmp}/daytona-greeter.XXXXXX")" || exit 1
+    export XDG_RUNTIME_DIR
+fi
+
+# labwc reads its configuration from a directory of the greeter's own: the
+# installed files, linked, plus an environment file with the system's
+# keyboard layout, so passwords are typed the way they will be on the
+# desktop.
+config="$XDG_RUNTIME_DIR/daytona-greeter-labwc"
+(umask 077 && mkdir -p "$config") || exit 1
+for file in "@DAYTONA_GREETER_LABWC_DIR@"/*; do
+    [ -e "$file" ] && ln -sfn "$file" "$config/"
+done
+if ! "$DAYTONA_LOGON" --labwc-environment >"$config/environment" 2>/dev/null; then
+    rm -f "$config/environment"
+fi
+
+# There is no session bus or desktop to tell about labwc's environment.
+export LABWC_UPDATE_ACTIVATION_ENV=false
+export QT_QPA_PLATFORM=wayland
+export XCURSOR_THEME="Daytona Cursors"
+export XCURSOR_SIZE=32
+
+exec "$labwc" --config-dir "$config" "$@"
