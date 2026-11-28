@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Run by labwc on the log on screen: the log on dialog, then labwc ends
+# with it, so greetd sees the greeter finish and starts the session.
+"${DAYTONA_LOGON:-daytona-logon}"
+kill -TERM "$LABWC_PID"

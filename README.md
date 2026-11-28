@@ -68,10 +68,37 @@ The packages:
   Screen.
 - `daytona-chicago95` holds the Chicago95 GTK theme, icons and cursors, built from the pinned
   submodule.
+- `daytona-greeter` (optional, not installed with `daytona`) holds the log on screen for greetd;
+  see below.
 
 Then log out and choose **Daytona** in your login manager's session menu. It is installed as
 a Wayland session in `/usr/share/wayland-sessions/daytona.desktop`. GDM, SDDM and LightDM all list
 it there.
+
+### Optional: the Daytona log on screen
+
+`daytona-greeter` is a Windows 98-style log on screen to match: user name, password, a
+**Session...** button to pick the desktop (Daytona or any other installed Wayland session) and
+**Shut Down...**. It is a separate, optional package built on the
+[greetd](https://sr.ht/~kennylevinsen/greetd/) login manager; Daytona works with any login
+manager and never installs it for you.
+
+To replace your current login manager (GDM, SDDM, LightDM, ...) with it:
+
+```bash
+sudo apt install daytona-greeter
+sudo cp /usr/share/doc/daytona-greeter/examples/config.toml /etc/greetd/config.toml
+systemctl status display-manager      # note which one is running now
+sudo systemctl disable gdm3           # or sddm, lightdm: the one shown above
+sudo systemctl enable --force greetd
+sudo reboot
+```
+
+The copied `config.toml` runs `daytona-greeter` as greetd's greeter on virtual terminal 7; if you
+already have a greetd configuration, change only its `[default_session]` command to
+`"daytona-greeter"`. To go back, `sudo systemctl disable greetd`, enable your old login manager
+again with `sudo systemctl enable --force gdm3` (or `sddm`, `lightdm`) and reboot. See
+[docs/greeter.md](docs/greeter.md) for how it works, troubleshooting and limits.
 
 To build the packages:
 

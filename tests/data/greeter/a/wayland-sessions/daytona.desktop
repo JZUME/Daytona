@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Daytona
+Name[de]=Daytona (Deutsch)
+Comment=Windows NT 4.0-style desktop
+Exec=daytona-session
+TryExec=sh
+Type=Application
+DesktopNames=Daytona

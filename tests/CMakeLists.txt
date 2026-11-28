@@ -140,3 +140,8 @@ add_executable(tst_datetime tst_datetime.cpp)
 target_link_libraries(tst_datetime PRIVATE Qt6::Test daytona-shell-core)
 add_test(NAME tst_datetime COMMAND dbus-run-session -- $<TARGET_FILE:tst_datetime>)
 set_tests_properties(tst_datetime PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+
+# The greeter, against a scripted greetd.
+daytona_add_test(tst_greeter daytona-greeter-core)
+target_compile_definitions(tst_greeter PRIVATE DAYTONA_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/data")
+set_tests_properties(tst_greeter PROPERTIES ENVIRONMENT QT_QPA_PLATFORM=offscreen)

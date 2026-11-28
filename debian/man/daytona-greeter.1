@@ -1,0 +1,42 @@
+.TH DAYTONA-GREETER 1 "November 2026" "Daytona 0.2.0" "User Commands"
+.SH NAME
+daytona-greeter \- Daytona's log on screen for greetd
+.SH SYNOPSIS
+.B daytona-greeter
+[\fIlabwc options\fR]
+.SH DESCRIPTION
+.B daytona-greeter
+is a greeter for \fBgreetd\fR(1): a Windows 98-style log on dialog with
+User name, Password, a Session... button for the desktop to start and a
+Shut Down... button. greetd runs it as its greeter user. It starts labwc
+with the log on screen's own configuration
+(\fI/usr/share/daytona-greeter/labwc\fR) on the system's keyboard layout
+(systemd-localed's, else \fI/etc/default/keyboard\fR), and labwc runs the
+dialog, \fI/usr/libexec/daytona/daytona-logon\fR, which talks to greetd over
+\fBGREETD_SOCK\fR.
+.PP
+To use it, set it as greetd's greeter in \fI/etc/greetd/config.toml\fR:
+.PP
+.nf
+.RS
+[default_session]
+command = "daytona-greeter"
+user = "_greetd"
+.RE
+.fi
+.PP
+Sessions are read from the \fIwayland-sessions\fR directories of
+\fBXDG_DATA_DIRS\fR. The last user name and session are kept in
+\fI/var/lib/daytona-greeter/state\fR (\fBDAYTONA_GREETER_STATE\fR to
+override); passwords are never stored.
+.SH FILES
+.TP
+.I /usr/share/doc/daytona-greeter/examples/config.toml
+An example greetd configuration.
+.TP
+.I /usr/share/doc/daytona-greeter/greeter.md
+How to install it in place of another display manager.
+.SH SEE ALSO
+.BR greetd (1),
+.BR daytona-session (1),
+.BR labwc (1)

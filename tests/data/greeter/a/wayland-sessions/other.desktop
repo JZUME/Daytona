@@ -1,0 +1,5 @@
+# A comment
+[Desktop Entry]
+Name=Other Desktop
+Exec="/usr/bin/other session" --flag %U "quoted \\"arg\\"" 100%%
+DesktopNames=Other;Base;

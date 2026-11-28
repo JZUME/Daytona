@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=Missing
+Exec=missing
+TryExec=/nonexistent/daytona-missing-session

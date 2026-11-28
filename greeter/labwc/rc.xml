@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!--
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  labwc's configuration for the log on screen (daytona-greeter). Only the
+  log on dialog and its own dialogs run here, so labwc gets nothing to do but
+  draw their frames in the Daytona theme, centred on the screen: no key
+  bindings (one that does nothing stops labwc loading its defaults, which
+  include starting a terminal), no menus, no moving windows between
+  workspaces and no maximising.
+-->
+<labwc_config>
+
+  <core>
+    <decoration>server</decoration>
+    <gap>0</gap>
+  </core>
+
+  <placement>
+    <policy>center</policy>
+  </placement>
+
+  <theme>
+    <name>Daytona</name>
+    <icon>Chicago95</icon>
+    <titlebar>
+      <!-- Windows 98's log on dialog had only Close (and Help). -->
+      <layout>:close</layout>
+      <showTitle>yes</showTitle>
+    </titlebar>
+    <cornerRadius>0</cornerRadius>
+    <dropShadows>no</dropShadows>
+    <font place="ActiveWindow">
+      <name>sans</name>
+      <size>8</size>
+      <weight>bold</weight>
+    </font>
+    <font place="InactiveWindow">
+      <name>sans</name>
+      <size>8</size>
+      <weight>bold</weight>
+    </font>
+  </theme>
+
+  <focus>
+    <followMouse>no</followMouse>
+    <raiseOnFocus>no</raiseOnFocus>
+  </focus>
+
+  <snapping>
+    <range>0</range>
+    <overlay enabled="no" />
+    <topMaximize>no</topMaximize>
+  </snapping>
+
+  <desktops number="1">
+    <popupTime>0</popupTime>
+  </desktops>
+
+  <keyboard>
+    <keybind key="W-F24">
+      <action name="None" />
+    </keybind>
+  </keyboard>
+
+  <mouse>
+    <context name="TitleBar">
+      <mousebind button="Left" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+    </context>
+    <context name="Title">
+      <mousebind button="Left" action="Drag">
+        <action name="Move" />
+      </mousebind>
+    </context>
+    <!-- The log on dialog takes Close as Cancel. -->
+    <context name="Close">
+      <mousebind button="Left" action="Click"><action name="Close" /></mousebind>
+    </context>
+    <context name="Client">
+      <mousebind button="Left" action="Press">
+        <action name="Focus" />
+        <action name="Raise" />
+      </mousebind>
+    </context>
+  </mouse>
+
+</labwc_config>
