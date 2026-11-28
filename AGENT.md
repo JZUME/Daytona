@@ -299,7 +299,7 @@ The theme tool:
 
 Rules:
 
-* Missing keys fall back to the Windows Standard scheme.
+* Missing keys fall back to the Daytona Classic scheme.
 * Unknown keys are ignored, not errors.
 * Paths inside `.theme` files are Windows paths; map them relative to the theme file and never follow them outside the theme's own directory.
 * Unsupported elements (e.g. screensavers, sounds if no sound support exists) are reported, not silently dropped.
@@ -328,7 +328,7 @@ Accepted configuration, Display Properties equivalents:
 
 Accepted configuration, Mouse Properties equivalents (NT's Control Panel applet, approved as a dialog):
 
-* the pointer scheme on the Pointers tab: Standard, Standard (large) and Standard (extra large), as NT offered for Windows Standard. It is applied at the next log on (daytona-session sets `XCURSOR_SIZE` 32, 64 or 96). NT's Buttons, Motion and General tabs are not offered.
+* the pointer scheme on the Pointers tab: Standard, Standard (large) and Standard (extra large), as NT offered for its default colour scheme. It is applied at the next log on (daytona-session sets `XCURSOR_SIZE` 32, 64 or 96). NT's Buttons, Motion and General tabs are not offered.
 
 Accepted configuration, Keyboard Properties equivalents (NT's Control Panel applet, approved as a dialog, issue #110):
 

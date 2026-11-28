@@ -26,7 +26,7 @@ class Style : public QProxyStyle
 public:
     Style();
 
-    // The Windows Standard colour scheme.
+    // The Daytona Classic colour scheme.
     static QPalette ntPalette();
     // The palette of the current colour scheme.
     QPalette standardPalette() const override;

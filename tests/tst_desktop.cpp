@@ -68,7 +68,7 @@ private Q_SLOTS:
         Desktop desktop(&settings);
         desktop.resize(20, 10);
         const QImage shot = desktop.grab().toImage();
-        QCOMPARE(shot.pixelColor(0, 0), QColor(0, 128, 128)); // Windows Standard desktop
+        QCOMPARE(shot.pixelColor(0, 0), QColor(0, 128, 128)); // Daytona Classic desktop
         QCOMPARE(shot.pixelColor(19, 9), QColor(0, 128, 128));
     }
 

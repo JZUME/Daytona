@@ -21,7 +21,7 @@ namespace {
         int r, g, b;
     };
 
-    // Windows NT 4.0 "Windows Standard", in the order Windows lists the keys.
+    // Daytona Classic (NT 4.0's default colours), in the order Windows lists the keys.
     const Rgb StandardColours[] = {
         { "Scrollbar", 192, 192, 192 },
         { "Background", 0, 128, 128 },

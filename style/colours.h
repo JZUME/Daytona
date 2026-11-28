@@ -18,7 +18,7 @@ using SchemeColours = QMap<QString, QColor>;
 // Every Windows colour key, in the order Windows lists them.
 const QStringList &colourKeys();
 
-// NT 4.0's "Windows Standard" colours, one for every key.
+// Daytona Classic: NT 4.0's default colours, one for every key.
 const SchemeColours &standardColours();
 
 // Parses a Windows "R G B" colour value (0-255 each).
@@ -41,7 +41,7 @@ QBrush titleBarBrush(const SchemeColours &colours, bool active, const QRect &rec
 struct ColourFile
 {
     QString name;
-    SchemeColours colours; // every key; missing or invalid ones are Windows Standard
+    SchemeColours colours; // every key; missing or invalid ones are Daytona Classic
 };
 
 // $XDG_CONFIG_HOME/daytona/colors.ini

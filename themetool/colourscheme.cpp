@@ -19,8 +19,16 @@ namespace {
         int r, g, b;
     };
 
+    // The two-tone title bars of Windows 98 to XP Classic: navy fading to
+    // light blue, grey fading to light grey. Everything else is Daytona
+    // Classic's.
+    const Rgb DaytonaStandard[] = {
+        { "GradientActiveTitle", 16, 132, 208 },
+        { "GradientInactiveTitle", 192, 192, 192 },
+    };
+
     // Approximations of NT's high-contrast schemes; only the colours that differ
-    // from Windows Standard are listed.
+    // from Daytona Classic are listed.
     const Rgb HighContrastBlack[] = {
         { "Scrollbar", 0, 0, 0 },
         { "Background", 0, 0, 0 },
@@ -90,7 +98,7 @@ namespace {
     ColourScheme standardScheme()
     {
         ColourScheme scheme;
-        scheme.name = QStringLiteral("Windows Standard");
+        scheme.name = QStringLiteral("Daytona Classic");
         scheme.colours = standardColours();
         return scheme;
     }
@@ -150,23 +158,38 @@ namespace {
 
 QStringList builtInSchemeNames()
 {
-    return { QStringLiteral("Windows Standard"), QStringLiteral("High Contrast Black"),
-        QStringLiteral("High Contrast White") };
+    return { QStringLiteral("Daytona Classic"), QStringLiteral("Daytona Standard"),
+        QStringLiteral("High Contrast Black"), QStringLiteral("High Contrast White") };
 }
 
-std::optional<ColourScheme> builtInScheme(const QString &name)
+QString currentSchemeName(const QString &name)
 {
-    ColourScheme scheme = standardScheme();
+    // Daytona Classic was called "Windows Standard" before 0.3.
     if (name.compare(QLatin1String("Windows Standard"), Qt::CaseInsensitive) == 0)
+        return QStringLiteral("Daytona Classic");
+    return name;
+}
+
+std::optional<ColourScheme> builtInScheme(const QString &requested)
+{
+    const QString name = currentSchemeName(requested);
+    ColourScheme scheme = standardScheme();
+    if (name.compare(QLatin1String("Daytona Classic"), Qt::CaseInsensitive) == 0)
         return scheme;
-    if (name.compare(QLatin1String("High Contrast Black"), Qt::CaseInsensitive) == 0) {
+    if (name.compare(QLatin1String("Daytona Standard"), Qt::CaseInsensitive) == 0) {
+        apply(scheme, DaytonaStandard);
+    } else if (name.compare(QLatin1String("High Contrast Black"), Qt::CaseInsensitive) == 0) {
         apply(scheme, HighContrastBlack);
     } else if (name.compare(QLatin1String("High Contrast White"), Qt::CaseInsensitive) == 0) {
         apply(scheme, HighContrastWhite);
     } else {
         return std::nullopt;
     }
-    scheme.name = name;
+    // The listed spelling, whatever the case asked for.
+    for (const QString &listed : builtInSchemeNames()) {
+        if (listed.compare(name, Qt::CaseInsensitive) == 0)
+            scheme.name = listed;
+    }
     return scheme;
 }
 
@@ -204,13 +227,13 @@ ColourScheme parseTheme(const QByteArray &data, const QString &name, const QStri
             scheme.colours.insert(key, *colour);
         else
             scheme.warnings << QStringLiteral(
-                "Colour %1 is not valid (\"%2\"); using Windows Standard")
+                "Colour %1 is not valid (\"%2\"); using Daytona Classic")
                                    .arg(key, value.left(40));
     }
 
     // Windows 95 and NT .theme files have no Gradient keys. Their title bars
     // are solid, so the gradient colour follows the title colour rather than
-    // Windows Standard's.
+    // Daytona Classic's.
     for (const auto &[gradient, title] : { std::pair { "GradientActiveTitle", "ActiveTitle" },
              std::pair { "GradientInactiveTitle", "InactiveTitle" } }) {
         if (colours.value(QString::fromLatin1(gradient).toLower()).isEmpty())

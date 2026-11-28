@@ -175,7 +175,7 @@ private Q_SLOTS:
         auto *style = new Style;
         style->setColourFile(path);
         QApplication::setStyle(style); // the application owns it from here
-        // No file yet: Windows Standard.
+        // No file yet: Daytona Classic.
         QCOMPARE(QApplication::palette().color(QPalette::Highlight), QColor(0, 0, 128));
 
         // The directory and file appear later, as with a first apply.
@@ -194,7 +194,7 @@ private Q_SLOTS:
         QVERIFY(changed.wait(3000));
         QCOMPARE(QApplication::palette().color(QPalette::Highlight), QColor(0, 128, 0));
 
-        // Removed: back to Windows Standard.
+        // Removed: back to Daytona Classic.
         QVERIFY(QFile::remove(path));
         QVERIFY(changed.wait(3000));
         QCOMPARE(QApplication::palette().color(QPalette::Highlight), QColor(0, 0, 128));

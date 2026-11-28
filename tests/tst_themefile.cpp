@@ -36,7 +36,9 @@ private:
 private Q_SLOTS:
     void builtInSchemes()
     {
-        QCOMPARE(builtInSchemeNames().first(), QStringLiteral("Windows Standard"));
+        QCOMPARE(builtInSchemeNames(),
+            QStringList({ QStringLiteral("Daytona Classic"), QStringLiteral("Daytona Standard"),
+                QStringLiteral("High Contrast Black"), QStringLiteral("High Contrast White") }));
         for (const QString &name : builtInSchemeNames()) {
             const std::optional<ColourScheme> s = builtInScheme(name);
             QVERIFY(s);
@@ -45,8 +47,31 @@ private Q_SLOTS:
                 QVERIFY2(s->colour(key).isValid(), qPrintable(name + QLatin1Char(' ') + key));
         }
         QCOMPARE(
-            builtInScheme(QStringLiteral("Windows Standard"))->colour(QStringLiteral("Background")),
+            builtInScheme(QStringLiteral("Daytona Classic"))->colour(QStringLiteral("Background")),
             QColor(0, 128, 128));
+        QCOMPARE(builtInScheme(QStringLiteral("daytona classic"))->name,
+            QStringLiteral("Daytona Classic"));
+        QVERIFY(!titleBarHasGradient(builtInScheme(QStringLiteral("Daytona Classic"))->colours, true));
+
+        // Daytona Standard: Classic with Windows 98 to XP Classic's two-tone
+        // title bars.
+        const ColourScheme standard = *builtInScheme(QStringLiteral("Daytona Standard"));
+        QCOMPARE(standard.colour(QStringLiteral("ActiveTitle")), QColor(0, 0, 128));
+        QCOMPARE(standard.colour(QStringLiteral("GradientActiveTitle")), QColor(16, 132, 208));
+        QCOMPARE(standard.colour(QStringLiteral("InactiveTitle")), QColor(128, 128, 128));
+        QCOMPARE(standard.colour(QStringLiteral("GradientInactiveTitle")), QColor(192, 192, 192));
+        QVERIFY(titleBarHasGradient(standard.colours, true));
+        QVERIFY(titleBarHasGradient(standard.colours, false));
+        QCOMPARE(standard.colour(QStringLiteral("Background")), QColor(0, 128, 128));
+
+        // The old name still works, as Daytona Classic.
+        const std::optional<ColourScheme> old = builtInScheme(QStringLiteral("Windows Standard"));
+        QVERIFY(old);
+        QCOMPARE(old->name, QStringLiteral("Daytona Classic"));
+        QCOMPARE(old->colours, standardColours());
+        QCOMPARE(currentSchemeName(QStringLiteral("windows standard")),
+            QStringLiteral("Daytona Classic"));
+        QCOMPARE(currentSchemeName(QStringLiteral("Sample")), QStringLiteral("Sample"));
         QCOMPARE(
             builtInScheme(QStringLiteral("high contrast black"))->colour(QStringLiteral("Window")),
             QColor(Qt::black));
@@ -81,7 +106,7 @@ private Q_SLOTS:
 
     void gradientTitleColours()
     {
-        // Windows 98's "Windows Standard": navy fading to light blue.
+        // A Windows 98 theme: navy fading to light blue.
         const ColourScheme win98 = parse("[Control Panel\\Colors]\nActiveTitle=0 0 128\n"
                                          "GradientActiveTitle=16 132 208\n"
                                          "InactiveTitle=128 128 128\n"
