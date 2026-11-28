@@ -5,6 +5,8 @@
 // daytona-greeter, with the socket to talk to in $GREETD_SOCK. It exits 0
 // once greetd has accepted the session to start.
 //
+// DAYTONA_GREETER_SCALE (daytona-greeter --scale) sets every screen's scale.
+//
 // --labwc-environment prints labwc's environment file for the system
 // keyboard layout, for daytona-greeter to give the compositor.
 
@@ -12,6 +14,8 @@
 #include "greetd.h"
 #include "greeter.h"
 #include "keyboard.h"
+#include "outputscale.h"
+#include "scale.h"
 #include "sessions.h"
 
 #include <LayerShellQt/Window>
@@ -22,6 +26,7 @@
 #include <QScreen>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <sys/prctl.h>
 
 Q_LOGGING_CATEGORY(lcLogon, "daytona.greeter.main", QtInfoMsg)
@@ -107,6 +112,17 @@ int main(int argc, char *argv[])
     Daytona::PowerActions power;
     Daytona::Greeter greeter(&greetd, sessions, Daytona::Greeter::defaultStatePath(), &power);
     QObject::connect(&greeter, &Daytona::Greeter::finished, &app, &QCoreApplication::quit);
+
+    // daytona-greeter --scale: for high-density screens.
+    std::unique_ptr<Daytona::OutputScaler> scaler;
+    const QString scaleSetting = qEnvironmentVariable("DAYTONA_GREETER_SCALE");
+    if (!scaleSetting.isEmpty() && QGuiApplication::platformName() == QLatin1String("wayland")) {
+        const double scale = Daytona::parseScale(scaleSetting);
+        if (scale > 0)
+            scaler = std::make_unique<Daytona::OutputScaler>(scale);
+        else
+            qCWarning(lcLogon) << "Ignoring scale" << scaleSetting << "(1 to 3, such as 1.5 or 2)";
+    }
 
     // The background needs layer-shell; elsewhere (a test, another
     // compositor) the dialog is shown alone.

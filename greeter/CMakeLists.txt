@@ -3,8 +3,10 @@
 # daytona-greeter: the optional log on screen, a greetd greeter, packaged on
 # its own (daytona-greeter). See docs/greeter.md.
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS DBus Network)
+find_package(Qt6 6.8 REQUIRED COMPONENTS DBus Network WaylandClient)
 find_package(LayerShellQt 6.3 REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GreeterWaylandClient REQUIRED IMPORTED_TARGET wayland-client)
 
 # Everything but main(), in a library so tests can link it.
 add_library(daytona-greeter-core STATIC
@@ -16,14 +18,23 @@ add_library(daytona-greeter-core STATIC
     keyboard.h
     logonui.cpp
     logonui.h
+    scale.cpp
+    scale.h
     sessions.cpp
     sessions.h
 )
 target_include_directories(daytona-greeter-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(daytona-greeter-core PUBLIC Qt6::Widgets Qt6::DBus Qt6::Network daytona-style)
 
-add_executable(daytona-logon main.cpp)
-target_link_libraries(daytona-logon PRIVATE daytona-greeter-core LayerShellQt::Interface)
+# Setting the screens' scale (--scale) needs a compositor, so it is not in
+# the library the tests use.
+add_executable(daytona-logon main.cpp outputscale.cpp outputscale.h)
+qt_generate_wayland_protocol_client_sources(daytona-logon
+    FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-output-management-unstable-v1.xml)
+target_include_directories(daytona-logon PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(daytona-logon PRIVATE
+    daytona-greeter-core LayerShellQt::Interface Qt6::WaylandClient
+    PkgConfig::GreeterWaylandClient)
 install(TARGETS daytona-logon RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/daytona)
 
 # The command greetd runs, and the compositor configuration it uses.

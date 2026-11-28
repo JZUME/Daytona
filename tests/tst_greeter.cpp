@@ -7,6 +7,7 @@
 #include "greeter.h"
 #include "keyboard.h"
 #include "logonui.h"
+#include "scale.h"
 #include "sessions.h"
 
 #include <QApplication>
@@ -141,6 +142,7 @@ private Q_SLOTS:
     void splitExec_data();
     void splitExec();
     void keyboardDefaults();
+    void scale();
 
 private:
     void logOnAs(const QString &user, const QString &password);
@@ -508,6 +510,20 @@ void TestGreeter::keyboardDefaults()
         QString("XKB_DEFAULT_MODEL=pc105\nXKB_DEFAULT_LAYOUT=gb,de\n"
                 "XKB_DEFAULT_VARIANT=,nodeadkeys\nXKB_DEFAULT_OPTIONS=grp:alt_shift_toggle\n"));
     QVERIFY(labwcEnvironment(parseKeyboardDefaults("XKBLAYOUT=us\n")) == "XKB_DEFAULT_LAYOUT=us\n");
+}
+
+void TestGreeter::scale()
+{
+    QCOMPARE(parseScale("2"), 2.0);
+    QCOMPARE(parseScale(" 1.5 "), 1.5);
+    QCOMPARE(parseScale("150%"), 1.5);
+    QCOMPARE(parseScale("1"), 1.0);
+    QCOMPARE(parseScale("3"), 3.0);
+    QCOMPARE(parseScale("0.5"), 0.0);
+    QCOMPARE(parseScale("4"), 0.0);
+    QCOMPARE(parseScale("big"), 0.0);
+    QCOMPARE(parseScale("nan"), 0.0);
+    QCOMPARE(parseScale(""), 0.0);
 }
 
 QTEST_MAIN(TestGreeter)
