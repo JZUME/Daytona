@@ -271,6 +271,10 @@ Run only the smoke tests with:
 ctest --test-dir build -L smoke --output-on-failure
 ```
 
+They install the build into `build/smoke-root` first. Configure with
+`-DDAYTONA_SMOKE_PREFIX=/usr` to run them against an installed Daytona instead, as CI does with
+the packages it has just built.
+
 To add one, write a script in `tests/smoke/` that starts what it needs and checks the screen with `wait_for_pixels` from `lib.sh` (it retries until the pixels match or the time runs out), then register it in `tests/smoke/CMakeLists.txt`:
 
 ```cmake
