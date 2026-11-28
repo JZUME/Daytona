@@ -74,6 +74,8 @@ set_tests_properties(smoke_xembed smoke_xembed_2x PROPERTIES SKIP_RETURN_CODE 77
 # The bevelled frame comes from Daytona's labwc patch, so needs that build.
 if(DAYTONA_BUILD_LABWC)
     daytona_add_smoke_test(smoke_frame smoke_frame.sh)
+    # So do Windows 98 style gradient title bars.
+    daytona_add_smoke_test(smoke_title_gradient smoke_title_gradient.sh)
 endif()
 # A screen's saved font size is applied at login. Runs once: the test sets
 # the scale itself, so the harness leaves the output alone.

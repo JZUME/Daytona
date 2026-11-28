@@ -34,6 +34,9 @@ public:
     // A colour of the current scheme by its Windows key, including those
     // with no palette role ("ActiveTitle", "Background", ...).
     static QColor schemeColour(const QString &key);
+    // The current scheme's active title bar fill: solid, or the Windows
+    // 98/2000 gradient where the scheme sets one. See titleBarBrush().
+    static QBrush titleBarBrush(const QRect &rect);
 
     // Where the colour scheme is read from; colourFilePath() by default.
     // Call before the style is set on the application.

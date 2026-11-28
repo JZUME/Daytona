@@ -37,6 +37,11 @@ QColor Style::schemeColour(const QString &key)
     return colour.isValid() ? colour : standardColours().value(key);
 }
 
+QBrush Style::titleBarBrush(const QRect &rect)
+{
+    return Daytona::titleBarBrush(s_colours, true, rect);
+}
+
 QPalette Style::standardPalette() const
 {
     return paletteFromColours(s_colours);

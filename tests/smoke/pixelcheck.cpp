@@ -7,6 +7,7 @@
 //        daytona-pixelcheck --pointer IMAGE X Y SCALE
 //        daytona-pixelcheck --count IMAGE #RRGGBB N
 //        daytona-pixelcheck --find IMAGE #RRGGBB SCALE
+//        daytona-pixelcheck --gradient IMAGE SCALE Y #FROM #TO
 // Exits 0 if every pixel matches exactly, 1 if any differ (reported on
 // stderr), 2 on bad arguments or an unreadable image.
 //
@@ -27,11 +28,16 @@
 // --find prints the centre of the pixels of the colour, as "X Y" in logical
 // pixels (device pixels divided by SCALE), to click things found by colour;
 // it exits 1 if there are none.
+//
+// --gradient checks that the row at logical Y blends from FROM at the left
+// edge of the image to TO at the right: exactly those colours at the ends
+// and each channel moving steadily from one to the other in between.
 
 #include <QColor>
 #include <QImage>
 #include <QRect>
 #include <QString>
+#include <array>
 #include <cstdio>
 
 namespace {
@@ -160,8 +166,62 @@ int findPixels(const QImage &image, QRgb colour, int scale)
     return 0;
 }
 
+int checkGradient(const QImage &image, int y, const QColor &from, const QColor &to)
+{
+    if (y < 0 || y >= image.height()) {
+        std::fprintf(stderr, "row %d is outside the image\n", y);
+        return 1;
+    }
+    const QRgb *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+    const int last = image.width() - 1;
+    if ((line[0] & 0xffffff) != (from.rgb() & 0xffffff)
+        || (line[last] & 0xffffff) != (to.rgb() & 0xffffff)) {
+        std::fprintf(stderr, "ends are %s and %s, expected %s and %s\n",
+            qPrintable(QColor(line[0]).name()), qPrintable(QColor(line[last]).name()),
+            qPrintable(from.name()), qPrintable(to.name()));
+        return 1;
+    }
+    const auto channels = [](QRgb c) { return std::array { qRed(c), qGreen(c), qBlue(c) }; };
+    const auto start = channels(from.rgb());
+    const auto end = channels(to.rgb());
+    auto previous = start;
+    for (int x = 1; x <= last; ++x) {
+        const auto current = channels(line[x]);
+        for (int i = 0; i < 3; ++i) {
+            // Never back towards FROM, nor past TO.
+            const int direction = end[i] > start[i] ? 1 : end[i] < start[i] ? -1 : 0;
+            const int step = (current[i] - previous[i]) * direction;
+            const bool beyond
+                = direction == 0 ? current[i] != start[i] : (current[i] - end[i]) * direction > 0;
+            if (step < 0 || beyond) {
+                std::fprintf(stderr, "(%d,%d) is %s, not between %s and %s\n", x, y,
+                    qPrintable(QColor(line[x]).name()), qPrintable(QColor(line[x - 1]).name()),
+                    qPrintable(to.name()));
+                return 1;
+            }
+        }
+        previous = current;
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
+    if (argc == 7 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--gradient")) {
+        const QImage image
+            = QImage(QString::fromLocal8Bit(argv[2])).convertToFormat(QImage::Format_RGB32);
+        bool okScale = false;
+        bool okY = false;
+        const int scale = QString::fromLocal8Bit(argv[3]).toInt(&okScale);
+        const int y = QString::fromLocal8Bit(argv[4]).toInt(&okY);
+        const QColor from = QColor::fromString(QString::fromLocal8Bit(argv[5]));
+        const QColor to = QColor::fromString(QString::fromLocal8Bit(argv[6]));
+        if (image.isNull() || !okScale || scale < 1 || !okY || !from.isValid() || !to.isValid()) {
+            std::fprintf(stderr, "usage: %s --gradient IMAGE SCALE Y #FROM #TO\n", argv[0]);
+            return 2;
+        }
+        return checkGradient(image, y * scale, from, to);
+    }
     if (argc == 6 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--pointer")) {
         const QImage image
             = QImage(QString::fromLocal8Bit(argv[2])).convertToFormat(QImage::Format_RGB32);

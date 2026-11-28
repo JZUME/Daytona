@@ -257,7 +257,7 @@ void LockPrompt::paintEvent(QPaintEvent *)
     QPainter painter(this);
     Bevel::raised(&painter, rect(), palette());
     const QRect titleBar(Frame, Frame, width() - 2 * Frame, titleBarHeight());
-    painter.fillRect(titleBar, Style::schemeColour(QStringLiteral("ActiveTitle")));
+    painter.fillRect(titleBar, Style::titleBarBrush(titleBar));
     QFont bold = font();
     bold.setBold(true);
     painter.setFont(bold);

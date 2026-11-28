@@ -5,6 +5,8 @@
 
 #include <QApplication>
 #include <QFile>
+#include <QImage>
+#include <QPainter>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -95,6 +97,30 @@ private Q_SLOTS:
         QCOMPARE(palette.color(QPalette::Highlight), QColor(1, 2, 3));
         QCOMPARE(palette.color(QPalette::Button), QColor(192, 192, 192));
         QCOMPARE(paletteFromColours({}), Style::ntPalette());
+    }
+
+    void titleBarBrush()
+    {
+        const QRect bar(10, 0, 101, 18);
+        // NT: solid ActiveTitle.
+        const QBrush solid = Daytona::titleBarBrush(standardColours(), true, bar);
+        QCOMPARE(solid.style(), Qt::SolidPattern);
+        QCOMPARE(solid.color(), QColor(0, 0, 128));
+
+        // Windows 98: ActiveTitle on the left to GradientActiveTitle on the right.
+        SchemeColours colours = standardColours();
+        colours.insert(QStringLiteral("GradientActiveTitle"), QColor(16, 132, 208));
+        QImage image(120, 18, QImage::Format_RGB32);
+        image.fill(Qt::white);
+        QPainter painter(&image);
+        painter.fillRect(bar, Daytona::titleBarBrush(colours, true, bar));
+        painter.end();
+        QCOMPARE(image.pixelColor(10, 5), QColor(0, 0, 128));
+        QCOMPARE(image.pixelColor(110, 5), QColor(16, 132, 208));
+        const QColor middle = image.pixelColor(60, 5);
+        QVERIFY(qAbs(middle.blue() - (128 + 208) / 2) <= 2);
+        // The inactive bar has two equal colours here and stays solid.
+        QCOMPARE(Daytona::titleBarBrush(colours, false, bar).style(), Qt::SolidPattern);
     }
 
     void fileRoundTrip()

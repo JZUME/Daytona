@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <QBrush>
 #include <QColor>
 #include <QMap>
 #include <QPalette>
@@ -26,6 +27,14 @@ std::optional<QColor> parseRgb(const QString &value);
 // Builds the Qt palette for a colour scheme. Missing keys use Windows
 // Standard. See docs/colour-schemes.md for the mapping.
 QPalette paletteFromColours(const SchemeColours &colours);
+
+// Whether a scheme gives the active (or inactive) title bar two colours,
+// ActiveTitle and GradientActiveTitle, which Windows 98 and 2000 blend from left
+// to right. NT schemes set them the same and their title bars stay solid.
+bool titleBarHasGradient(const SchemeColours &colours, bool active);
+
+// The title bar fill for rect: that blend, or the solid title colour.
+QBrush titleBarBrush(const SchemeColours &colours, bool active, const QRect &rect);
 
 // The active colour scheme, as written by daytona-themetool apply and read by
 // the shell and the daytona style plugin.

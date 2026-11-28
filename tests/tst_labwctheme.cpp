@@ -64,6 +64,30 @@ private Q_SLOTS:
             QByteArray("#808080,#ffffff,#808080"));
     }
 
+    void titleBarGradients()
+    {
+        // NT schemes: solid title bars.
+        for (const QString &name : builtInSchemeNames()) {
+            const QByteArray themerc = labwcThemerc(builtInScheme(name)->colours);
+            QCOMPARE(themercValue(themerc, "window.active.title.bg"), QByteArray("Solid"));
+            QCOMPARE(themercValue(themerc, "window.inactive.title.bg"), QByteArray("Solid"));
+        }
+        QCOMPARE(themercValue(labwcThemerc(standardColours()), "window.active.title.bg.colorTo"),
+            QByteArray("#000080"));
+
+        // Windows 98 Standard: the active bar blends, the inactive one has
+        // the same two colours and stays solid.
+        SchemeColours colours = standardColours();
+        colours.insert(QStringLiteral("GradientActiveTitle"), QColor(16, 132, 208));
+        const QByteArray themerc = labwcThemerc(colours);
+        const auto value = [&](const char *key) { return themercValue(themerc, key); };
+        QCOMPARE(value("window.active.title.bg"), QByteArray("Gradient Horizontal"));
+        QCOMPARE(value("window.active.title.bg.color"), QByteArray("#000080"));
+        QCOMPARE(value("window.active.title.bg.colorTo"), QByteArray("#1084d0"));
+        QCOMPARE(value("window.inactive.title.bg"), QByteArray("Solid"));
+        QCOMPARE(value("window.inactive.title.bg.colorTo"), QByteArray("#808080"));
+    }
+
     void buttonsAreRecoloured()
     {
         SchemeColours colours = standardColours();

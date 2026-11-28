@@ -25,7 +25,14 @@ Built-in schemes: Windows Standard, High Contrast Black and High Contrast White.
 
 - **Window frames:** writes a labwc theme named `Daytona` to
   `$XDG_DATA_HOME/themes/Daytona/openbox-3`, which labwc finds before the
-  shipped one, and runs `labwc --reconfigure`.
+  shipped one, and runs `labwc --reconfigure`. Title bars are solid
+  `ActiveTitle` / `InactiveTitle`, as in NT, unless the scheme's
+  `GradientActiveTitle` / `GradientInactiveTitle` differ from them: then they
+  blend from left to right, as in Windows 98 and 2000 (`Gradient Horizontal`
+  in the labwc theme, drawn by Daytona's labwc patch). A `.theme` file without
+  the Gradient keys (Windows 95 and NT) keeps solid title bars in its own
+  colours. Display Properties' preview and the lock screen draw title bars
+  the same way.
 - **GTK 3 applications:** writes a `Daytona` GTK theme to
   `$XDG_DATA_HOME/themes/Daytona/gtk-3.0/gtk.css`. It imports Chicago95 and
   redefines Chicago95's named colours (`bg_color`, `selected_bg_color`, ...).
@@ -108,9 +115,12 @@ The other keys have no Qt palette role. Daytona reads them with
 `Daytona::Style::schemeColour()`:
 
 - **ActiveTitle, InactiveTitle, TitleText, InactiveTitleText,
-  GradientActiveTitle, GradientInactiveTitle, ActiveBorder, InactiveBorder,
-  WindowFrame:** window decorations, which labwc draws. They will be converted
-  to its theme by a later change.
+  GradientActiveTitle, GradientInactiveTitle, ActiveBorder, InactiveBorder:**
+  window decorations, which labwc draws from the generated labwc theme (see
+  above). `Daytona::titleBarBrush()` gives Daytona's own title bars the same
+  solid or gradient fill.
+- **WindowFrame:** not used; Daytona's frames are drawn with the 3D button
+  colours, as NT draws them.
 - **Background:** the desktop colour.
 - **Menu, MenuText:** menus. In NT's built-in schemes these equal ButtonFace and
   ButtonText, which menus currently use.

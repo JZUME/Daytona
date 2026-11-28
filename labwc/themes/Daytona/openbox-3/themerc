@@ -8,6 +8,9 @@
 # come from Daytona's labwc patch (patches/labwc); stock labwc ignores them and
 # draws a flat border. Caption buttons look sunken while held down (the
 # *_pressed images, also from a Daytona patch). Menus are flat (labwc limit).
+# Title bars are solid, as in NT; daytona-themetool writes "Gradient
+# Horizontal" for schemes whose Gradient colours differ (Windows 98/2000), which
+# another Daytona patch draws.
 
 border.width: 4
 window.active.border.color: #c0c0c0
@@ -24,6 +27,10 @@ window.titlebar.padding.height: 2
 
 window.active.title.bg.color: #000080
 window.inactive.title.bg.color: #808080
+window.active.title.bg: Solid
+window.inactive.title.bg: Solid
+window.active.title.bg.colorTo: #000080
+window.inactive.title.bg.colorTo: #808080
 window.active.label.text.color: #ffffff
 window.inactive.label.text.color: #c0c0c0
 window.label.text.justify: Left
