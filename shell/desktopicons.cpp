@@ -904,6 +904,12 @@ QMenu *DesktopIconView::itemMenu(const QString &key)
     bold.setBold(true);
     openAction->setFont(bold);
     menu->setDefaultAction(openAction);
+    if (item.kind == DesktopItem::Kind::Computer) {
+        // NT's My Computer > Properties: System Properties.
+        menu->addSeparator();
+        menu->addAction(tr("P&roperties"), this, &DesktopIconView::systemPropertiesRequested)
+            ->setObjectName(QStringLiteral("properties"));
+    }
     if (item.kind == DesktopItem::Kind::RecycleBin) {
         menu->addSeparator();
         QAction *empty

@@ -93,6 +93,8 @@ void Desktop::setShowIcons(bool show)
         return;
     if (show) {
         m_icons = new DesktopIconView(m_settings, m_properties, this);
+        connect(m_icons, &DesktopIconView::systemPropertiesRequested, this,
+            &Desktop::systemPropertiesRequested);
         m_icons->setGeometry(rect());
         m_icons->setMargins(m_iconMargins);
         m_icons->show();
@@ -214,6 +216,8 @@ void DesktopManager::add(QScreen *screen)
     auto *desktop = new Desktop(m_settings);
     desktop->setObjectName(QStringLiteral("desktop-") + screen->name());
     connect(desktop, &Desktop::propertiesRequested, this, &DesktopManager::propertiesRequested);
+    connect(desktop, &Desktop::systemPropertiesRequested, this,
+        &DesktopManager::systemPropertiesRequested);
     desktop->attachToLayerShell(screen);
     desktop->show();
     m_desktops.insert(screen, desktop);

@@ -203,7 +203,7 @@ Daytona
 │   ├── Taskbar (Start button, window buttons, notification area, clock)
 │   ├── Start menu
 │   ├── Run and Shut Down dialogs
-│   ├── Control Panel; Taskbar, Display, Keyboard, Mouse, Date/Time and Sounds Properties dialogs
+│   ├── Control Panel; Taskbar, Display, Keyboard, Mouse, Date/Time, Sounds and System Properties dialogs
 │   ├── Notification balloons
 │   ├── Desktop (background, icons, context menus)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
@@ -389,10 +389,20 @@ NT's **Help** item is omitted; there is no system-wide help viewer to open.
 
 Start > Settings > Control Panel opens NT's Control Panel: a folder window of applet icons, with File (Open, Close) and View (Status Bar, Large Icons, Small Icons, List, Refresh) menus and a status bar showing the object count or the selected applet's description.
 
-* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Date/Time, Display, Keyboard, Mouse, Sounds, Taskbar), then **Applications**.
+* Applets are shown under two headings, drawn like Windows XP's "Show in Groups": **Daytona** (the shell's own dialogs: Date/Time, Display, Keyboard, Mouse, Sounds, System, Taskbar), then **Applications**.
 * **Applications** lists every installed application the Start menu would show whose `.desktop` file has `Settings` in `Categories`. This is the registration mechanism: an application adds a Control Panel applet with a standard freedesktop `.desktop` file, and the list follows installs and removals. There is no Daytona-specific applet API or plugin system.
 * Opening a Daytona applet opens its dialog in the shell; opening an application launches it as the Start menu does.
 * A new Daytona settings dialog is added to the Daytona group as well as (where NT had one) its own Start > Settings item.
+
+---
+
+## System Properties
+
+NT's Control Panel > System, also opened from My Computer > Properties on the desktop and by Win+Pause (a labwc keybinding running `daytona-shell --system-properties`). Read-only; everything is read once when it opens, from files that need no root (`shell/systeminfo.*`):
+
+* **General** tab, laid out as Windows 98's: Chicago95's `computer` icon (My Computer's, from its scalable SVG at 96 pixels; never a Windows flag or other Microsoft logo), with the distribution's own logo at 64 pixels below it, level with the Computer group, where Windows 98 showed the computer maker's (found as the Start button finds it, see Licence and Third-Party Assets; nothing is shown when the distribution has none), beside four groups. **System:** the distribution (os-release's `PRETTY_NAME`, else `NAME` and `VERSION`), `Daytona <version>` and the kernel (`uname`, as Windows showed its build number). **Registered to:** the user's full name (GECOS, else the login name). **Computer name:** `PRETTY_HOSTNAME` from `/etc/machine-info`, else the host name. **Computer:** the processor's vendor and model from `/proc/cpuinfo` (x86's `vendor_id` and `model name`; ARM's implementer and core names from a table of the common ones, both kinds of a big.LITTLE processor; RISC-V's `uarch`, POWER's `cpu`; else `Hardware`, the devicetree or DMI model, then `uname -m`), the number of logical processors when more than one, and `MemTotal` as "x.x GB RAM" (1024-based as Windows counted, one decimal, not rounded up to the installed amount; MB under 1 GB).
+* **Performance** tab: memory (total, and in use as `MemTotal - MemAvailable`) and virtual memory (swap total and in use from `/proc/meminfo`, with a bar for each), and the swap partitions, files and zram devices from `/proc/swaps`, or "Virtual memory is disabled" when there are none. Windows 98's System Resources, File System, Graphics and Virtual Memory settings have no Linux equivalent or need root, and are not offered.
+* NT's Environment, Startup/Shutdown and User Profiles tabs, and Windows 98's Device Manager and Hardware Profiles, are not offered.
 
 ---
 
@@ -522,7 +532,7 @@ The primary monitor's desktop (the taskbar's) also shows NT's desktop icons (iss
 * **Opening:** double-click or Enter. My Computer, Network Neighborhood and Recycle Bin open `computer:///`, `network:///` and `trash:///` in PCManFM-Qt (the home folder, nothing and the trash folder through `xdg-open` without it). Files and folders open with `xdg-open`, so folders go to PCManFM-Qt (`daytona-mimeapps.list`); `.desktop` files are launched as the Start menu launches them.
 * **Selection and placement, as NT:** click selects, Ctrl+click adds, a rubber band selects several, arrow keys move between icons, typing a letter selects the next icon starting with it. Dragging moves icons anywhere on the desktop; positions are remembered per name in Daytona's INI file. Dragging between the desktop and other programs is not provided.
 * **Desktop menu:** Arrange Icons (by Name, Type, Size, Date; Auto Arrange), Line up Icons, Paste, Paste Shortcut, New (Folder, Text Document), Properties. NT's Undo and New > Shortcut (a wizard) and Briefcase are not offered.
-* **Icon menu:** Open (bold), Cut, Copy, Create Shortcut, Delete, Rename for files; Open for My Computer and Network Neighborhood; Open and Empty Recycle Bin for the Recycle Bin. NT's Properties sheets for files, My Computer and Network Neighborhood are not offered; PCManFM-Qt has its own.
+* **Icon menu:** Open (bold), Cut, Copy, Create Shortcut, Delete, Rename for files; Open and Properties (System Properties) for My Computer; Open for Network Neighborhood; Open and Empty Recycle Bin for the Recycle Bin. NT's Properties sheets for files and Network Neighborhood are not offered; PCManFM-Qt has its own.
 * **File operations stay standard:** Delete moves to the freedesktop trash (with NT's confirmation), so items appear in PCManFM-Qt's Trash and can be restored there. Cut, Copy and Paste use `text/uri-list` with `x-special/gnome-copied-files`, so they work both ways with PCManFM-Qt and other file managers. A shortcut is a symbolic link ("Shortcut to X"). A pasted item that would replace one gets NT's "Copy of X" name instead. Rename is in place (F2 or the menu). Copying shows no progress dialog; large copies belong in the file manager.
 * The desktop follows changes to `~/Desktop` and the trash made by any program, through a file watcher, reading the folder off the UI thread.
 

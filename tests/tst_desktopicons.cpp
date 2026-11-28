@@ -294,6 +294,15 @@ private Q_SLOTS:
 
         // Menus: the Recycle Bin's can empty it; a file's has the file
         // commands, Open first and default.
+        // My Computer's Properties opens System Properties.
+        QMenu *computer = view.itemMenu(QStringLiteral("/computer"));
+        QSignalSpy system(&view, &DesktopIconView::systemPropertiesRequested);
+        computer->findChild<QAction *>(QStringLiteral("properties"))->trigger();
+        QCOMPARE(system.count(), 1);
+        delete computer;
+        QMenu *network = view.itemMenu(QStringLiteral("/network"));
+        QVERIFY(!network->findChild<QAction *>(QStringLiteral("properties")));
+        delete network;
         QMenu *bin = view.itemMenu(QStringLiteral("/recyclebin"));
         QVERIFY(bin->findChild<QAction *>(QStringLiteral("empty"))->isEnabled());
         delete bin;

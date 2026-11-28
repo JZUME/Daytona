@@ -33,6 +33,7 @@
 #include "startbutton.h"
 #include "startmenu.h"
 #include "statusnotifierhost.h"
+#include "systemproperties.h"
 #include "taskbar.h"
 #include "taskbarplacement.h"
 #include "taskbarproperties.h"
@@ -115,6 +116,11 @@ int main(int argc, char *argv[])
         return std::fwrite(text.constData(), 1, size_t(text.size()), stdout) == size_t(text.size())
             ? 0
             : 1;
+    }
+    // System Properties (Win+Pause), shown by the running shell.
+    if (hasArgument(argc, argv, "--system-properties")) {
+        QCoreApplication app(argc, argv);
+        return Daytona::ShellService::requestSystemProperties() ? 0 : 1;
     }
     if (hasArgument(argc, argv, "--screen-saver")) {
         QCoreApplication app(argc, argv);
@@ -580,6 +586,23 @@ int main(int argc, char *argv[])
             soundsProperties.raise();
             soundsProperties.activateWindow();
         });
+
+    // System Properties, from the Control Panel, My Computer > Properties
+    // and Win+Pause.
+    Daytona::SystemPropertiesDialog systemProperties;
+    const auto showSystemProperties = [&systemProperties] {
+        if (!systemProperties.isVisible())
+            systemProperties.prepare();
+        systemProperties.show();
+        systemProperties.raise();
+        systemProperties.activateWindow();
+    };
+    QObject::connect(&controlPanel, &Daytona::ControlPanel::systemPropertiesRequested,
+        &systemProperties, showSystemProperties);
+    QObject::connect(&desktops, &Daytona::DesktopManager::systemPropertiesRequested,
+        &systemProperties, showSystemProperties);
+    QObject::connect(&service, &Daytona::ShellService::systemPropertiesRequested, &systemProperties,
+        showSystemProperties);
 
     // Programs are asked to close before the session ends.
     Daytona::ProgramCloser programCloser(
