@@ -60,5 +60,14 @@ fi
         gnome-keyring-daemon --start --components=secrets
     fi
     gdbus wait --session --timeout 30 org.kde.StatusNotifierWatcher
+    # The X11 system tray, for programs that only know the old XEmbed tray
+    # icons (GtkStatusIcon, Wine, older Java): daytona-xembed-proxy shows
+    # their icons beside the others. Only with Xwayland (labwc sets DISPLAY
+    # for it), and before the autostart applications, so it is there when
+    # they look for a tray. It ends with the X display, at log off.
+    xembed_proxy="$(dirname "$(readlink -f "$0")")/../../../libexec/daytona/daytona-xembed-proxy"
+    if [ -n "${DISPLAY:-}" ] && [ -x "$xembed_proxy" ] && command -v Xwayland >/dev/null; then
+        "$xembed_proxy" &
+    fi
     XDG_CONFIG_DIRS="$xdg_config_dirs" dex --autostart --environment Daytona
 } >/dev/null 2>&1 &

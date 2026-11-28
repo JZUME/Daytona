@@ -19,10 +19,22 @@ target_link_libraries(daytona-smoke-window PRIVATE Qt6::Widgets)
 # Holds the left mouse button down (wlrctl can only click).
 find_package(Qt6 6.8 REQUIRED COMPONENTS WaylandClient)
 pkg_check_modules(SmokeWaylandClient REQUIRED IMPORTED_TARGET wayland-client)
-add_executable(daytona-smoke-button pointerbutton.cpp)
-target_link_libraries(daytona-smoke-button PRIVATE Qt6::WaylandClient PkgConfig::SmokeWaylandClient)
-qt_generate_wayland_protocol_client_sources(daytona-smoke-button
+add_library(daytona-smoke-virtual-pointer STATIC)
+target_link_libraries(daytona-smoke-virtual-pointer PUBLIC Qt6::WaylandClient PkgConfig::SmokeWaylandClient)
+qt_generate_wayland_protocol_client_sources(daytona-smoke-virtual-pointer
     FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-virtual-pointer-unstable-v1.xml)
+target_include_directories(daytona-smoke-virtual-pointer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(daytona-smoke-button pointerbutton.cpp)
+target_link_libraries(daytona-smoke-button PRIVATE daytona-smoke-virtual-pointer)
+
+# A mouse that stays plugged in between clicks.
+add_executable(daytona-smoke-pointer virtualpointer.cpp)
+target_link_libraries(daytona-smoke-pointer PRIVATE daytona-smoke-virtual-pointer)
+
+# An X11 program with an XEmbed tray icon, for daytona-xembed-proxy.
+pkg_check_modules(SmokeXcb REQUIRED IMPORTED_TARGET xcb)
+add_executable(daytona-smoke-xembed-icon xembedicon.cpp)
+target_link_libraries(daytona-smoke-xembed-icon PRIVATE PkgConfig::SmokeXcb)
 
 set(SMOKE_PREFIX "${CMAKE_BINARY_DIR}/smoke-root")
 
@@ -56,6 +68,9 @@ daytona_add_smoke_test(smoke_taskbuttons smoke_taskbuttons.sh)
 daytona_add_smoke_test(smoke_taskdialog smoke_taskdialog.sh)
 daytona_add_smoke_test(smoke_startmenu smoke_startmenu.sh)
 daytona_add_smoke_test(smoke_desktop_icons smoke_desktop_icons.sh)
+# XEmbed tray icons through daytona-xembed-proxy; skipped without Xwayland.
+daytona_add_smoke_test(smoke_xembed smoke_xembed.sh)
+set_tests_properties(smoke_xembed smoke_xembed_2x PROPERTIES SKIP_RETURN_CODE 77)
 # The bevelled frame comes from Daytona's labwc patch, so needs that build.
 if(DAYTONA_BUILD_LABWC)
     daytona_add_smoke_test(smoke_frame smoke_frame.sh)

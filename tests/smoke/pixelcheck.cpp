@@ -6,6 +6,7 @@
 //        daytona-pixelcheck --frame IMAGE SCALE
 //        daytona-pixelcheck --pointer IMAGE X Y SCALE
 //        daytona-pixelcheck --count IMAGE #RRGGBB N
+//        daytona-pixelcheck --find IMAGE #RRGGBB SCALE
 // Exits 0 if every pixel matches exactly, 1 if any differ (reported on
 // stderr), 2 on bad arguments or an unreadable image.
 //
@@ -22,6 +23,10 @@
 //
 // --count checks that exactly N pixels in the image have the colour, for
 // counting things of a known size and colour wherever they are drawn.
+//
+// --find prints the centre of the pixels of the colour, as "X Y" in logical
+// pixels (device pixels divided by SCALE), to click things found by colour;
+// it exits 1 if there are none.
 
 #include <QColor>
 #include <QImage>
@@ -137,6 +142,24 @@ int countPixels(const QImage &image, QRgb colour, int expected)
     return 1;
 }
 
+int findPixels(const QImage &image, QRgb colour, int scale)
+{
+    QRect found;
+    for (int y = 0; y < image.height(); ++y) {
+        const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            if ((line[x] & 0xffffff) == (colour & 0xffffff))
+                found |= QRect(x, y, 1, 1);
+        }
+    }
+    if (found.isEmpty()) {
+        std::fprintf(stderr, "no pixels of the colour\n");
+        return 1;
+    }
+    std::printf("%d %d\n", found.center().x() / scale, found.center().y() / scale);
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc == 6 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--pointer")) {
@@ -163,6 +186,18 @@ int main(int argc, char *argv[])
             return 2;
         }
         return countPixels(image, colour.rgb(), expected);
+    }
+    if (argc == 5 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--find")) {
+        const QImage image
+            = QImage(QString::fromLocal8Bit(argv[2])).convertToFormat(QImage::Format_RGB32);
+        const QColor colour = QColor::fromString(QString::fromLocal8Bit(argv[3]));
+        bool ok = false;
+        const int scale = QString::fromLocal8Bit(argv[4]).toInt(&ok);
+        if (image.isNull() || !colour.isValid() || !ok || scale < 1) {
+            std::fprintf(stderr, "usage: %s --find IMAGE #RRGGBB SCALE\n", argv[0]);
+            return 2;
+        }
+        return findPixels(image, colour.rgb(), scale);
     }
     if (argc == 4 && QString::fromLocal8Bit(argv[1]) == QLatin1String("--frame")) {
         const QImage image

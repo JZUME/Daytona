@@ -251,8 +251,15 @@ QPixmap StatusNotifierItem::pixmap(int size) const
         image = bestSniPixmap(m_pixmaps, size);
     if (image.isNull())
         return {};
-    if (image.width() != size || image.height() != size)
-        image = image.scaled(size, size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    if (image.width() != size || image.height() != size) {
+        // Small icons enlarged a whole number of times (16 pixel ones on a
+        // high-density screen, such as X11 programs' icons) keep their
+        // pixels sharp; anything else is scaled smoothly.
+        const bool wholeTimes
+            = image.width() == image.height() && image.width() < size && size % image.width() == 0;
+        image = image.scaled(size, size, Qt::KeepAspectRatio,
+            wholeTimes ? Qt::FastTransformation : Qt::SmoothTransformation);
+    }
     return QPixmap::fromImage(image);
 }
 

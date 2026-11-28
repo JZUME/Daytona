@@ -340,13 +340,51 @@ libayatana-appindicator icons, which have no activate action, show their
 menu on a left click too.
 
 Applications that only know the older X11 tray (XEmbed), which embeds the
-application's own small window in the taskbar, show no icon. This includes
-GTK 2 and GTK 3's `GtkStatusIcon` (removed in GTK 4), older Wine programs and
-plain X11 utilities. Wayland does not let one program embed another
-program's window, so there is nowhere to put such an icon; the rest of the
-application works as usual. Other Wayland desktops have the same limit. A
-bridge such as KDE's `xembedsniproxy`, which turns XEmbed icons of Xwayland
-applications into StatusNotifierItems, could be added later.
+application's own small window in the tray, run through Xwayland: GTK 2 and
+GTK 3's `GtkStatusIcon` (removed in GTK 4), Wine programs, older Java and
+plain X11 utilities. Wayland does not let one program embed another's
+window, so Daytona runs `daytona-xembed-proxy` (in `libexec/daytona`), which
+is the X11 tray (`_NET_SYSTEM_TRAY_S0`) on the Xwayland display and shows
+each such icon in the notification area beside the others:
+
+- **Started** by the session when Xwayland is installed (labwc's autostart,
+  once the notification area is on the session bus and before the XDG
+  autostart applications). Without Xwayland nothing extra runs. It connects
+  to the X display, so Xwayland keeps running for the whole session instead
+  of starting with the first X11 program; it ends with the X display, at log
+  off.
+- **Icons** are 16x16, NT's size, as the program draws them (with their
+  transparency), and enlarged pixel for pixel on high-density screens, as
+  Xwayland enlarges X11 programs' windows. The tooltip is the program's
+  window title or, without one, its name; X11 tray tooltips are drawn by the
+  programs themselves, so their own text is not available.
+- **Clicks:** left click, right click (the program's own menu, opened above
+  the taskbar at the icon), middle click, double click and the mouse wheel
+  are passed to the program. Clicking elsewhere closes the program's menu,
+  as it would on X11.
+
+KDE's `xembedsniproxy` does the same job, but Debian and Ubuntu ship it only
+inside `plasma-workspace`, which brings most of the Plasma desktop (about 680
+packages); `snixembed` works the other way round (StatusNotifierItems for an
+X11 tray). `daytona-xembed-proxy` is small: Qt Core and D-Bus, and XCB with
+its Composite and Damage extensions.
+
+How clicks get there: Xwayland passes input to an X11 window only while the
+compositor's pointer is over one, and over the taskbar it is not, so fake
+input (XTEST) cannot reach the icon. The proxy moves the icon's hidden
+window under the click, moves the X11 pointer there and sends the program
+the pointer entering, the press and release, and the pointer leaving. GTK 3,
+which otherwise reads only XInput 2 events, takes core events that are sent
+to it, and GTK only takes a click on a window it has seen the pointer enter.
+Clicks on Wayland windows never reach X11 programs, so while a program's
+menu is open the proxy puts a transparent X11 window under it, over the
+screen: a click beside the menu then lands in X11 and the menu's pointer
+grab closes it.
+
+Tested with `yad --notification` (GTK 3), a Python `Gtk.StatusIcon` and
+Wine 10's Task Manager (its CPU meter): icons show, left click activates,
+right click opens the menu above the taskbar, double click restores Task
+Manager, and clicking elsewhere closes the menus.
 
 Notifications sent through `org.freedesktop.Notifications` (`notify-send`,
 libnotify) are shown as Windows 2000 balloons pointing at the notification

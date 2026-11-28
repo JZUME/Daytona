@@ -27,6 +27,7 @@ protected:
 
 private:
     void itemChanged();
+    QPoint screenPosition(const QPoint &pos) const;
 
     QPointer<StatusNotifierItem> m_item;
 };
