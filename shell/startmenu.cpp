@@ -8,6 +8,7 @@
 #include "daytonastyle.h"
 #include "recentdocuments.h"
 #include "settings.h"
+#include "systemlogo.h"
 
 #include <LayerShellQt/Window>
 #include <QCoreApplication>
@@ -81,6 +82,7 @@ StartMenu::StartMenu(ApplicationIndex *index, Settings *settings, QWidget *paren
     : QWidget(parent, Qt::Window | Qt::FramelessWindowHint)
     , m_index(index)
     , m_settings(settings)
+    , m_bannerText(systemName())
 {
     setAccessibleName(tr("Start menu"));
     setMouseTracking(true);
@@ -253,7 +255,8 @@ void StartMenu::paintEvent(QPaintEvent *)
     }
 
     // NT's banner: a dark strip inside the frame with the product name
-    // reading upwards from the bottom.
+    // ("Windows NT") reading upwards from the bottom; here the operating
+    // system's, cut short with "..." if the menu is too short for it.
     const int frame = style()->pixelMetric(QStyle::PM_MenuPanelWidth, nullptr, this);
     const QRect banner(frame, frame, BannerWidth, height() - 2 * frame);
     painter.fillRect(banner, pal.color(QPalette::Dark));
@@ -264,8 +267,9 @@ void StartMenu::paintEvent(QPaintEvent *)
     painter.setPen(pal.color(QPalette::Light));
     painter.translate(banner.left(), banner.bottom());
     painter.rotate(-90);
-    painter.drawText(QRect(4, 0, banner.height() - 8, banner.width()),
-        Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("Daytona"));
+    const QRect text(4, 0, banner.height() - 8, banner.width());
+    painter.drawText(text, Qt::AlignLeft | Qt::AlignVCenter,
+        painter.fontMetrics().elidedText(m_bannerText, Qt::ElideRight, text.width()));
 }
 
 void StartMenu::setCurrent(int index)

@@ -7,6 +7,7 @@
 #include "greeter.h"
 #include "keyboard.h"
 #include "logonui.h"
+#include "osrelease.h"
 #include "scale.h"
 #include "sessions.h"
 
@@ -143,6 +144,7 @@ private Q_SLOTS:
     void splitExec();
     void keyboardDefaults();
     void scale();
+    void osName();
 
 private:
     void logOnAs(const QString &user, const QString &password);
@@ -524,6 +526,33 @@ void TestGreeter::scale()
     QCOMPARE(parseScale("big"), 0.0);
     QCOMPARE(parseScale("nan"), 0.0);
     QCOMPARE(parseScale(""), 0.0);
+}
+
+void TestGreeter::osName()
+{
+    QTemporaryDir root;
+    QVERIFY(root.isValid());
+    // No os-release: the specification's default.
+    QCOMPARE(operatingSystemName(root.path()), QString("Linux"));
+
+    QDir(root.path()).mkpath("usr/lib");
+    QFile lib(root.filePath("usr/lib/os-release"));
+    QVERIFY(lib.open(QIODevice::WriteOnly));
+    lib.write(
+        "PRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"\nNAME=\"Debian GNU/Linux\"\nID=debian\n");
+    lib.close();
+    QCOMPARE(operatingSystemName(root.path()), QString("Debian GNU/Linux"));
+
+    // /etc/os-release wins.
+    QDir(root.path()).mkpath("etc");
+    QFile etc(root.filePath("etc/os-release"));
+    QVERIFY(etc.open(QIODevice::WriteOnly));
+    etc.write("# comment\nNAME=Ubuntu\nVERSION_ID='25.04'\n");
+    etc.close();
+    QCOMPARE(operatingSystemName(root.path()), QString("Ubuntu"));
+
+    QVERIFY(m_greeter->dialog()->windowTitle().startsWith("Welcome to "));
+    QCOMPARE(m_greeter->dialog()->windowTitle(), "Welcome to " + operatingSystemName());
 }
 
 QTEST_MAIN(TestGreeter)

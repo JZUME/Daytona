@@ -63,6 +63,7 @@ public:
     bool justClosed() const;
 
     const QList<Item> &items() const { return m_items; }
+    QString bannerText() const { return m_bannerText; }
     int currentIndex() const { return m_current; }
     QMenu *programsMenu() const { return m_programs; }
     QMenu *documentsMenu() const { return m_documents; }
@@ -123,6 +124,8 @@ private:
     ApplicationIndex *m_index;
     Settings *m_settings;
     QList<Item> m_items;
+    // The banner's text: the operating system's name.
+    QString m_bannerText;
     QMenu *m_programs;
     QMenu *m_documents;
     QMenu *m_settingsMenu;

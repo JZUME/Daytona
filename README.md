@@ -74,7 +74,7 @@ screen in Display Properties > Settings > Font Size; see [docs/hidpi.md](docs/hi
 
 ### Log on screen (optional)
 
-![The Welcome to Daytona log on dialog, with user name, password, session and Shut Down](docs/screenshots/greeter.png)
+![The "Welcome to Debian GNU/Linux" log on dialog, with user name, password, session and Shut Down](docs/screenshots/greeter.png)
 
 `daytona-greeter` is an optional Windows 98-style log on screen for greetd, with a session
 chooser and Shut Down; see [Optional: the Daytona log on screen](#optional-the-daytona-log-on-screen).

@@ -117,7 +117,7 @@ The desktop follows the Windows NT 4.0 WIMP interaction model, with the addition
 * the taskbar starts at the bottom; when unlocked it can be dragged to any edge of its screen, and when locked it cannot be moved or resized (see Taskbar Placement)
 * the Start button is on the left
 * the notification area and clock are on the right
-* the Start menu opens from the Start button towards the centre of the screen (upward when the taskbar is at the bottom) with a vertical banner and cascading submenus
+* the Start menu opens from the Start button towards the centre of the screen (upward when the taskbar is at the bottom) with a vertical banner (the operating system's name from os-release, as NT's showed "Windows NT") and cascading submenus
 * each normal top-level window has one taskbar button, in launch order
 * clicking a taskbar button activates the window; clicking the button of the active window minimises it
 * right-clicking a taskbar button shows the window menu (Restore, Move, Size, Minimise, Maximise, Close)
