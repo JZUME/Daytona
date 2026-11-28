@@ -90,7 +90,7 @@ namespace {
         painter->fillRect(rect, colourOf(c, active ? "ActiveBorder" : "InactiveBorder"));
         Bevel::raised(painter, rect, pal);
         const QRect titleBar(rect.left() + 4, rect.top() + 4, rect.width() - 8, 16);
-        painter->fillRect(titleBar, colourOf(c, active ? "ActiveTitle" : "InactiveTitle"));
+        painter->fillRect(titleBar, titleBarBrush(c, active, titleBar));
         QFont bold = painter->font();
         bold.setBold(true);
         painter->save();

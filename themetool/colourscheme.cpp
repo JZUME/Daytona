@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QStringDecoder>
+#include <utility>
 
 namespace Daytona {
 
@@ -205,6 +206,16 @@ ColourScheme parseTheme(const QByteArray &data, const QString &name, const QStri
             scheme.warnings << QStringLiteral(
                 "Colour %1 is not valid (\"%2\"); using Windows Standard")
                                    .arg(key, value.left(40));
+    }
+
+    // Windows 95 and NT .theme files have no Gradient keys. Their title bars
+    // are solid, so the gradient colour follows the title colour rather than
+    // Windows Standard's.
+    for (const auto &[gradient, title] : { std::pair { "GradientActiveTitle", "ActiveTitle" },
+             std::pair { "GradientInactiveTitle", "InactiveTitle" } }) {
+        if (colours.value(QString::fromLatin1(gradient).toLower()).isEmpty())
+            scheme.colours.insert(
+                QString::fromLatin1(gradient), scheme.colours.value(QString::fromLatin1(title)));
     }
 
     const auto desktop = sections.value(QStringLiteral("control panel\\desktop"));

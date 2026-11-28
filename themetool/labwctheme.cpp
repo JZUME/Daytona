@@ -103,6 +103,9 @@ QByteArray labwcThemerc(const SchemeColours &colours)
         { "window.border.bevel.darkshadow.color", { "ButtonDkShadow" } },
         { "window.active.title.bg.color", { "ActiveTitle" } },
         { "window.inactive.title.bg.color", { "InactiveTitle" } },
+        // Windows 98/2000 title bar gradients (Daytona's labwc patch).
+        { "window.active.title.bg.colorTo", { "GradientActiveTitle" } },
+        { "window.inactive.title.bg.colorTo", { "GradientInactiveTitle" } },
         { "window.active.label.text.color", { "TitleText" } },
         { "window.inactive.label.text.color", { "InactiveTitleText" } },
         { "menu.border.color", { "ButtonShadow" } },
@@ -129,6 +132,14 @@ QByteArray labwcThemerc(const SchemeColours &colours)
             break;
         const int colon = line.indexOf(':');
         const QByteArray key = colon > 0 ? line.left(colon).trimmed() : QByteArray();
+        // A gradient only where the scheme gives the title bar two colours,
+        // so NT schemes (Gradient = base colour) stay solid.
+        if (key == "window.active.title.bg" || key == "window.inactive.title.bg") {
+            const bool active = key == "window.active.title.bg";
+            out += key
+                + (titleBarHasGradient(colours, active) ? ": Gradient Horizontal\n" : ": Solid\n");
+            continue;
+        }
         bool replaced = false;
         for (const auto &[themeKey, schemeKeys] : map) {
             if (key != themeKey)

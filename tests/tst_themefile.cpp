@@ -79,6 +79,28 @@ private Q_SLOTS:
         QCOMPARE(s.colours.size(), colourKeys().size());
     }
 
+    void gradientTitleColours()
+    {
+        // Windows 98's "Windows Standard": navy fading to light blue.
+        const ColourScheme win98 = parse("[Control Panel\\Colors]\nActiveTitle=0 0 128\n"
+                                         "GradientActiveTitle=16 132 208\n"
+                                         "InactiveTitle=128 128 128\n"
+                                         "GradientInactiveTitle=181 181 181\n");
+        QCOMPARE(win98.colour(QStringLiteral("GradientActiveTitle")), QColor(16, 132, 208));
+        QCOMPARE(win98.colour(QStringLiteral("GradientInactiveTitle")), QColor(181, 181, 181));
+        QVERIFY(titleBarHasGradient(win98.colours, true));
+        QVERIFY(titleBarHasGradient(win98.colours, false));
+
+        // A Windows 95/NT theme has no Gradient keys: its title bars stay
+        // solid in its own colours, not Windows Standard's.
+        const ColourScheme nt = parse("[Control Panel\\Colors]\nActiveTitle=128 0 0\n"
+                                      "InactiveTitle=0 128 0\n");
+        QCOMPARE(nt.colour(QStringLiteral("GradientActiveTitle")), QColor(128, 0, 0));
+        QCOMPARE(nt.colour(QStringLiteral("GradientInactiveTitle")), QColor(0, 128, 0));
+        QVERIFY(!titleBarHasGradient(nt.colours, true));
+        QVERIFY(!titleBarHasGradient(nt.colours, false));
+    }
+
     void wallpaperStyle_data()
     {
         QTest::addColumn<QByteArray>("desktop");

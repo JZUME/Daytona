@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QLinearGradient>
+#include <QRect>
 #include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
@@ -139,6 +141,43 @@ QPalette paletteFromColours(const SchemeColours &colours)
     palette.setColor(QPalette::Disabled, QPalette::Base, face);
     palette.setColor(QPalette::Disabled, QPalette::Highlight, c("ButtonShadow"));
     return palette;
+}
+
+namespace {
+
+    QColor colourOf(const SchemeColours &colours, const char *key)
+    {
+        const QString name = QString::fromLatin1(key);
+        const QColor colour = colours.value(name);
+        return colour.isValid() ? colour : standardColours().value(name);
+    }
+
+    QColor titleColour(const SchemeColours &colours, bool active)
+    {
+        return colourOf(colours, active ? "ActiveTitle" : "InactiveTitle");
+    }
+
+    QColor gradientColour(const SchemeColours &colours, bool active)
+    {
+        return colourOf(colours, active ? "GradientActiveTitle" : "GradientInactiveTitle");
+    }
+
+} // namespace
+
+bool titleBarHasGradient(const SchemeColours &colours, bool active)
+{
+    return titleColour(colours, active) != gradientColour(colours, active);
+}
+
+QBrush titleBarBrush(const SchemeColours &colours, bool active, const QRect &rect)
+{
+    if (!titleBarHasGradient(colours, active))
+        return titleColour(colours, active);
+    // As labwc draws it: the first and last pixels are the two colours.
+    QLinearGradient gradient(rect.left() + 0.5, 0, rect.right() + 0.5, 0);
+    gradient.setColorAt(0, titleColour(colours, active));
+    gradient.setColorAt(1, gradientColour(colours, active));
+    return gradient;
 }
 
 QString colourFilePath()

@@ -54,6 +54,8 @@ runtime="$(mktemp -d)"
 chmod 700 "$runtime"
 export XDG_RUNTIME_DIR="$runtime"
 export XDG_CONFIG_HOME="$runtime/config"
+# Generated themes (daytona-themetool apply) go here, not to the user's own.
+export XDG_DATA_HOME="$runtime/data"
 mkdir -p "$XDG_CONFIG_HOME/daytona"
 # The desktop icons' Desktop folder, apart from the user's own.
 mkdir -p "$runtime/Desktop"
@@ -97,6 +99,8 @@ labwc="$prefix/libexec/daytona/labwc"
 [[ -x "$labwc" ]] || labwc=labwc
 "$labwc" --config-dir "$prefix/share/daytona/labwc" >"$runtime/labwc.log" 2>&1 &
 labwc_pid=$!
+# As labwc sets for the programs it starts (daytona-themetool reconfigures it).
+export LABWC_PID="$labwc_pid"
 
 for _ in $(seq 100); do
     [[ -S "$runtime/wayland-0" ]] && break

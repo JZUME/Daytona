@@ -1,0 +1,360 @@
+From 21640230ff2d47637ef14fe655798a9b08b36195 Mon Sep 17 00:00:00 2001
+From: Daytona <daytona@localhost>
+Date: Sat, 28 Nov 2026 09:24:37 +0000
+Subject: [PATCH] ssd: add horizontal titlebar gradients
+
+Support the Openbox theme texture "Gradient Horizontal" for
+window.{active,inactive}.title.bg, with .colorTo as the right-hand
+color. The titlebar background then blends from title.bg.color on the
+left to title.bg.colorTo on the right, as Windows 98 and 2000 draw their
+title bars.
+
+The gradient is drawn once per theme into a small strip and stretched
+over each titlebar as a scene buffer, so resizing does not redraw it.
+The source box runs between the centres of the strip's outer pixels, so
+filtering never blends in what lies outside it. The title text is drawn
+on a clear background over the gradient, and the right-hand corner piece
+uses .colorTo. Other textures, and gradients whose two colors are the
+same, are drawn solid as before.
+---
+ docs/labwc-theme.5.scd | 18 ++++++++
+ docs/themerc           |  4 ++
+ include/theme.h        | 16 +++++++
+ src/ssd/ssd-titlebar.c | 59 +++++++++++++++++++++----
+ src/theme.c            | 99 ++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 187 insertions(+), 9 deletions(-)
+
+diff --git a/docs/labwc-theme.5.scd b/docs/labwc-theme.5.scd
+index 7e794bbd..4b46d8b7 100644
+--- a/docs/labwc-theme.5.scd
++++ b/docs/labwc-theme.5.scd
+@@ -102,6 +102,24 @@ labwc-config(5).
+ 	Background color for non-focused windows' titlebars.
+ 	Default is #f6f5f4.
+ 
++*window.active.title.bg* [Solid|Gradient Horizontal]
++	Texture of the focused window's titlebar, as in Openbox themes.
++	*Gradient Horizontal* blends across the titlebar from
++	*window.active.title.bg.color* on the left to
++	*window.active.title.bg.colorTo* on the right, as Windows 98 and 2000
++	did. Other textures are drawn solid. Default is Solid.
++
++*window.inactive.title.bg* [Solid|Gradient Horizontal]
++	Texture of non-focused windows' titlebars. See *window.active.title.bg*.
++
++*window.active.title.bg.colorTo*
++	Right-hand color of the focused window's titlebar gradient. Default is
++	*window.active.title.bg.color*, which draws it solid.
++
++*window.inactive.title.bg.colorTo*
++	Right-hand color of non-focused windows' titlebar gradient. Default is
++	*window.inactive.title.bg.color*, which draws it solid.
++
+ *window.active.label.text.color*
+ 	Text color for the focused window's titlebar. Default is #000000.
+ 
+diff --git a/docs/themerc b/docs/themerc
+index 74646eba..64e7be96 100644
+--- a/docs/themerc
++++ b/docs/themerc
+@@ -30,6 +30,10 @@ window.active.indicator.toggled-keybind.color: #ff0000
+ # window titlebar background
+ window.active.title.bg.color: #e1dedb
+ window.inactive.title.bg.color: #f6f5f4
++window.active.title.bg: Solid
++window.inactive.title.bg: Solid
++window.active.title.bg.colorTo: #e1dedb
++window.inactive.title.bg.colorTo: #f6f5f4
+ 
+ # window titlebar text
+ window.active.label.text.color: #000000
+diff --git a/include/theme.h b/include/theme.h
+index b86026a9..992101e0 100644
+--- a/include/theme.h
++++ b/include/theme.h
+@@ -40,6 +40,12 @@ enum lab_button_state {
+ 		| LAB_BS_PRESSED,
+ };
+ 
++/*
++ * Solid margin, in pixels, round the blend in a titlebar gradient strip
++ * (theme->window[].title_bg_gradient). Titlebars show only the blend.
++ */
++#define TITLE_GRADIENT_MARGIN 1.5
++
+ struct theme {
+ 	int border_width;
+ 
+@@ -85,6 +91,16 @@ struct theme {
+ 		float title_bg_color[4];
+ 		float label_text_color[4];
+ 
++		/*
++		 * Horizontal titlebar gradient (as in Windows 98/2000): from
++		 * title_bg_color on the left to title_bg_color_to on the right.
++		 * title_bg_gradient is a narrow strip of it, stretched over the
++		 * titlebar, or NULL when the titlebar is solid.
++		 */
++		bool title_bg_horizontal_gradient;
++		float title_bg_color_to[4];
++		struct lab_data_buffer *title_bg_gradient;
++
+ 		/* window drop-shadows */
+ 		int shadow_size;
+ 		float shadow_color[4];
+diff --git a/src/ssd/ssd-titlebar.c b/src/ssd/ssd-titlebar.c
+index fdeb12d4..893da8d0 100644
+--- a/src/ssd/ssd-titlebar.c
++++ b/src/ssd/ssd-titlebar.c
+@@ -27,6 +27,27 @@ static void set_squared_corners(struct ssd *ssd, bool enable);
+ static void set_alt_button_icon(struct ssd *ssd, enum ssd_part_type type, bool enable);
+ static void update_visible_buttons(struct ssd *ssd);
+ 
++/*
++ * The titlebar background is a solid rect, or a scene buffer stretching
++ * the theme's horizontal gradient strip over the titlebar.
++ */
++static void
++set_title_bg_size(struct ssd_part *part, int width, int height)
++{
++	if (part->node->type == WLR_SCENE_NODE_RECT) {
++		wlr_scene_rect_set_size(wlr_scene_rect_from_node(part->node),
++			MAX(width, 0), MAX(height, 0));
++		return;
++	}
++	/* A destination size of 0 would mean the buffer's own size */
++	bool visible = width > 0 && height > 0;
++	wlr_scene_node_set_enabled(part->node, visible);
++	if (visible) {
++		wlr_scene_buffer_set_dest_size(
++			wlr_scene_buffer_from_node(part->node), width, height);
++	}
++}
++
+ void
+ ssd_titlebar_create(struct ssd *ssd)
+ {
+@@ -57,9 +78,28 @@ ssd_titlebar_create(struct ssd *ssd)
+ 		wl_list_init(&subtree->parts);
+ 
+ 		/* Background */
+-		add_scene_rect(&subtree->parts, LAB_SSD_PART_TITLEBAR, parent,
+-			width - corner_width * 2, theme->titlebar_height,
+-			corner_width, 0, color);
++		struct lab_data_buffer *gradient =
++			theme->window[active].title_bg_gradient;
++		if (gradient) {
++			struct ssd_part *part = add_scene_buffer(&subtree->parts,
++				LAB_SSD_PART_TITLEBAR, parent, &gradient->base,
++				corner_width, 0);
++			/* The blend only, not the solid margin round it */
++			struct wlr_fbox inner = {
++				.x = TITLE_GRADIENT_MARGIN,
++				.y = TITLE_GRADIENT_MARGIN,
++				.width = gradient->base.width - 2 * TITLE_GRADIENT_MARGIN,
++				.height = gradient->base.height - 2 * TITLE_GRADIENT_MARGIN,
++			};
++			wlr_scene_buffer_set_source_box(
++				wlr_scene_buffer_from_node(part->node), &inner);
++			set_title_bg_size(part, width - corner_width * 2,
++				theme->titlebar_height);
++		} else {
++			add_scene_rect(&subtree->parts, LAB_SSD_PART_TITLEBAR, parent,
++				width - corner_width * 2, theme->titlebar_height,
++				corner_width, 0, color);
++		}
+ 		add_scene_buffer(&subtree->parts, LAB_SSD_PART_TITLEBAR_CORNER_LEFT, parent,
+ 			corner_top_left, -rc.theme->border_width, -rc.theme->border_width);
+ 		add_scene_buffer(&subtree->parts, LAB_SSD_PART_TITLEBAR_CORNER_RIGHT, parent,
+@@ -152,8 +192,7 @@ set_squared_corners(struct ssd *ssd, bool enable)
+ 	FOR_EACH_STATE(ssd, subtree) {
+ 		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+ 		wlr_scene_node_set_position(part->node, x, 0);
+-		wlr_scene_rect_set_size(wlr_scene_rect_from_node(part->node),
+-			width - 2 * x, theme->titlebar_height);
++		set_title_bg_size(part, width - 2 * x, theme->titlebar_height);
+ 
+ 		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR_CORNER_LEFT);
+ 		wlr_scene_node_set_enabled(part->node, !enable);
+@@ -299,9 +338,8 @@ ssd_titlebar_update(struct ssd *ssd)
+ 	int bg_offset = maximized || squared ? 0 : corner_width;
+ 	FOR_EACH_STATE(ssd, subtree) {
+ 		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+-		wlr_scene_rect_set_size(
+-			wlr_scene_rect_from_node(part->node),
+-			width - bg_offset * 2, theme->titlebar_height);
++		set_title_bg_size(part, width - bg_offset * 2,
++			theme->titlebar_height);
+ 
+ 		x = theme->window_titlebar_padding_width;
+ 		wl_list_for_each(b, &rc.title_buttons_left, link) {
+@@ -463,6 +501,7 @@ ssd_update_title(struct ssd *ssd)
+ 
+ 	const float *text_color;
+ 	const float *bg_color;
++	const float transparent[4] = { 0, 0, 0, 0 };
+ 	struct font *font = NULL;
+ 	struct ssd_part *part;
+ 	struct ssd_sub_tree *subtree;
+@@ -478,7 +517,9 @@ ssd_update_title(struct ssd *ssd)
+ 			THEME_ACTIVE : THEME_INACTIVE;
+ 		dstate = active ? &state->active : &state->inactive;
+ 		text_color = theme->window[active].label_text_color;
+-		bg_color = theme->window[active].title_bg_color;
++		/* Over a gradient, the title is drawn on a clear background */
++		bg_color = theme->window[active].title_bg_gradient ?
++			transparent : theme->window[active].title_bg_color;
+ 		font = active ?  &rc.font_activewindow : &rc.font_inactivewindow;
+ 
+ 		if (title_bg_width <= 0) {
+diff --git a/src/theme.c b/src/theme.c
+index 7389ae5b..8bd8845a 100644
+--- a/src/theme.c
++++ b/src/theme.c
+@@ -529,6 +529,10 @@ theme_builtin(struct theme *theme, struct server *server)
+ 
+ 	parse_hexstr("#e1dedb", theme->window[THEME_ACTIVE].title_bg_color);
+ 	parse_hexstr("#f6f5f4", theme->window[THEME_INACTIVE].title_bg_color);
++	theme->window[THEME_ACTIVE].title_bg_horizontal_gradient = false;
++	theme->window[THEME_INACTIVE].title_bg_horizontal_gradient = false;
++	theme->window[THEME_ACTIVE].title_bg_color_to[0] = FLT_MIN;
++	theme->window[THEME_INACTIVE].title_bg_color_to[0] = FLT_MIN;
+ 
+ 	parse_hexstr("#000000", theme->window[THEME_ACTIVE].label_text_color);
+ 	parse_hexstr("#000000", theme->window[THEME_INACTIVE].label_text_color);
+@@ -637,6 +641,20 @@ get_int_if_positive(const char *content, const char *field)
+ 	return value;
+ }
+ 
++/*
++ * Texture descriptions as in Openbox themes, such as "Gradient Horizontal"
++ * or "Raised Gradient Horizontal Bevel1". Only the horizontal gradient is
++ * supported; anything else is drawn solid.
++ */
++static bool
++is_horizontal_gradient(const char *value)
++{
++	char *lower = g_ascii_strdown(value, -1);
++	bool gradient = strstr(lower, "gradient") && strstr(lower, "horizontal");
++	g_free(lower);
++	return gradient;
++}
++
+ static void
+ entry(struct theme *theme, const char *key, const char *value)
+ {
+@@ -704,6 +722,20 @@ entry(struct theme *theme, const char *key, const char *value)
+ 	if (match_glob(key, "window.inactive.title.bg.color")) {
+ 		parse_hexstr(value, theme->window[THEME_INACTIVE].title_bg_color);
+ 	}
++	if (match_glob(key, "window.active.title.bg")) {
++		theme->window[THEME_ACTIVE].title_bg_horizontal_gradient =
++			is_horizontal_gradient(value);
++	}
++	if (match_glob(key, "window.inactive.title.bg")) {
++		theme->window[THEME_INACTIVE].title_bg_horizontal_gradient =
++			is_horizontal_gradient(value);
++	}
++	if (match_glob(key, "window.active.title.bg.colorTo")) {
++		parse_hexstr(value, theme->window[THEME_ACTIVE].title_bg_color_to);
++	}
++	if (match_glob(key, "window.inactive.title.bg.colorTo")) {
++		parse_hexstr(value, theme->window[THEME_INACTIVE].title_bg_color_to);
++	}
+ 
+ 	if (match_glob(key, "window.active.label.text.color")) {
+ 		parse_hexstr(value, theme->window[THEME_ACTIVE].label_text_color);
+@@ -1238,10 +1270,75 @@ create_corners(struct theme *theme)
+ 		};
+ 		theme->window[active].corner_top_left_normal = rounded_rect(&ctx);
+ 		ctx.corner = LAB_CORNER_TOP_RIGHT;
++		if (theme->window[active].title_bg_gradient) {
++			ctx.fill_color = theme->window[active].title_bg_color_to;
++		}
+ 		theme->window[active].corner_top_right_normal = rounded_rect(&ctx);
+ 	}
+ }
+ 
++/*
++ * Draw the strip used for horizontal titlebar gradients: identical rows
++ * blending from the first color to the second, with a margin of solid color
++ * all round. Each titlebar stretches the blend, inside the margin, over
++ * itself (see ssd-titlebar.c), so the scene's bilinear filtering keeps it
++ * smooth and never mixes in what lies outside the buffer. Titlebars whose
++ * two colors are the same stay solid.
++ */
++#define TITLE_GRADIENT_WIDTH 256
++#define TITLE_GRADIENT_HEIGHT 4
++
++/* Theme colors are pre-multiplied; cairo wants them unmultiplied */
++static void
++add_color_stop(cairo_pattern_t *pattern, double offset, const float *c)
++{
++	float a = c[3];
++	if (a == 0.0f) {
++		cairo_pattern_add_color_stop_rgba(pattern, offset, 0, 0, 0, 0);
++		return;
++	}
++	cairo_pattern_add_color_stop_rgba(pattern, offset,
++		c[0] / a, c[1] / a, c[2] / a, a);
++}
++
++static void
++create_title_gradients(struct theme *theme)
++{
++	for (int active = THEME_INACTIVE; active <= THEME_ACTIVE; active++) {
++		float *from = theme->window[active].title_bg_color;
++		float *to = theme->window[active].title_bg_color_to;
++		if (to[0] == FLT_MIN) {
++			memcpy(to, from, sizeof(theme->window[active].title_bg_color_to));
++		}
++		if (!theme->window[active].title_bg_horizontal_gradient
++				|| !memcmp(from, to, sizeof(float[4]))) {
++			continue;
++		}
++
++		struct lab_data_buffer *buffer =
++			buffer_create_cairo(TITLE_GRADIENT_WIDTH,
++				TITLE_GRADIENT_HEIGHT, 1.0);
++		if (!buffer) {
++			wlr_log(WLR_ERROR, "Failed to create titlebar gradient");
++			continue;
++		}
++		cairo_t *cairo = cairo_create(buffer->surface);
++		/* Padded with the end colors beyond the stops */
++		cairo_pattern_t *pattern = cairo_pattern_create_linear(
++			TITLE_GRADIENT_MARGIN, 0,
++			TITLE_GRADIENT_WIDTH - TITLE_GRADIENT_MARGIN, 0);
++		cairo_pattern_set_extend(pattern, CAIRO_EXTEND_PAD);
++		add_color_stop(pattern, 0, from);
++		add_color_stop(pattern, 1, to);
++		cairo_set_source(cairo, pattern);
++		cairo_paint(cairo);
++		cairo_pattern_destroy(pattern);
++		cairo_surface_flush(buffer->surface);
++		cairo_destroy(cairo);
++		theme->window[active].title_bg_gradient = buffer;
++	}
++}
++
+ /*
+  * Draw the buffer used to render the edges of window drop-shadows. The buffer
+  * is 1 pixel tall and `visible_size` pixels wide and can be rotated and scaled for the
+@@ -1561,6 +1658,7 @@ theme_init(struct theme *theme, struct server *server, const char *theme_name)
+ 	paths_destroy(&paths);
+ 
+ 	post_processing(theme);
++	create_title_gradients(theme);
+ 	create_corners(theme);
+ 	load_buttons(theme);
+ 	create_shadows(theme);
+@@ -1592,5 +1690,6 @@ theme_finish(struct theme *theme)
+ 		zdrop(&theme->window[active].shadow_corner_top);
+ 		zdrop(&theme->window[active].shadow_corner_bottom);
+ 		zdrop(&theme->window[active].shadow_edge);
++		zdrop(&theme->window[active].title_bg_gradient);
+ 	}
+ }
+-- 
+2.43.0
+
