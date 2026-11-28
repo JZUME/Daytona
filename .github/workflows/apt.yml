@@ -48,11 +48,11 @@ jobs:
       REF: ${{ github.event.workflow_run.head_branch }}
       COMMIT: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download the packages CI built
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
