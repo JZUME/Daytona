@@ -75,6 +75,7 @@ void BlankScreen::start()
     }
     connect(qApp, &QGuiApplication::screenAdded, this, &BlankScreen::stop);
     connect(qApp, &QGuiApplication::screenRemoved, this, &BlankScreen::stop);
+    Q_EMIT started();
 }
 
 void BlankScreen::stop()

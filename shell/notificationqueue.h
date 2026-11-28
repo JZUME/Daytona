@@ -21,8 +21,12 @@ struct Notification
     QString body; // shown as plain text
     QStringList actions; // key, label, key, label, ...
     int timeoutMs = -1; // as sent: -1 server default, 0 never
+    bool critical = false; // urgency hint 2
 
     bool hasDefaultAction() const;
+    // Asked never to expire (timeout 0), or critical: the specification
+    // says neither closes by itself.
+    bool staysOpen() const { return timeoutMs == 0 || critical; }
 };
 
 // The notifications waiting to be shown as balloons, one at a time, with
@@ -42,12 +46,14 @@ public:
     };
     Q_ENUM(CloseReason)
 
-    // NT balloons stayed about 10 seconds. Notifications asking for the
-    // server default (-1) or never to expire (0) use this too: a balloon
-    // that never closed would hide the ones queued behind it.
+    // NT balloons stayed about 10 seconds; the server default (-1).
     static constexpr int DefaultTimeoutMs = 10000;
-    // Applications cannot keep a balloon up longer than this.
+    // Applications cannot keep an expiring balloon up longer than this; a
+    // balloon that must stay asks never to expire instead.
     static constexpr int MaxTimeoutMs = 60000;
+    // A balloon that stays open is shown for at least this long (Windows
+    // 2000's minimum balloon time) before a waiting one may take its place.
+    static constexpr int DefaultTurnMs = DefaultTimeoutMs;
     static constexpr int MaxQueued = 50;
 
     explicit NotificationQueue(QObject *parent = nullptr);
@@ -66,7 +72,17 @@ public:
 
     std::optional<Notification> current() const;
     QList<Notification> queued() const { return m_queue; }
+    // How long the balloon stays before it expires; 0 if it never does.
     int effectiveTimeoutMs(const Notification &notification) const;
+
+    // While paused (the screen locked or the screen saver showing), the
+    // shown balloon's time does not run, as Windows 2000 did not count time
+    // nobody could see a balloon.
+    void setPaused(bool paused);
+    bool isPaused() const { return m_paused; }
+
+    // DefaultTurnMs, shorter in tests.
+    void setTurnMs(int milliseconds) { m_turnMs = milliseconds; }
 
 Q_SIGNALS:
     // The balloon should show this notification (or nothing, if empty).
@@ -76,11 +92,23 @@ Q_SIGNALS:
 
 private:
     void showNext();
+    // Starts the shown balloon's time: its timeout, or its turn if it
+    // stays open.
+    void startTimer();
+    void runTimer(int milliseconds);
+    void timedOut();
+    // The shown balloon stays open and its turn is over: it goes to the back
+    // of the queue, still open, and the next one shows.
+    void yieldCurrent();
 
     std::optional<Notification> m_current;
     QList<Notification> m_queue;
     uint m_nextId = 1;
     QTimer m_expiry;
+    int m_turnMs = DefaultTurnMs;
+    bool m_paused = false;
+    int m_remainingMs = -1; // while paused, the time left; -1 none
+    bool m_turnOver = false; // the shown staying balloon may yield
 };
 
 } // namespace Daytona

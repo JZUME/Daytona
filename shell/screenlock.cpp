@@ -113,7 +113,8 @@ void ScreenLocker::start()
     connect(m_process, &QProcess::readyReadStandardOutput, this, [this] {
         if (!m_process->readAllStandardOutput().contains("locked"))
             return;
-        m_locked = true;
+        if (!std::exchange(m_locked, true))
+            Q_EMIT lockedChanged(true);
         finish();
     });
     connect(m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
@@ -131,7 +132,7 @@ void ScreenLocker::start()
             if (m_restarts.size() < MaxRestartsPerMinute) {
                 qCWarning(lcLock) << "The screen locker crashed; starting it again";
                 m_restarts.append(now);
-                start();
+                start(); // still locked meanwhile: no lockedChanged
                 return;
             }
             // loginctl lock-session (from a text console) starts it again.
@@ -139,6 +140,8 @@ void ScreenLocker::start()
         } else if (!wasLocked) {
             qCInfo(lcLock) << "The screen locker exited without locking, code" << code;
         }
+        if (wasLocked)
+            Q_EMIT lockedChanged(false);
         finish();
     });
     connect(m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {

@@ -90,6 +90,10 @@ uint NotificationService::Notify(const QString &appName, uint replacesId, const 
     for (QString &action : notification.actions)
         action = action.left(MaxSummary);
     notification.timeoutMs = expireTimeout;
+    // urgency is a byte; 2 is critical, which should not expire.
+    bool isNumber = false;
+    const uint urgency = hints.value(QStringLiteral("urgency")).toUInt(&isNumber);
+    notification.critical = isNumber && urgency == 2;
     for (const char *key : { "image-data", "image_data", "icon_data" }) {
         const QVariant value = hints.value(QLatin1String(key));
         if (value.userType() == qMetaTypeId<QDBusArgument>()) {

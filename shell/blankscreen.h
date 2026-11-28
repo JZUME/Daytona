@@ -35,6 +35,7 @@ public:
     bool endsScreenSaver(QEvent *event);
 
 Q_SIGNALS:
+    void started();
     void stopped();
 
 protected:

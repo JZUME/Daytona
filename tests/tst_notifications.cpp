@@ -78,9 +78,12 @@ private Q_SLOTS:
     {
         NotificationQueue queue;
         QCOMPARE(queue.effectiveTimeoutMs(note({}, -1)), NotificationQueue::DefaultTimeoutMs);
-        QCOMPARE(queue.effectiveTimeoutMs(note({}, 0)), NotificationQueue::DefaultTimeoutMs);
+        QCOMPARE(queue.effectiveTimeoutMs(note({}, 0)), 0); // never
         QCOMPARE(queue.effectiveTimeoutMs(note({}, 2500)), 2500);
         QCOMPARE(queue.effectiveTimeoutMs(note({}, 999999)), NotificationQueue::MaxTimeoutMs);
+        Notification critical = note({}, 2500);
+        critical.critical = true;
+        QCOMPARE(queue.effectiveTimeoutMs(critical), 0); // critical never expires
 
         QSignalSpy closed(&queue, &NotificationQueue::closed);
         const uint a = queue.notify(note(QStringLiteral("A"), 100));
@@ -88,6 +91,75 @@ private Q_SLOTS:
         QVERIFY(closed.wait(2000));
         QCOMPARE(closed.takeFirst(), QVariantList({ a, QVariant::fromValue(Reason::Expired) }));
         QCOMPARE(queue.current()->summary, QStringLiteral("B")); // the next one shows
+    }
+
+    void stayingBalloonStaysUntilClosed()
+    {
+        NotificationQueue queue;
+        queue.setTurnMs(50);
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        const uint a = queue.notify(note(QStringLiteral("A"), 0));
+        QTest::qWait(200); // well past its turn
+        QVERIFY(closed.isEmpty());
+        QCOMPARE(queue.current()->id, a);
+        QVERIFY(queue.close(a, Reason::Dismissed));
+        QVERIFY(!queue.current());
+
+        Notification critical = note(QStringLiteral("C"), 50);
+        critical.critical = true;
+        const uint c = queue.notify(critical);
+        QTest::qWait(200);
+        QCOMPARE(queue.current()->id, c);
+        QCOMPARE(closed.count(), 1); // only A's
+    }
+
+    void stayingBalloonGivesWay()
+    {
+        NotificationQueue queue;
+        queue.setTurnMs(100);
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        const uint a = queue.notify(note(QStringLiteral("A"), 0));
+        // Within its turn, a new one waits.
+        const uint b = queue.notify(note(QStringLiteral("B"), 60000));
+        QCOMPARE(queue.current()->id, a);
+        // Once the turn is over, the waiting one shows and A goes back in
+        // the queue, still open.
+        QTRY_COMPARE(queue.current()->id, b);
+        QCOMPARE(queue.queued().size(), 1);
+        QCOMPARE(queue.queued().first().id, a);
+        QVERIFY(closed.isEmpty());
+        // A comes back when B closes.
+        QVERIFY(queue.close(b, Reason::Dismissed));
+        QCOMPARE(queue.current()->id, a);
+
+        // Past its turn with nothing waiting, A stays, and the next
+        // notification to arrive shows at once.
+        QTest::qWait(200);
+        QCOMPARE(queue.current()->id, a);
+        const uint c = queue.notify(note(QStringLiteral("C"), 60000));
+        QCOMPARE(queue.current()->id, c);
+        QCOMPARE(queue.queued().first().id, a);
+        // An application can still close it while it waits.
+        QVERIFY(queue.close(a, Reason::ClosedByCall));
+        QVERIFY(queue.queued().isEmpty());
+    }
+
+    void pausedTimeDoesNotRun()
+    {
+        NotificationQueue queue;
+        QSignalSpy closed(&queue, &NotificationQueue::closed);
+        const uint a = queue.notify(note(QStringLiteral("A"), 150));
+        queue.setPaused(true);
+        QTest::qWait(300);
+        QVERIFY(closed.isEmpty());
+        // One shown while paused waits too.
+        queue.close(a, Reason::Dismissed);
+        const uint b = queue.notify(note(QStringLiteral("B"), 100));
+        QTest::qWait(200);
+        QCOMPARE(closed.count(), 1);
+        queue.setPaused(false);
+        QVERIFY(closed.wait(2000));
+        QCOMPARE(closed.last(), QVariantList({ b, QVariant::fromValue(Reason::Expired) }));
     }
 
     void defaultAction()
@@ -195,6 +267,16 @@ private Q_SLOTS:
         QVERIFY(id != 0);
         QCOMPARE(queue.current()->summary, QStringLiteral("Hello"));
         QCOMPARE(queue.current()->body, QStringLiteral("World"));
+        QVERIFY(!queue.current()->critical);
+
+        // notify-send -u critical: the urgency hint is a byte.
+        QDBusPendingCall urgent = call(QStringLiteral("Notify"),
+            { QStringLiteral("app"), id, QString(), QStringLiteral("Hello"), QString(),
+                QStringList(),
+                QVariantMap({ { QStringLiteral("urgency"), QVariant::fromValue(uchar(2)) } }),
+                -1 });
+        QTRY_VERIFY(urgent.isFinished());
+        QVERIFY(queue.current()->critical);
 
         call(QStringLiteral("CloseNotification"), { id });
         QTRY_COMPARE(m_closed.size(), 1);
