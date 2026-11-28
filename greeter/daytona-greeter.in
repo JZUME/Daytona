@@ -6,9 +6,29 @@
 #   [default_session]
 #   command = "daytona-greeter"
 #
+# For a high-density screen, add --scale with the size: from 1 (100%) to 3
+# (300%), such as --scale 2 or --scale 1.5:
+#
+#   command = "daytona-greeter --scale 2"
+#
 # It runs labwc with the log on screen's configuration, on the system's
 # keyboard layout, and labwc runs the log on dialog (daytona-logon). Both
-# end once greetd has the session to start.
+# end once greetd has the session to start. Other arguments go to labwc.
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+    --scale)
+        [ $# -ge 2 ] || { echo "daytona-greeter: --scale needs a size, such as 2" >&2; exit 2; }
+        export DAYTONA_GREETER_SCALE="$2"
+        shift 2
+        ;;
+    --scale=*)
+        export DAYTONA_GREETER_SCALE="${1#--scale=}"
+        shift
+        ;;
+    *) break ;;
+    esac
+done
 
 labwc="@DAYTONA_GREETER_LABWC@"
 [ -x "$labwc" ] || labwc=labwc

@@ -96,6 +96,21 @@ else uses it).
 
 ### Other settings
 
+- **High-density (HiDPI) screens:** add `--scale` with the size, from 1 (100%) to 3 (300%), to
+  the command in `/etc/greetd/config.toml`:
+
+  ```toml
+  [default_session]
+  command = "daytona-greeter --scale 2"
+  user = "_greetd"
+  ```
+
+  Fractional sizes such as `--scale 1.5` (or `150%`) work too. Every screen, including one plugged
+  in while the log on screen is showing, gets that scale; labwc draws the window frames and the
+  mouse pointer at the same size. Without `--scale` the screens keep the compositor's default
+  (100%). The desktop's own Font Size setting (Display Properties) is per user and applies after
+  log on.
+
 - **Automatic log on:** greetd's own `[initial_session]` in `/etc/greetd/config.toml` logs a user
   on at start-up without the log on screen (see `man 5 greetd`).
 - **Keyboard layout:** `sudo localectl set-x11-keymap gb` (or `sudo dpkg-reconfigure

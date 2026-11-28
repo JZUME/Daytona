@@ -3,7 +3,7 @@
 daytona-greeter \- Daytona's log on screen for greetd
 .SH SYNOPSIS
 .B daytona-greeter
-[\fIlabwc options\fR]
+[\fB\-\-scale\fR \fIsize\fR] [\fIlabwc options\fR]
 .SH DESCRIPTION
 .B daytona-greeter
 is a greeter for \fBgreetd\fR(1): a Windows 98-style log on dialog with
@@ -29,6 +29,13 @@ Sessions are read from the \fIwayland-sessions\fR directories of
 \fBXDG_DATA_DIRS\fR. The last user name and session are kept in
 \fI/var/lib/daytona-greeter/state\fR (\fBDAYTONA_GREETER_STATE\fR to
 override); passwords are never stored.
+.SH OPTIONS
+.TP
+.BI \-\-scale " size"
+Gives every screen this scale, for high-density screens: from 1 (100%) to 3
+(300%), such as \fB2\fR or \fB1.5\fR, or a percentage such as \fB150%\fR.
+Window frames and the mouse pointer follow. For example,
+\fBcommand = "daytona-greeter \-\-scale 2"\fR.
 .SH FILES
 .TP
 .I /usr/share/doc/daytona-greeter/examples/config.toml

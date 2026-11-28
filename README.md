@@ -96,7 +96,8 @@ sudo reboot
 
 The copied `config.toml` runs `daytona-greeter` as greetd's greeter on virtual terminal 7; if you
 already have a greetd configuration, change only its `[default_session]` command to
-`"daytona-greeter"`. To go back, `sudo systemctl disable greetd`, enable your old login manager
+`"daytona-greeter"`. On a high-density screen, use `"daytona-greeter --scale 2"` (any size
+from 1 to 3, such as 1.5). To go back, `sudo systemctl disable greetd`, enable your old login manager
 again with `sudo systemctl enable --force gdm3` (or `sddm`, `lightdm`) and reboot. See
 [docs/greeter.md](docs/greeter.md) for how it works, troubleshooting and limits.
 

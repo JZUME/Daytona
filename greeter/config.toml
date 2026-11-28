@@ -8,6 +8,8 @@
 vt = 7
 
 [default_session]
+# On a high-density screen, add the scale: "daytona-greeter --scale 2"
+# (from 1 to 3, such as 1.5).
 command = "daytona-greeter"
 # greetd's greeter user on Debian.
 user = "_greetd"
