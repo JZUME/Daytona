@@ -52,6 +52,8 @@ public:
 Q_SIGNALS:
     // Properties was chosen from the desktop menu.
     void propertiesRequested();
+    // Properties was chosen on My Computer.
+    void systemPropertiesRequested();
     // A new wallpaper finished loading (or failed to, and is null).
     void wallpaperLoaded();
 
@@ -97,6 +99,8 @@ public:
 Q_SIGNALS:
     // Properties was chosen on any desktop.
     void propertiesRequested();
+    // Properties was chosen on My Computer.
+    void systemPropertiesRequested();
 
 private:
     void add(QScreen *screen);

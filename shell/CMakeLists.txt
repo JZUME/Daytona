@@ -93,8 +93,12 @@ add_library(daytona-shell-core STATIC
     soundsproperties.h
     soundtheme.cpp
     soundtheme.h
+    systeminfo.cpp
+    systeminfo.h
     systemlogo.cpp
     systemlogo.h
+    systemproperties.cpp
+    systemproperties.h
     shellservice.cpp
     shellservice.h
     startbutton.cpp

@@ -43,6 +43,8 @@ public:
     // screen, to file (an absolute path), or to the clipboard when file is
     // empty. Returns once the capture is done, false if it failed.
     static bool requestPrintScreen(bool activeWindow, const QString &file);
+    // Asks a running shell to open System Properties (Win+Pause).
+    static bool requestSystemProperties();
 
 public Q_SLOTS:
     Q_SCRIPTABLE void ToggleStartMenu();
@@ -51,6 +53,7 @@ public Q_SLOTS:
     Q_SCRIPTABLE void StartScreenSaver();
     // Replies once the capture is done, with an error if it failed.
     Q_SCRIPTABLE void PrintScreen(bool activeWindow, const QString &file);
+    Q_SCRIPTABLE void ShowSystemProperties();
 
 Q_SIGNALS:
     void toggleStartMenuRequested();
@@ -60,6 +63,7 @@ Q_SIGNALS:
     // done must be called with whether the capture succeeded.
     void printScreenRequested(
         bool activeWindow, const QString &file, const std::function<void(bool)> &done);
+    void systemPropertiesRequested();
 };
 
 } // namespace Daytona

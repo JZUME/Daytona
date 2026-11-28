@@ -73,6 +73,9 @@ QList<ControlPanelApplet> controlPanelApplets(const QList<DesktopEntry> &entries
         // Applications by its own name.
         { tr("Sounds"), tr("Changes the sounds played for events and the sound theme."),
             QStringLiteral("preferences-desktop-sound"), B::Sounds, {} },
+        { tr("System"),
+            tr("Shows information about your computer, such as its processor and memory."),
+            QStringLiteral("computer"), B::System, {} },
         { tr("Taskbar"), tr("Changes how the taskbar and Start menu look and behave."),
             QStringLiteral("preferences-system-windows"), B::Taskbar, {} },
     };
@@ -356,6 +359,9 @@ void ControlPanel::openApplet(const ControlPanelApplet &applet)
         return;
     case B::Sounds:
         Q_EMIT soundsPropertiesRequested();
+        return;
+    case B::System:
+        Q_EMIT systemPropertiesRequested();
         return;
     case B::Taskbar:
         Q_EMIT taskbarPropertiesRequested();

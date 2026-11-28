@@ -82,6 +82,8 @@ public Q_SLOTS:
 Q_SIGNALS:
     // The folder has been read and the icons laid out.
     void loaded();
+    // Properties was chosen on My Computer.
+    void systemPropertiesRequested();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

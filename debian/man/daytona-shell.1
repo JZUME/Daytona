@@ -3,7 +3,7 @@
 daytona-shell \- Windows NT 4.0-style desktop shell for labwc
 .SH SYNOPSIS
 .B daytona-shell
-[\fB\-\-start\-menu\fR | \fB\-\-lock\fR | \fB\-\-screen\-saver\fR | \fB\-\-version\fR]
+[\fB\-\-start\-menu\fR | \fB\-\-lock\fR | \fB\-\-screen\-saver\fR | \fB\-\-system\-properties\fR | \fB\-\-version\fR]
 .br
 .B daytona-shell
 \fB\-\-print\-screen\fR | \fB\-\-print\-window\fR [\fIFILE\fR]
@@ -12,7 +12,8 @@ daytona-shell \- Windows NT 4.0-style desktop shell for labwc
 draws the Daytona desktop on a Wayland compositor with the layer-shell
 protocol (labwc): the taskbar with Start button, Start menu, window buttons,
 notification area and clock, the desktop, notification balloons and NT's Run,
-Shut Down, Taskbar Properties, Display Properties and Mouse Properties dialogs,
+Shut Down, Taskbar Properties, Display Properties, Mouse Properties and System
+Properties dialogs,
 the Control Panel, the screen saver and Lock Workstation. It also serves
 \fBorg.freedesktop.ScreenSaver\fR, so programs can keep the screen saver off
 while they play video.
@@ -33,6 +34,10 @@ shell starts, before the computer sleeps and for \fBloginctl lock-session\fR.
 .B \-\-screen\-saver
 Ask the running shell to start the screen saver chosen in Display Properties.
 \fBswayidle\fR(1) runs this after the screen saver's wait.
+.TP
+.B \-\-system\-properties
+Ask the running shell to open System Properties (the computer's operating
+system, processor and memory). labwc runs this for Win+Pause.
 .TP
 .BR \-\-print\-screen " [\fIFILE\fR]"
 Ask the running shell to capture every screen at device resolution, as a PNG

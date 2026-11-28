@@ -86,6 +86,17 @@ bool ShellService::requestPrintScreen(bool activeWindow, const QString &file)
     return callShell("PrintScreen", 10000, { activeWindow, file });
 }
 
+bool ShellService::requestSystemProperties()
+{
+    return callShell("ShowSystemProperties", 2000);
+}
+
+void ShellService::ShowSystemProperties()
+{
+    qCDebug(lcService) << "System Properties requested over D-Bus";
+    Q_EMIT systemPropertiesRequested();
+}
+
 void ShellService::PrintScreen(bool activeWindow, const QString &file)
 {
     qCDebug(lcService) << "Print Screen requested over D-Bus" << activeWindow << file;
