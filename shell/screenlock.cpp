@@ -34,11 +34,14 @@ namespace {
 
 } // namespace
 
-QStringList lockArguments(LockKind kind)
+QStringList lockArguments(LockKind kind, bool noCtrlAltDelete)
 {
+    QStringList arguments;
     if (kind == LockKind::ScreenSaver)
-        return { QStringLiteral("--screen-saver") };
-    return {};
+        arguments << QStringLiteral("--screen-saver");
+    if (noCtrlAltDelete)
+        arguments << QStringLiteral("--no-ctrl-alt-delete");
+    return arguments;
 }
 
 QString defaultLockProgram()
@@ -66,8 +69,9 @@ QStringList swayidleArguments(int timeoutSeconds, const QString &shell)
     return arguments;
 }
 
-ScreenLocker::ScreenLocker(QObject *parent)
+ScreenLocker::ScreenLocker(Settings *settings, QObject *parent)
     : QObject(parent)
+    , m_settings(settings)
     , m_program(defaultLockProgram())
 {
 }
@@ -149,7 +153,8 @@ void ScreenLocker::start()
         m_process = nullptr;
         finish();
     });
-    m_process->start(m_program, lockArguments(m_kind));
+    m_process->start(
+        m_program, lockArguments(m_kind, m_settings && m_settings->lockDisablesCtrlAltDelete()));
 }
 
 void ScreenLocker::finish()

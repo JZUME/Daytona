@@ -87,6 +87,34 @@ private Q_SLOTS:
         QCOMPARE(lockArguments(LockKind::Workstation), QStringList());
         QCOMPARE(
             lockArguments(LockKind::ScreenSaver), QStringList { QStringLiteral("--screen-saver") });
+        QCOMPARE(lockArguments(LockKind::Workstation, true),
+            QStringList { QStringLiteral("--no-ctrl-alt-delete") });
+        QCOMPARE(lockArguments(LockKind::ScreenSaver, true),
+            (QStringList {
+                QStringLiteral("--screen-saver"), QStringLiteral("--no-ctrl-alt-delete") }));
+    }
+
+    void lockerFollowsDisableCtrlAltDelete()
+    {
+        QTemporaryDir dir;
+        Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
+        const QString program
+            = fakeProgram(dir, QStringLiteral("daytona-lock"), 0, QStringLiteral("echo locked"));
+        ScreenLocker locker(&settings);
+        locker.setProgram(program);
+        bool done = false;
+        locker.lock(LockKind::Workstation, [&done] { done = true; });
+        QTRY_VERIFY(done);
+        QCOMPARE(recordedArguments(program), QStringList());
+        QTRY_VERIFY_WITH_TIMEOUT(!locker.isLocked(), 5000);
+
+        // Read again for each lock.
+        settings.setLockDisablesCtrlAltDelete(true);
+        done = false;
+        locker.lock(LockKind::Workstation, [&done] { done = true; });
+        QTRY_VERIFY(done);
+        QCOMPARE(
+            recordedArguments(program), QStringList { QStringLiteral("--no-ctrl-alt-delete") });
     }
 
     void swayidleArgumentsTest()

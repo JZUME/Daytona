@@ -137,6 +137,81 @@ private Q_SLOTS:
         QVERIFY(!controller.prompt()->isVisible());
     }
 
+    void withoutCtrlAltDeleteOpensOnUnlock()
+    {
+        QStringList tried;
+        LockController controller(User, false, fakePam(&tried));
+        controller.setRequiresCtrlAltDelete(false);
+        QWidget *screen = controller.addScreen(QGuiApplication::primaryScreen());
+        screen->show();
+        QVERIFY(QTest::qWaitForWindowExposed(screen));
+        LockPrompt *prompt = controller.prompt();
+        QTRY_VERIFY(prompt->isVisible());
+        QCOMPARE(prompt->page(), LockPrompt::Page::Unlock);
+        QCOMPARE(prompt->title(), QStringLiteral("Unlock Workstation"));
+        QTRY_VERIFY(prompt->passwordField()->hasFocus());
+
+        // Escape and Cancel stay on Unlock, with the password cleared.
+        type(screen, QStringLiteral("abc"));
+        QCOMPARE(prompt->passwordField()->text(), QStringLiteral("abc"));
+        QTest::keyClick(screen->windowHandle(), Qt::Key_Escape);
+        QCOMPARE(prompt->page(), LockPrompt::Page::Unlock);
+        QVERIFY(prompt->passwordField()->text().isEmpty());
+        type(screen, QStringLiteral("abc"));
+        prompt->cancelButton()->click();
+        QCOMPARE(prompt->page(), LockPrompt::Page::Unlock);
+        QVERIFY(prompt->passwordField()->text().isEmpty());
+
+        // Ctrl+Alt+Delete does nothing to the password being typed.
+        type(screen, QStringLiteral("ab"));
+        pressCtrlAltDelete(screen);
+        QCOMPARE(prompt->page(), LockPrompt::Page::Unlock);
+        QCOMPARE(prompt->passwordField()->text(), QStringLiteral("ab"));
+
+        // A wrong password still warns, then returns to Unlock.
+        QTest::keyClick(screen->windowHandle(), Qt::Key_Return);
+        QTRY_COMPARE(prompt->page(), LockPrompt::Page::Failed);
+        QTest::keyClick(screen->windowHandle(), Qt::Key_Return);
+        QCOMPARE(prompt->page(), LockPrompt::Page::Unlock);
+
+        // A minute without input stays on Unlock, cleared.
+        type(screen, QStringLiteral("abc"));
+        controller.setIdleTimeout(50);
+        QTest::keyClick(screen->windowHandle(), Qt::Key_D);
+        QTRY_VERIFY(prompt->passwordField()->text().isEmpty());
+        QCOMPARE(prompt->page(), LockPrompt::Page::Unlock);
+        QCOMPARE(tried, QStringList { QStringLiteral("ab") });
+    }
+
+    void screenSaverWithoutCtrlAltDeleteWakesOnUnlock()
+    {
+        QStringList tried;
+        LockController controller(User, true, fakePam(&tried));
+        controller.setRequiresCtrlAltDelete(false);
+        QWidget *screen = controller.addScreen(QGuiApplication::primaryScreen());
+        screen->show();
+        QVERIFY(QTest::qWaitForWindowExposed(screen));
+        QVERIFY(controller.isBlank());
+        QVERIFY(!controller.prompt()->isVisible());
+
+        // The key that wakes it is not typed into the password box.
+        QTest::keyClick(screen->windowHandle(), Qt::Key_A);
+        QVERIFY(!controller.isBlank());
+        QTRY_VERIFY(controller.prompt()->isVisible());
+        QCOMPARE(controller.prompt()->page(), LockPrompt::Page::Unlock);
+        QVERIFY(controller.prompt()->passwordField()->text().isEmpty());
+        QTRY_VERIFY(controller.prompt()->passwordField()->hasFocus());
+        type(screen, QStringLiteral("secret"));
+        QCOMPARE(controller.prompt()->passwordField()->text(), QStringLiteral("secret"));
+
+        // Left alone, it goes back to black, and wakes on Unlock again.
+        controller.setIdleTimeout(50);
+        QTest::keyClick(screen->windowHandle(), Qt::Key_B);
+        QTRY_VERIFY(controller.isBlank());
+        QCOMPARE(controller.prompt()->page(), LockPrompt::Page::Unlock);
+        QVERIFY(controller.prompt()->passwordField()->text().isEmpty());
+    }
+
     void promptFollowsRemovedScreen()
     {
         QStringList tried;

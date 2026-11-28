@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // daytona-lock: Daytona's screen locker, run by the shell for Lock
-// Workstation and the password-protected screen saver. It locks the session
+// Workstation and the password-protected screen saver (--screen-saver);
+// --no-ctrl-alt-delete opens it on Unlock Workstation. It locks the session
 // with ext-session-lock-v1, prints "locked" on standard output once every
 // output is covered, and exits 0 once the user has unlocked it. It exits 1,
 // without locking, if the session cannot be locked (for example because it
@@ -57,6 +58,8 @@ int main(int argc, char *argv[])
         return 0;
     }
     const bool screenSaver = hasArgument(argc, argv, "--screen-saver");
+    // Lock/DisableCtrlAltDelete: open on Unlock Workstation.
+    const bool noCtrlAltDelete = hasArgument(argc, argv, "--no-ctrl-alt-delete");
 
     // Keep passwords out of core dumps and other processes' reach.
     ::prctl(PR_SET_DUMPABLE, 0);
@@ -93,6 +96,7 @@ int main(int argc, char *argv[])
             watcher->setFuture(
                 QtConcurrent::run(Daytona::authenticate, service, name, password.toLocal8Bit()));
         });
+    controller.setRequiresCtrlAltDelete(!noCtrlAltDelete);
 
     const auto addScreen = [&controller, &lock](QScreen *screen) {
         QWidget *widget = controller.addScreen(screen);

@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
         });
 
     // Locking (daytona-lock) and the screen saver (swayidle's timeout).
-    Daytona::ScreenLocker locker;
+    Daytona::ScreenLocker locker(&settings);
     if (!locker.isAvailable())
         qCWarning(lcShell) << "daytona-lock is not installed: the session cannot be locked";
     Daytona::BlankScreen blankScreen;

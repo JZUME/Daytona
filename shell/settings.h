@@ -123,6 +123,12 @@ public:
     bool screenSaverPassword() const;
     void setScreenSaverPassword(bool protect);
 
+    // Lock/DisableCtrlAltDelete (INI file only, issue #23): every lock opens
+    // on Unlock Workstation instead of asking for Ctrl+Alt+Delete first, as
+    // NT's DisableCAD policy. Off by default.
+    bool lockDisablesCtrlAltDelete() const;
+    void setLockDisablesCtrlAltDelete(bool disable);
+
     // Whether the Start button shows the operating system's logo (true) or
     // Daytona's own.
     bool systemStartLogo() const;

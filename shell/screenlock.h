@@ -23,8 +23,9 @@ enum class LockKind
     ScreenSaver
 };
 
-// daytona-lock's arguments for a lock of this kind.
-QStringList lockArguments(LockKind kind);
+// daytona-lock's arguments for a lock of this kind; noCtrlAltDelete opens it
+// on Unlock Workstation (Lock/DisableCtrlAltDelete).
+QStringList lockArguments(LockKind kind, bool noCtrlAltDelete = false);
 
 // daytona-lock next to this program: installed in libexec/daytona, or in
 // the build tree's locker/.
@@ -45,7 +46,9 @@ class ScreenLocker : public QObject
     Q_OBJECT
 
 public:
-    explicit ScreenLocker(QObject *parent = nullptr);
+    // Lock/DisableCtrlAltDelete is read from settings, if given, for each
+    // lock.
+    explicit ScreenLocker(Settings *settings = nullptr, QObject *parent = nullptr);
     // Leaves a running locker running.
     ~ScreenLocker() override;
 
@@ -67,6 +70,7 @@ private:
     void start();
     void finish();
 
+    Settings *m_settings = nullptr;
     QString m_program;
     QProcess *m_process = nullptr;
     LockKind m_kind = LockKind::Workstation;

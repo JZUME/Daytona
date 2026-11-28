@@ -110,6 +110,13 @@ public:
     bool isBlank() const { return m_blank; }
     void setIdleTimeout(int milliseconds) { m_idle.setInterval(milliseconds); }
 
+    // Whether Workstation Locked asks for Ctrl+Alt+Delete before Unlock
+    // Workstation (true, NT's default). Off, as NT's DisableCAD policy, the
+    // lock opens on Unlock Workstation, and Cancel, Escape and a minute
+    // without input go back to it with the password cleared.
+    bool requiresCtrlAltDelete() const { return m_requireCtrlAltDelete; }
+    void setRequiresCtrlAltDelete(bool require);
+
     // The background of a screen while not blank.
     static QColor backgroundColour();
 
@@ -123,11 +130,13 @@ protected:
 private:
     void wake();
     void reset();
+    void rest();
     void updateScreens();
     void placePrompt();
     void checkPassword(const QString &password);
 
     bool m_startBlank;
+    bool m_requireCtrlAltDelete = true;
     bool m_blank;
     Authenticate m_authenticate;
     QPointer<LockPrompt> m_prompt;
