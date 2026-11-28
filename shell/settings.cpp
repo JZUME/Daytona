@@ -37,6 +37,7 @@ namespace {
     const QString KeyScreenSaver = QStringLiteral("ScreenSaver/Saver");
     const QString KeyScreenSaverWait = QStringLiteral("ScreenSaver/Wait");
     const QString KeyScreenSaverPassword = QStringLiteral("ScreenSaver/PasswordProtected");
+    const QString KeyLockNoCtrlAltDelete = QStringLiteral("Lock/DisableCtrlAltDelete");
     // Read by daytona-session too, which sets the cursor size from it.
     const QString KeyPointerScheme = QStringLiteral("Mouse/PointerScheme");
     const QString KeyKeyboardLayouts = QStringLiteral("Keyboard/Layouts");
@@ -481,6 +482,16 @@ bool Settings::screenSaverPassword() const
 void Settings::setScreenSaverPassword(bool protect)
 {
     write(KeyScreenSaverPassword, protect);
+}
+
+bool Settings::lockDisablesCtrlAltDelete() const
+{
+    return readBool(KeyLockNoCtrlAltDelete, false);
+}
+
+void Settings::setLockDisablesCtrlAltDelete(bool disable)
+{
+    write(KeyLockNoCtrlAltDelete, disable);
 }
 
 bool Settings::systemStartLogo() const

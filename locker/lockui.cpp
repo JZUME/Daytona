@@ -275,8 +275,7 @@ LockController::LockController(
 {
     m_prompt->hide();
     connect(m_prompt, &LockPrompt::unlockRequested, this, &LockController::checkPassword);
-    connect(m_prompt, &LockPrompt::cancelRequested, this,
-        [this] { m_prompt->setPage(LockPrompt::Page::Locked); });
+    connect(m_prompt, &LockPrompt::cancelRequested, this, &LockController::rest);
     connect(m_prompt, &LockPrompt::failureAcknowledged, this,
         [this] { m_prompt->setPage(LockPrompt::Page::Unlock); });
 
@@ -365,10 +364,11 @@ bool LockController::eventFilter(QObject *watched, QEvent *event)
             return true;
         case LockPrompt::Page::Unlock:
             if (key->key() == Qt::Key_Escape) {
-                m_prompt->setPage(LockPrompt::Page::Locked);
+                rest();
                 return true;
             }
-            return false;
+            // Already unlocking: nothing more for Ctrl+Alt+Delete to do.
+            return isCtrlAltDelete(key);
         case LockPrompt::Page::Checking:
             return true;
         case LockPrompt::Page::Failed:
@@ -402,11 +402,31 @@ bool LockController::eventFilter(QObject *watched, QEvent *event)
     }
 }
 
+void LockController::setRequiresCtrlAltDelete(bool require)
+{
+    m_requireCtrlAltDelete = require;
+    if (m_prompt->page() == LockPrompt::Page::Locked
+        || (require && m_prompt->page() == LockPrompt::Page::Unlock))
+        rest();
+}
+
+void LockController::rest()
+{
+    if (m_requireCtrlAltDelete) {
+        m_prompt->setPage(LockPrompt::Page::Locked);
+        return;
+    }
+    m_prompt->passwordField()->clear();
+    m_prompt->setPage(LockPrompt::Page::Unlock);
+}
+
 void LockController::wake()
 {
     m_blank = false;
     updateScreens();
     placePrompt();
+    if (m_prompt->page() == LockPrompt::Page::Unlock)
+        m_prompt->passwordField()->setFocus();
 }
 
 void LockController::reset()
@@ -415,7 +435,7 @@ void LockController::reset()
         m_idle.start();
         return;
     }
-    m_prompt->setPage(LockPrompt::Page::Locked);
+    rest();
     m_blank = m_startBlank;
     updateScreens();
     placePrompt();

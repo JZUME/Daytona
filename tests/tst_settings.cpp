@@ -199,6 +199,27 @@ private Q_SLOTS:
         QCOMPARE(b.screenSaverPassword(), false);
     }
 
+    void lockDisablesCtrlAltDelete()
+    {
+        const QString file = path(QStringLiteral("lock.ini"));
+        {
+            Settings s(file);
+            QCOMPARE(s.lockDisablesCtrlAltDelete(), false);
+            QSignalSpy spy(&s, &Settings::changed);
+            s.setLockDisablesCtrlAltDelete(true);
+            QCOMPARE(spy.count(), 1);
+            QCOMPARE(spy.first().first().toString(), QStringLiteral("Lock/DisableCtrlAltDelete"));
+        }
+        QCOMPARE(Settings(file).lockDisablesCtrlAltDelete(), true);
+
+        const QString bad = path(QStringLiteral("badlock.ini"));
+        writeFile(bad, "[Lock]\nDisableCtrlAltDelete=maybe\n");
+        QCOMPARE(Settings(bad).lockDisablesCtrlAltDelete(), false);
+        const QString on = path(QStringLiteral("onlock.ini"));
+        writeFile(on, "[Lock]\nDisableCtrlAltDelete=true\n");
+        QCOMPARE(Settings(on).lockDisablesCtrlAltDelete(), true);
+    }
+
     void systemStartLogo()
     {
         const QString file = path(QStringLiteral("logo.ini"));
