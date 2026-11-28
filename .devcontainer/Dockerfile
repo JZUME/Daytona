@@ -12,4 +12,5 @@ RUN apt-get update \
         qterminal qt6-base-examples qt6-wayland qt6-svg-plugins fonts-dejavu-core \
         meson libwlroots-0.18-dev wayland-protocols libxkbcommon-dev libxcb1-dev libxcb-icccm4-dev libxcb-composite0-dev libxcb-damage0-dev libdrm-dev libxml2-dev libglib2.0-dev libcairo2-dev libpango1.0-dev libinput-dev libpixman-1-dev libpng-dev librsvg2-dev libsfdo-dev \
         libpulse-dev libcanberra-dev libcanberra-pulse sound-theme-freedesktop pipewire pipewire-pulse wireplumber pavucontrol-qt \
+        libpam0g-dev qt6-base-private-dev qt6-wayland-private-dev swayidle wl-clipboard \
     && rm -rf /var/lib/apt/lists/*

@@ -48,11 +48,11 @@ jobs:
       REF: ${{ github.event.workflow_run.head_branch }}
       COMMIT: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download the packages CI built
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
@@ -119,7 +119,7 @@ jobs:
           scripts/apt/build-repo.sh site
           rm -f "$RUNNER_TEMP/passphrase"
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -140,4 +140,4 @@ jobs:
           exit 1
 
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
