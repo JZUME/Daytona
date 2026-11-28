@@ -3,6 +3,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QIcon>
 #include <QList>
 #include <QString>
 
@@ -78,6 +79,9 @@ struct SystemInfo
     ProcessorInfo processor;
     MemoryInfo memory;
     QList<SwapArea> swapAreas;
+    // The distribution's own logo, as the Start button finds it
+    // (systemLogo()); null if it has none.
+    QIcon logo;
 };
 
 // Reads this computer's files. root prefixes every path (tests).

@@ -23,6 +23,9 @@ namespace {
     // The picture of a computer: Chicago95's, as My Computer shows it, at
     // about the size of Windows 98's.
     constexpr int PictureSize = 96;
+    // The distribution's logo beneath it, where Windows 98 showed the
+    // computer maker's (OEMLOGO.BMP).
+    constexpr int LogoSize = 64;
     // How far a group's lines are indented under its heading.
     constexpr int Indent = 16;
 
@@ -98,7 +101,16 @@ QWidget *SystemPropertiesDialog::createGeneralPage()
     auto *layout = new QHBoxLayout(page);
     layout->setContentsMargins(12, 16, 12, 12);
     layout->setSpacing(12);
-    layout->addWidget(picture, 0, Qt::AlignTop);
+    m_logo = new QLabel(page);
+    m_logo->setObjectName(QStringLiteral("logo"));
+    m_logo->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+    m_logo->hide();
+    auto *pictures = new QVBoxLayout;
+    pictures->setSpacing(16);
+    pictures->addWidget(picture);
+    pictures->addWidget(m_logo);
+    pictures->addStretch();
+    layout->addLayout(pictures);
     layout->addWidget(m_details, 1);
     return page;
 }
@@ -162,6 +174,9 @@ void SystemPropertiesDialog::prepare()
 {
     const SystemInfo info = m_read();
     const QLocale locale;
+
+    m_logo->setPixmap(info.logo.isNull() ? QPixmap() : info.logo.pixmap(LogoSize, LogoSize));
+    m_logo->setVisible(!info.logo.isNull());
 
     // General: headings with their lines indented beneath, as Windows 98.
     auto *details = static_cast<QVBoxLayout *>(m_details->layout());

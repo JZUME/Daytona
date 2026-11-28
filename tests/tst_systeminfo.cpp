@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QLabel>
 #include <QLocale>
+#include <QPixmap>
 #include <QProgressBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
@@ -268,6 +269,7 @@ private Q_SLOTS:
         QCOMPARE(info.processor.count, 2);
         QCOMPARE(info.memory.total, 16251280);
         QCOMPARE(info.swapAreas.size(), 2);
+        QVERIFY(info.logo.isNull());
     }
 
     void readsThisComputer()
@@ -293,11 +295,17 @@ private Q_SLOTS:
             info.processor = parseCpuInfo(X86CpuInfo);
             info.memory = parseMemInfo(MemInfo);
             info.swapAreas = parseSwaps(Swaps);
+            QPixmap logo(16, 16);
+            logo.fill(Qt::red);
+            info.logo = QIcon(logo);
             return info;
         });
         dialog.prepare();
         QCOMPARE(dialog.windowTitle(), QStringLiteral("System Properties"));
         QCOMPARE(dialog.tabs()->count(), 2);
+        // The distribution's logo under the computer.
+        QVERIFY(!dialog.logo()->isHidden());
+        QVERIFY(!dialog.logo()->pixmap().isNull());
         QCOMPARE(dialog.tabs()->tabText(0), QStringLiteral("General"));
         QCOMPARE(dialog.tabs()->tabText(1), QStringLiteral("Performance"));
         QCOMPARE(dialog.generalText(),
@@ -334,6 +342,8 @@ private Q_SLOTS:
         QCOMPARE(dialog.swapText()->text(), QStringLiteral("Disabled"));
         QVERIFY(dialog.swapList()->isHidden());
         QVERIFY(dialog.swapBar()->isHidden());
+        // No logo: nothing under the computer.
+        QVERIFY(dialog.logo()->isHidden());
     }
 };
 

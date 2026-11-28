@@ -302,6 +302,7 @@ SystemInfo readSystemInfo(const QString &root)
         readFile(root + QStringLiteral("/proc/cpuinfo"), 4 * 1024 * 1024), board, machine);
     info.memory = parseMemInfo(readFile(root + QStringLiteral("/proc/meminfo")));
     info.swapAreas = parseSwaps(readFile(root + QStringLiteral("/proc/swaps")));
+    info.logo = systemLogo(root);
     return info;
 }
 
