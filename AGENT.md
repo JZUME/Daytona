@@ -410,7 +410,9 @@ The shell implements the `org.freedesktop.Notifications` D-Bus service.
 
 * Each notification appears as a Windows 2000-style balloon pointing at the notification area: yellow tooltip background (`QPalette::ToolTipBase`), bold title, body text, optional icon, close button.
 * One balloon at a time; further notifications queue.
-* A balloon closes on click, on its close button, or after its timeout (application timeout, else 10 seconds). Clicking the body invokes the `default` action if present.
+* A balloon closes on click, on its close button, or after its timeout: the application's (at most 60 seconds), else 10 seconds for `-1`. Clicking the body invokes the `default` action if present.
+* **Balloons that stay:** a timeout of `0` or urgency critical (`2`) never expires, as the specification says; it stays until the user or the application closes it. It does not hold the queue: after 10 seconds (Windows 2000's minimum balloon time) a waiting notification takes its place, or the next one to arrive does at once, and the staying balloon goes to the back of the queue, still open, to show again when its turn comes. Windows 2000 and XP likewise let a newer balloon replace the current one once it had been up for the minimum time. Nothing is closed or lost by giving way.
+* **Time nobody can see does not count:** while the session is locked or the Blank Screen screen saver is showing, the shown balloon's time stands still (Windows 2000 did not count idle time towards a balloon). Plain idle time without a screen saver still counts, since the shell has no idle signal then.
 * Supported capabilities: `body`, `actions` (default action only), `icon-static`, `sound` (see Sounds). Markup and persistence are not supported.
 * No notification history, do-not-disturb or notification centre: none existed up to Windows XP.
 
@@ -494,7 +496,7 @@ Laptop support from Windows 98 and 2000, on top of logind and UPower:
 
 * **Stand by and Hibernate** are in the Shut Down dialog ("Put the computer on stand by?", "Hibernate the computer?"), shown only when logind's `CanSuspend` / `CanHibernate` answer `yes` or `challenge`, and call logind's `Suspend` / `Hibernate` asynchronously like the other options. The screen is locked before the machine sleeps (swayidle's `before-sleep`, see Screen Lock and Screen Saver), so the session is locked on resume.
 * **The battery icon** is Windows 2000's power meter, built into the shell (the existing tray battery monitors are GTK or XEmbed, or bring LXQt's power manager with its own idle and lid handling). It follows UPower's display device over QtDBus, re-reading it on UPower's `PropertiesChanged`, and is hidden on machines without a battery. It sits left of the speaker; the icon shows the charge and a plug while on mains power, and the tooltip the charge and time left as Windows XP worded it ("1 hr 23 min (45%) remaining", "45% available (plugged in, charging)").
-* **Low battery**: when UPower's warning level rises to low or critical while on battery, a balloon says so (a critical one stays for the longest balloon time). UPower's own critical action (hibernate or power off) is left to UPower.
+* **Low battery**: when UPower's warning level rises to low or critical while on battery, a balloon says so (a critical one is sent as critical and stays until closed). UPower's own critical action (hibernate or power off) is left to UPower.
 * **Brightness keys** (`XF86MonBrightnessUp/Down`) are labwc keybindings running `brightnessctl`, which writes the backlight as a member of the `video` group (Debian's `brightness-udev`); lowering stops at 1, so the backlight never goes fully off.
 * Not provided: power plans, NT/2000's Power Options dialog, lid and power button policy (logind's) and keyboard backlight.
 

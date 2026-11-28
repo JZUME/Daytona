@@ -63,6 +63,9 @@ public:
     // Whether this shell's locker has the session locked.
     bool isLocked() const { return m_locked; }
 
+Q_SIGNALS:
+    void lockedChanged(bool locked);
+
 private:
     void start();
     void finish();

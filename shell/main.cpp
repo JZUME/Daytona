@@ -322,9 +322,8 @@ int main(int argc, char *argv[])
                                     : QCoreApplication::translate("main",
                                           "%1% remaining. You might want to plug in the computer.")
                                           .arg(state.percent);
-            // A critical warning stays as long as a balloon can.
-            if (critical)
-                warning.timeoutMs = Daytona::NotificationQueue::MaxTimeoutMs;
+            // A critical warning stays until closed.
+            warning.critical = critical;
             notifications.notify(warning);
         });
     if (battery.start())
@@ -407,6 +406,13 @@ int main(int argc, char *argv[])
             else
                 blankScreen.start();
         });
+    // A balloon's time does not run while nobody can see it.
+    const auto pauseBalloons = [&notifications, &locker, &blankScreen] {
+        notifications.setPaused(locker.isLocked() || blankScreen.isActive());
+    };
+    QObject::connect(&locker, &Daytona::ScreenLocker::lockedChanged, &notifications, pauseBalloons);
+    QObject::connect(&blankScreen, &Daytona::BlankScreen::started, &notifications, pauseBalloons);
+    QObject::connect(&blankScreen, &Daytona::BlankScreen::stopped, &notifications, pauseBalloons);
     Daytona::IdleMonitor idle(&settings, QCoreApplication::applicationFilePath());
     idle.start();
     // Programs that keep the screen on (video players, presentations) through
