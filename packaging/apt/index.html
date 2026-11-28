@@ -16,6 +16,7 @@
   code { font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }
   table { border-collapse: collapse; }
   td, th { text-align: left; padding: 2px 1rem 2px 0; vertical-align: top; }
+  td:first-child { white-space: nowrap; }
   a { color: #000080; }
   @media (max-width: 48rem) { .window { margin: 0; } }
 </style>
@@ -42,25 +43,65 @@ trademarks of the Microsoft group of companies.</small></p>
 <p>Key fingerprint: <code>3AED 05B9 6FFE F7E8 7C6B 7249 6099 9388 8173 8EAD</code></p>
 
 <h2>2. Add the repository</h2>
-<p>Use <code>Suites: stable</code> for releases or <code>Suites: edge</code> for the latest build.</p>
 <pre><code>sudo tee /etc/apt/sources.list.d/daytona.sources &lt;&lt;'END'
 Types: deb
 URIs: https://jzu.me/daytona
-Suites: edge
+Suites: stable
 Components: main
 Signed-By: /etc/apt/keyrings/daytona.gpg
 END</code></pre>
+<p>For the latest build of <code>main</code> instead, write <code>Suites: edge</code>. To switch
+later, change that line in <code>/etc/apt/sources.list.d/daytona.sources</code> and run
+<code>sudo apt update &amp;&amp; sudo apt upgrade</code>. Going from <code>edge</code> back to
+<code>stable</code> waits for the next release, since edge builds are newer.</p>
 
 <h2>3. Install</h2>
 <pre><code>sudo apt update
 sudo apt install daytona</code></pre>
-<p>Log out and choose <b>Daytona</b> in the login screen's session menu. Updates then arrive with
-<code>sudo apt update &amp;&amp; sudo apt upgrade</code>.</p>
+<p>Log out and choose <b>Daytona</b> in your login screen's session menu (GDM, SDDM and LightDM
+all list it). Updates then arrive with <code>sudo apt update &amp;&amp; sudo apt upgrade</code>.
+Log out and back in after an update; your settings (colour scheme, wallpaper, taskbar) are
+kept.</p>
+
+<h2>The packages</h2>
+<table>
+<tr><td><code>daytona</code></td><td>The shell, the Qt style, the session, and Daytona's own build of
+labwc (kept in <code>/usr/libexec/daytona</code>, so a system labwc is left alone). It recommends
+WirePlumber and pavucontrol-qt (volume), sound-theme-freedesktop and libcanberra-pulse (event
+sounds), UPower (battery), brightnessctl (brightness keys) and grim and wl-clipboard (Print
+Screen), which apt installs by default.</td></tr>
+<tr><td><code>daytona-chicago95</code></td><td>The Chicago95 theme, icons and cursors. Installed
+with <code>daytona</code>.</td></tr>
+<tr><td><code>daytona-greeter</code></td><td>Optional: a Windows 98-style log on screen for
+greetd (below).</td></tr>
+<tr><td><code>daytona-dbgsym</code></td><td>Optional: debug symbols, so crash backtraces show
+function names. Install it to report a crash.</td></tr>
+</table>
+
+<h2>Optional: the Daytona log on screen</h2>
+<p><code>daytona-greeter</code> has a user name and password, a <b>Session...</b> button to pick
+any installed Wayland session and <b>Shut Down...</b>. It runs on the
+<a href="https://sr.ht/~kennylevinsen/greetd/">greetd</a> login manager. Daytona works with any
+login manager and never installs it for you. To replace your current one (GDM, SDDM, LightDM):</p>
+<pre><code>sudo apt install daytona-greeter
+sudo cp /usr/share/doc/daytona-greeter/examples/config.toml /etc/greetd/config.toml
+systemctl status display-manager      # note which one is running now
+sudo systemctl disable gdm3           # or sddm, lightdm: the one shown above
+sudo systemctl enable --force greetd
+sudo reboot</code></pre>
+<p>If you already have a greetd configuration, change only its <code>[default_session]</code>
+command to <code>"daytona-greeter"</code>. On a high-density screen, use
+<code>"daytona-greeter --scale 2"</code> (any size from 1 to 3, such as 1.5).</p>
+<p>To go back, run <code>sudo systemctl disable greetd</code>, then
+<code>sudo systemctl enable --force gdm3</code> (or <code>sddm</code>, <code>lightdm</code>), and
+reboot. See <a href="https://github.com/JZUME/daytona/blob/main/docs/greeter.md">docs/greeter.md</a>
+for troubleshooting.</p>
 
 <h2>Notes</h2>
-<p>The <code>edge</code> suite only keeps the newest builds; older ones are removed. Every release
-and its packages stay on the
-<a href="https://github.com/JZUME/daytona/releases">releases page</a>.</p>
+<p>The <code>edge</code> suite keeps only the two newest builds; older ones are removed. Every
+release and its packages stay on the
+<a href="https://github.com/JZUME/daytona/releases">releases page</a>, for installing by hand with
+<code>sudo apt install ./daytona_*.deb ./daytona-chicago95_*.deb</code>.</p>
 </div>
 </div>
 </body>
