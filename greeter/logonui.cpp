@@ -2,6 +2,8 @@
 
 #include "logonui.h"
 
+#include "osrelease.h"
+
 #include <QCloseEvent>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -45,7 +47,8 @@ namespace {
 LogonDialog::LogonDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(tr("Welcome to Daytona"));
+    // The operating system's name, as Windows' "Welcome to Windows".
+    setWindowTitle(tr("Welcome to %1").arg(operatingSystemName()));
 
     auto *intro = new QLabel(tr("Type a user name and password to log on to this computer."), this);
     intro->setWordWrap(true);

@@ -18,6 +18,8 @@ add_library(daytona-greeter-core STATIC
     keyboard.h
     logonui.cpp
     logonui.h
+    osrelease.cpp
+    osrelease.h
     scale.cpp
     scale.h
     sessions.cpp

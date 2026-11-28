@@ -4,7 +4,9 @@
 its own package: `daytona` only suggests it, so installing Daytona never changes your login
 manager, and you can keep GDM, SDDM, LightDM or any other.
 
-It is a Windows 98-style dialog on the desktop colour: **User name**, **Password**, the session
+It is a Windows 98-style dialog on the desktop colour, welcoming you to the operating system by
+its name (os-release's `NAME`, such as "Welcome to Debian GNU/Linux", as Windows said "Welcome to
+Windows"): **User name**, **Password**, the session
 to start with a **Session...** button to choose another, **OK**, **Cancel** (which clears both
 fields) and **Shut Down...**. It remembers the last user name and session, puts the cursor in
 Password, and uses the computer's keyboard layout, so a password is typed the same way as on the
