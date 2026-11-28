@@ -39,8 +39,6 @@ QList<RecentDocument> readRecentDocuments(const QString &xbelPath, int limit)
         if (!url.isValid() || !url.isLocalFile())
             continue;
         const QString path = url.toLocalFile();
-        if (!QFileInfo(path).isFile())
-            continue;
         QDateTime when = QDateTime::fromString(
             attributes.value(QLatin1String("modified")).toString(), Qt::ISODateWithMs);
         if (!when.isValid()) {
@@ -52,9 +50,16 @@ QList<RecentDocument> readRecentDocuments(const QString &xbelPath, int limit)
 
     std::stable_sort(documents.begin(), documents.end(),
         [](const RecentDocument &a, const RecentDocument &b) { return a.modified > b.modified; });
-    if (documents.size() > limit)
-        documents.resize(limit);
-    return documents;
+    // Only the newest that still exist: look at files in that order and
+    // stop once there are enough, rather than at every file the list has.
+    QList<RecentDocument> existing;
+    for (const RecentDocument &document : std::as_const(documents)) {
+        if (existing.size() >= limit)
+            break;
+        if (QFileInfo(document.path).isFile())
+            existing.append(document);
+    }
+    return existing;
 }
 
 } // namespace Daytona

@@ -5,6 +5,7 @@
 #include "systemlogo.h"
 
 #include <QLoggingCategory>
+#include <QMouseEvent>
 
 Q_LOGGING_CATEGORY(lcStartButton, "daytona.startbutton", QtInfoMsg)
 
@@ -53,6 +54,29 @@ void StartButton::setUseSystemLogo(bool use)
                 << "Start logo could not be loaded; is qt6-svg-plugins installed?";
     }
     setIcon(logo);
+}
+
+void StartButton::mousePressEvent(QMouseEvent *event)
+{
+    // NT opens the Start menu on the press. A checkable QPushButton toggles
+    // on the release, which leaves the menu waiting for the length of the
+    // click (often a tenth of a second or more).
+    if (event->button() != Qt::LeftButton) {
+        QPushButton::mousePressEvent(event);
+        return;
+    }
+    event->accept();
+    toggle();
+}
+
+void StartButton::mouseReleaseEvent(QMouseEvent *event)
+{
+    // The press has already acted.
+    if (event->button() != Qt::LeftButton) {
+        QPushButton::mouseReleaseEvent(event);
+        return;
+    }
+    event->accept();
 }
 
 QIcon StartButton::daytonaLogo()
