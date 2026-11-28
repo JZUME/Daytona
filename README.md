@@ -224,10 +224,14 @@ git submodule update --init
 Daytona targets Debian 13 (trixie). Install the build dependencies:
 
 ```bash
-sudo apt install build-essential cmake ninja-build pkgconf qt6-base-dev \
-    liblayershellqtinterface-dev libwayland-dev libwayland-bin \
-    qt6-wayland-dev qt6-wayland-dev-tools qt6-svg-plugins libpulse-dev libcanberra-dev clang-format
+sudo apt install build-essential cmake ninja-build pkgconf qt6-base-dev qt6-base-private-dev \
+    liblayershellqtinterface-dev libwayland-dev libwayland-bin wayland-protocols \
+    qt6-wayland-dev qt6-wayland-dev-tools qt6-wayland-private-dev qt6-svg-plugins \
+    libpulse-dev libcanberra-dev libpam0g-dev libxcb1-dev libxcb-composite0-dev \
+    libxcb-damage0-dev python3 clang-format
 ```
+
+`sudo apt build-dep .` installs the same list from `debian/control`.
 
 The build also compiles labwc from its submodule with Daytona's patch for NT's raised window
 frames (`patches/labwc/`), which needs labwc's own build dependencies:
@@ -259,7 +263,7 @@ Smoke tests run a real headless labwc session against an install of the build an
 sudo apt install labwc grim wlr-randr qt6-wayland qt6-svg-plugins dbus
 ```
 
-The pointer tests also need `wlrctl`, the autostart test `dex` and `gdbus` (`libglib2.0-bin`), and the Print Screen test `wl-clipboard`.
+The pointer tests also need `wlrctl`, the autostart test `dex` and `gdbus` (`libglib2.0-bin`), the screen saver test `wlrctl` and `swayidle`, the Print Screen test `wl-clipboard`, and the XEmbed tray tests `xwayland`.
 
 Run only the smoke tests with:
 
