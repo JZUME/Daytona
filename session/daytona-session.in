@@ -32,6 +32,69 @@ extralarge) XCURSOR_SIZE=96 ;;
 esac
 export XCURSOR_SIZE
 
+# The input method, IBus. Older versions of Debian's im-config start IBus
+# for every session in which it is installed, the X11 way: when the login
+# manager runs the X session scripts for Wayland sessions too, they set
+# GTK_IM_MODULE and QT_IM_MODULE to ibus, and im-config's autostart entry
+# (im-launch) starts ibus-daemon, which in a Wayland session only shows a
+# balloon at log on asking to be started by the desktop. Newer im-config
+# leaves Wayland sessions to the desktop altogether. So Daytona starts IBus
+# itself (see the labwc autostart file), unless the session was set up for
+# another input method (Fcitx, say): im-launch does nothing (it acts only
+# with IM_CONFIG_PHASE), and GTK_IM_MODULE and QT_IM_MODULE are unset, so GTK
+# and Qt 6 applications use labwc's text input protocol, as IBus asks. X11
+# applications use XIM (XMODIFIERS).
+#
+# IBus is started only when an input method is set up in it (IBus
+# Preferences, Input Method: anything other than a keyboard layout), or, until
+# then, for Chinese, Japanese and Korean. Otherwise it would only repeat the
+# keyboard layouts, which Daytona switches itself (Keyboard Properties), and
+# put a second keyboard icon in the notification area. It is started with the
+# Exec line of its "IBus Wayland" entry, from IBus 1.5.32 (older versions
+# cannot talk to labwc, and are not started).
+#
+# DAYTONA_IBUS tells the autostart file what to do: "start", or "off" (IBus
+# is installed but not needed).
+other_im=""
+for value in "${GTK_IM_MODULE:-}" "${QT_IM_MODULE:-}" "${XMODIFIERS#@im=}"; do
+    case "$value" in
+    "" | ibus) ;;
+    *) other_im=yes ;;
+    esac
+done
+if [ -z "$other_im" ] && command -v ibus-daemon >/dev/null; then
+    DAYTONA_IBUS=off
+    DAYTONA_IBUS_EXEC=""
+    for dir in $(echo "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" | tr ':' ' '); do
+        entry="$dir/applications/org.freedesktop.IBus.Panel.Wayland.Gtk3.desktop"
+        if [ -r "$entry" ]; then
+            DAYTONA_IBUS_EXEC="$(sed -n 's/^Exec=//p' "$entry" | head -n 1)"
+            break
+        fi
+    done
+    if [ -n "$DAYTONA_IBUS_EXEC" ]; then
+        # The input methods (engines) chosen in IBus Preferences, as
+        # ['xkb:us::eng', 'mozc-jp']; empty until something is chosen there.
+        engines="$(dconf read /desktop/ibus/general/preload-engines 2>/dev/null)"
+        if [ -n "$engines" ]; then
+            if echo "$engines" | grep -o "'[^']*'" | grep -qv "^'xkb:"; then
+                DAYTONA_IBUS=start
+            fi
+        else
+            case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+            zh* | ja* | ko*) DAYTONA_IBUS=start ;;
+            esac
+        fi
+    fi
+    unset IM_CONFIG_PHASE GTK_IM_MODULE QT_IM_MODULE CLUTTER_IM_MODULE
+    if [ "$DAYTONA_IBUS" = start ]; then
+        export XMODIFIERS=@im=ibus DAYTONA_IBUS_EXEC
+    else
+        unset XMODIFIERS DAYTONA_IBUS_EXEC
+    fi
+    export DAYTONA_IBUS
+fi
+
 # VMware's virtual GPU (vmwgfx) cannot free the handles of imported GPU
 # buffers through the standard call: it always fails with EINVAL. wlroots
 # 0.18 takes that as a bad buffer and disconnects the client, so every

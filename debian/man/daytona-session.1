@@ -12,6 +12,9 @@ theme), which starts \fBdaytona-shell\fR(1). Login managers run it for the
 \fBXCURSOR_THEME\fR and \fBXCURSOR_SIZE\fR to Daytona's cursors in the pointer
 scheme chosen in Mouse Properties, and \fBQT_STYLE_OVERRIDE=daytona\fR,
 so GTK 3 and Qt 6 applications take the NT look.
+When IBus is installed and no other input method is set up, it unsets
+\fBGTK_IM_MODULE\fR and \fBQT_IM_MODULE\fR and starts IBus the Wayland way,
+if an input method is chosen in IBus Preferences.
 Further arguments are passed to labwc.
 .SH SEE ALSO
 .BR daytona-shell (1),

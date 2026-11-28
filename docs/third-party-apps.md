@@ -302,6 +302,44 @@ echo hello | secret-tool store --label=Test daytona test
 secret-tool lookup daytona test
 ```
 
+## Input methods (IBus)
+
+Input methods for Chinese, Japanese, Korean and other languages come from
+IBus. Daytona has no settings of its own for them: they are chosen in IBus
+Preferences (`ibus-setup`), and keyboard layouts stay in Keyboard Properties.
+
+IBus must be started differently in a Wayland session. Older versions of
+Debian's `im-config` start it for every session in which it is installed,
+the X11 way: when the login manager runs the X session scripts for Wayland
+sessions too, they set `GTK_IM_MODULE=ibus` and `QT_IM_MODULE=ibus`, and
+im-config's autostart entry (`im-launch`) starts `ibus-daemon`, which then
+only shows an "IBus Notification" balloon at log on asking to be started by
+the desktop. Newer im-config leaves Wayland sessions to the desktop. So when
+IBus is installed, and the session was not set up for another input method
+(`GTK_IM_MODULE`, `QT_IM_MODULE` or `XMODIFIERS` naming Fcitx, say), Daytona
+looks after it:
+
+- `daytona-session` unsets `IM_CONFIG_PHASE`, so `im-launch` does nothing,
+  and unsets `GTK_IM_MODULE`, `QT_IM_MODULE` and `CLUTTER_IM_MODULE`, as
+  IBus asks: GTK and Qt 6 applications use labwc's text
+  input protocol instead. They are taken out of the D-Bus and systemd
+  activation environments too.
+- The labwc `autostart` file starts IBus the Wayland way, with the `Exec`
+  line of IBus's own "IBus Wayland" entry
+  (`org.freedesktop.IBus.Panel.Wayland.Gtk3.desktop`), which uses labwc's
+  input method protocol, gives X11 programs XIM (`XMODIFIERS=@im=ibus`) and
+  puts IBus's icon in the notification area. That needs IBus 1.5.32 or
+  later; older versions cannot talk to labwc and are not started.
+- IBus is only started when an input method other than a keyboard layout is
+  set up in IBus Preferences (Input Method), or, until something is chosen
+  there, when the language is Chinese, Japanese or Korean. Otherwise it would
+  only repeat the keyboard layouts and add a second keyboard icon. After
+  adding an input method in IBus Preferences, log off and on again.
+
+Qt 5 applications only know an older text input protocol that labwc does not
+offer, so they get no input method. Fcitx 5 and other input methods are
+left to their own autostart entries and im-config.
+
 ## Network
 
 NetworkManager's applet, `nm-applet` from the `network-manager-applet`

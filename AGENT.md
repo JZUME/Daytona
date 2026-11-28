@@ -477,7 +477,7 @@ NT's Keyboard Properties (Input Locales tab) and its input locale indicator:
 * Applying Keyboard Properties saves the locales (`[Keyboard] Layouts`, `Hotkey`), rewrites the environment file and sends labwc SIGHUP (as `labwc --reconfigure` does), so the change applies at once and at every later log on.
 * XKB switches layouts itself on the hot key. The indicator ("En", "De": the layout's language in the selection colours) follows the keyboard's layout group, which labwc sends with the keyboard modifiers to every client, focused or not; the shell reads it from its own `wl_keyboard`. It is shown only while more than one locale is installed.
 * Clicking the indicator lists the locales; choosing one gives labwc the layouts again starting with it, as no protocol lets a client set the group. Its right-click menu opens Keyboard Properties.
-* Input methods (IBus, Fcitx) are out of scope.
+* Input methods: no Daytona dialog. When IBus is installed and the session was not set up for another input method, daytona-session stops im-config starting it the X11 way and unsets `GTK_IM_MODULE`/`QT_IM_MODULE`; the labwc autostart file starts IBus's Wayland panel only when an engine other than a keyboard layout is set up in IBus (or the locale is Chinese, Japanese or Korean). Fcitx and other input methods are left alone. See `docs/third-party-apps.md`.
 
 ---
 

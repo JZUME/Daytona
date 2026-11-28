@@ -13,6 +13,23 @@ case "$(echo "${LABWC_UPDATE_ACTIVATION_ENV:-}" | tr '[:upper:]' '[:lower:]')" i
             GTK_THEME QT_STYLE_OVERRIDE XDG_SESSION_DESKTOP >/dev/null 2>&1
         systemctl --user import-environment \
             GTK_THEME QT_STYLE_OVERRIDE XDG_SESSION_DESKTOP >/dev/null 2>&1
+        # When Daytona looks after IBus (see daytona-session), the X session
+        # scripts may already have put im-config's variables in the
+        # activation environment; take out the ones the session took out.
+        # D-Bus can only set variables, so they are set empty, which GTK and
+        # Qt take as unset.
+        if [ -n "${DAYTONA_IBUS:-}" ]; then
+            for var in GTK_IM_MODULE QT_IM_MODULE CLUTTER_IM_MODULE XMODIFIERS; do
+                if [ -z "$(eval echo "\"\${$var:-}\"")" ]; then
+                    dbus-update-activation-environment "$var=" >/dev/null 2>&1
+                    systemctl --user unset-environment "$var" >/dev/null 2>&1
+                fi
+            done
+            if [ -n "${XMODIFIERS:-}" ]; then
+                dbus-update-activation-environment XMODIFIERS >/dev/null 2>&1
+                systemctl --user import-environment XMODIFIERS >/dev/null 2>&1
+            fi
+        fi
     fi
     ;;
 esac
@@ -68,6 +85,14 @@ fi
     xembed_proxy="$(dirname "$(readlink -f "$0")")/../../../libexec/daytona/daytona-xembed-proxy"
     if [ -n "${DISPLAY:-}" ] && [ -x "$xembed_proxy" ] && command -v Xwayland >/dev/null; then
         "$xembed_proxy" &
+    fi
+    # The input method, when daytona-session found one set up in IBus: IBus
+    # started the Wayland way, as its "IBus Wayland" entry does, so it uses
+    # labwc's input method protocol (and XIM for X11 programs), with its own
+    # icon in the notification area. Before the autostart applications, so
+    # they find it.
+    if [ "${DAYTONA_IBUS:-}" = start ] && [ -n "${DAYTONA_IBUS_EXEC:-}" ]; then
+        sh -c "exec $DAYTONA_IBUS_EXEC" &
     fi
     XDG_CONFIG_DIRS="$xdg_config_dirs" dex --autostart --environment Daytona
 } >/dev/null 2>&1 &
