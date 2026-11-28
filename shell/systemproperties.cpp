@@ -23,7 +23,7 @@ namespace {
     // The picture of a computer: Chicago95's, as My Computer shows it, at
     // about the size of Windows 98's.
     constexpr int PictureSize = 96;
-    // The distribution's logo beneath it, where Windows 98 showed the
+    // The distribution's logo beside Computer, where Windows 98 showed the
     // computer maker's (OEMLOGO.BMP).
     constexpr int LogoSize = 64;
     // How far a group's lines are indented under its heading.
@@ -85,34 +85,27 @@ SystemPropertiesDialog::SystemPropertiesDialog(QWidget *parent)
 
 QWidget *SystemPropertiesDialog::createGeneralPage()
 {
-    auto *page = new QWidget;
-    auto *picture = new QLabel(page);
-    picture->setObjectName(QStringLiteral("picture"));
-    picture->setPixmap(
+    // A grid, rebuilt by prepare(): the text in the second column, one
+    // label a row; the picture beside the first groups and the logo beside
+    // Computer, as Windows 98 placed the maker's logo.
+    m_details = new QWidget;
+    m_picture = new QLabel(m_details);
+    m_picture->setObjectName(QStringLiteral("picture"));
+    m_picture->setPixmap(
         QIcon::fromTheme(QStringLiteral("computer")).pixmap(PictureSize, PictureSize));
-    picture->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
-    picture->setMinimumWidth(PictureSize + 2 * Indent);
-
-    m_details = new QWidget(page);
-    auto *details = new QVBoxLayout(m_details);
-    details->setContentsMargins(0, 0, 0, 0);
-    details->setSpacing(0);
-
-    auto *layout = new QHBoxLayout(page);
-    layout->setContentsMargins(12, 16, 12, 12);
-    layout->setSpacing(12);
-    m_logo = new QLabel(page);
+    m_picture->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+    m_picture->setMinimumWidth(PictureSize + 2 * Indent);
+    m_logo = new QLabel(m_details);
     m_logo->setObjectName(QStringLiteral("logo"));
     m_logo->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
     m_logo->hide();
-    auto *pictures = new QVBoxLayout;
-    pictures->setSpacing(16);
-    pictures->addWidget(picture);
-    pictures->addWidget(m_logo);
-    pictures->addStretch();
-    layout->addLayout(pictures);
-    layout->addWidget(m_details, 1);
-    return page;
+
+    auto *layout = new QGridLayout(m_details);
+    layout->setContentsMargins(12, 16, 12, 12);
+    layout->setHorizontalSpacing(12);
+    layout->setVerticalSpacing(0);
+    layout->setColumnStretch(1, 1);
+    return m_details;
 }
 
 QWidget *SystemPropertiesDialog::createPerformancePage()
@@ -179,15 +172,22 @@ void SystemPropertiesDialog::prepare()
     m_logo->setVisible(!info.logo.isNull());
 
     // General: headings with their lines indented beneath, as Windows 98.
-    auto *details = static_cast<QVBoxLayout *>(m_details->layout());
-    while (QLayoutItem *item = details->takeAt(0)) {
-        delete item->widget();
+    auto *grid = static_cast<QGridLayout *>(m_details->layout());
+    while (QLayoutItem *item = grid->takeAt(0)) {
+        if (item->widget() != m_picture && item->widget() != m_logo)
+            delete item->widget();
         delete item;
     }
-    const auto addGroup = [this, details](const QString &heading, const QStringList &lines) {
-        if (details->count() > 0)
-            details->addSpacing(14);
-        details->addWidget(new QLabel(heading, m_details));
+    for (int row = 0; row < grid->rowCount(); ++row)
+        grid->setRowStretch(row, 0);
+    int row = 0;
+    // Adds a group, returning its first row.
+    const auto addGroup = [this, grid, &row](const QString &heading, const QStringList &lines) {
+        const int first = row;
+        auto *title = new QLabel(heading, m_details);
+        if (first > 0)
+            title->setContentsMargins(0, 14, 0, 0);
+        grid->addWidget(title, row++, 1);
         for (const QString &line : lines) {
             if (line.isEmpty())
                 continue;
@@ -195,8 +195,9 @@ void SystemPropertiesDialog::prepare()
             label->setTextFormat(Qt::PlainText);
             label->setTextInteractionFlags(Qt::TextSelectableByMouse);
             label->setContentsMargins(Indent, 2, 0, 0);
-            details->addWidget(label);
+            grid->addWidget(label, row++, 1);
         }
+        return first;
     };
     addGroup(tr("System:"),
         { info.operatingSystem, tr("Daytona %1").arg(info.daytonaVersion), info.kernel });
@@ -206,8 +207,12 @@ void SystemPropertiesDialog::prepare()
     if (info.processor.count > 1)
         computer.append(tr("%1 logical processors").arg(info.processor.count));
     computer.append(tr("%1 RAM").arg(memorySize(info.memory.total)));
-    addGroup(tr("Computer:"), computer);
-    details->addStretch();
+    const int computerRow = addGroup(tr("Computer:"), computer);
+    grid->addWidget(m_picture, 0, 0, computerRow, 1, Qt::AlignHCenter | Qt::AlignTop);
+    // The logo's top level with the Computer heading's text.
+    m_logo->setContentsMargins(0, 14, 0, 0);
+    grid->addWidget(m_logo, computerRow, 0, row - computerRow, 1, Qt::AlignHCenter | Qt::AlignTop);
+    grid->setRowStretch(row, 1);
 
     // Performance.
     const MemoryInfo &memory = info.memory;
@@ -242,8 +247,14 @@ void SystemPropertiesDialog::prepare()
 QStringList SystemPropertiesDialog::generalText() const
 {
     QStringList lines;
-    for (const QLabel *label : m_details->findChildren<QLabel *>(Qt::FindDirectChildrenOnly))
-        lines.append(label->text());
+    // In grid order: row by row down the text column.
+    auto *grid = static_cast<QGridLayout *>(m_details->layout());
+    for (int row = 0; row < grid->rowCount(); ++row) {
+        if (QLayoutItem *item = grid->itemAtPosition(row, 1)) {
+            if (auto *label = qobject_cast<QLabel *>(item->widget()))
+                lines.append(label->text());
+        }
+    }
     return lines;
 }
 

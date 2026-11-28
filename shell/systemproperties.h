@@ -52,8 +52,9 @@ private:
 
     std::function<SystemInfo()> m_read;
     QTabWidget *m_tabs;
-    QLabel *m_logo; // under the picture, as a computer maker's logo was
-    QWidget *m_details; // the General tab's text column
+    QWidget *m_details; // the General tab
+    QLabel *m_picture;
+    QLabel *m_logo; // beside Computer, as a computer maker's logo was
     QLabel *m_memory;
     QLabel *m_memoryInUse;
     QProgressBar *m_memoryBar;
