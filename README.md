@@ -10,6 +10,75 @@ Inspired by Windows NT, [Chicago95](https://github.com/grassmunk/Chicago95) and 
 > [!IMPORTANT]
 > **THIS PROJECT IS VIBE-CODED.** Development is primarily performed by AI agents working from GitHub issues and defined project rules. Code may not have undergone comprehensive human review. Users should exercise appropriate caution, particularly when installing on their primary systems.
 
+## A tour of Daytona
+
+The screenshots below were taken from a build of `main`, running in Daytona's own patched labwc.
+
+### The desktop
+
+![The Daytona desktop with a PCManFM-Qt folder window and QTerminal open](docs/screenshots/desktop.png)
+
+The taskbar, Start menu, desktop icons (My Computer, Network Neighborhood, Recycle Bin) and
+notification area are all part of the Daytona shell. labwc draws NT's raised window frames, with
+Daytona's patch for them. Folders open in [PCManFM-Qt](https://github.com/lxqt/pcmanfm-qt), and
+any Qt application takes on the `daytona` style.
+
+### Start menu
+
+| Program groups (default) | Flat list |
+| :---: | :---: |
+| ![The Start menu with Programs grouped into folders](docs/screenshots/start-menu-folders.png) | ![The Start menu with every program in one flat Programs list](docs/screenshots/start-menu-flat.png) |
+
+**Programs** is built from the freedesktop menu specification, so every installed application
+shows up in its program group. Put `FlatPrograms=true` in the `[StartMenu]` section of
+`~/.config/daytona/daytona.ini` for one flat list of programs, as in early NT. Start's banner
+shows your distribution's logo when it has one.
+
+### Notification area
+
+![The notification area with network, keyboard layout, battery and volume icons, and the volume pop-up open](docs/screenshots/tray-volume.png)
+
+The tray holds the clock and Daytona's own volume (with NT's pop-up), battery and input
+locale icons, beside any application's StatusNotifierItem icon, such as NetworkManager's network
+icon. Old XEmbed tray icons (GtkStatusIcon, Wine) are shown there too.
+
+### Control Panel
+
+![Control Panel listing Daytona's applets and installed settings applications](docs/screenshots/control-panel.png)
+
+Daytona's own applets (Date/Time, Display, Keyboard, Mouse, Sounds, System and Taskbar) sit
+above every installed application in the freedesktop **Settings** category.
+
+### System Properties
+
+![System Properties, General tab, showing the distribution, Daytona version, kernel, user, computer name and hardware](docs/screenshots/system-properties.png)
+
+Open it from Control Panel, **Properties** on My Computer or Win+Pause. The General tab shows the
+distribution (with its logo), the Daytona version, kernel, processor and memory; the Performance
+tab shows memory and swap use.
+
+### Sounds
+
+![Sounds Properties with freedesktop sound events and the sound theme](docs/screenshots/sounds.png)
+
+Event sounds for log on, log off, message boxes and balloons come from the freedesktop sound
+theme. Each event's sound and the theme can be changed here; the volume and mixer are in
+PulseAudio Volume Control.
+
+### HiDPI
+
+![The Daytona desktop at 200% scale with the Start menu open](docs/screenshots/hidpi-2x.png)
+
+Everything is drawn in logical pixels at the screen's scale, here 200% (2048 × 1536). Set it per
+screen in Display Properties > Settings > Font Size; see [docs/hidpi.md](docs/hidpi.md).
+
+### Log on screen (optional)
+
+![The Welcome to Daytona log on dialog, with user name, password, session and Shut Down](docs/screenshots/greeter.png)
+
+`daytona-greeter` is an optional Windows 98-style log on screen for greetd, with a session
+chooser and Shut Down; see [Optional: the Daytona log on screen](#optional-the-daytona-log-on-screen).
+
 ## Installing on Debian 13
 
 Daytona has an apt repository for Debian 13 (amd64 and arm64) at
