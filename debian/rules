@@ -10,8 +10,10 @@ export QT_QPA_PLATFORM = offscreen
 %:
 	dh $@ --buildsystem=cmake+ninja
 
+# DAYTONA_CMAKE_ARGS adds CMake options; CI uses it for -DDAYTONA_WERROR=ON and
+# to run the smoke tests against the installed packages.
 override_dh_auto_configure:
-	dh_auto_configure -- -DDAYTONA_WERROR=OFF
+	dh_auto_configure -- -DDAYTONA_WERROR=OFF $(DAYTONA_CMAKE_ARGS)
 
 # The smoke tests need a Wayland compositor and are run by CI, not here.
 override_dh_auto_test:

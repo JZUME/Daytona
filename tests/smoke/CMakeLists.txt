@@ -36,11 +36,19 @@ pkg_check_modules(SmokeXcb REQUIRED IMPORTED_TARGET xcb)
 add_executable(daytona-smoke-xembed-icon xembedicon.cpp)
 target_link_libraries(daytona-smoke-xembed-icon PRIVATE PkgConfig::SmokeXcb)
 
-set(SMOKE_PREFIX "${CMAKE_BINARY_DIR}/smoke-root")
-
-# Install the build into a private prefix once, before any smoke test.
-add_test(NAME smoke_install
-    COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR} --prefix ${SMOKE_PREFIX})
+# By default the smoke tests install this build into a private prefix once,
+# before any smoke test. With DAYTONA_SMOKE_PREFIX set (CI sets /usr after
+# installing the packages it built), they run against that install instead.
+set(DAYTONA_SMOKE_PREFIX "" CACHE PATH
+    "Run the smoke tests against Daytona installed in this prefix instead of installing the build")
+if(DAYTONA_SMOKE_PREFIX)
+    set(SMOKE_PREFIX "${DAYTONA_SMOKE_PREFIX}")
+    add_test(NAME smoke_install COMMAND ${CMAKE_COMMAND} -E true)
+else()
+    set(SMOKE_PREFIX "${CMAKE_BINARY_DIR}/smoke-root")
+    add_test(NAME smoke_install
+        COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR} --prefix ${SMOKE_PREFIX})
+endif()
 set_tests_properties(smoke_install PROPERTIES FIXTURES_SETUP smoke LABELS smoke)
 
 # daytona_add_smoke_test(NAME SCRIPT): run SCRIPT inside a headless session.
