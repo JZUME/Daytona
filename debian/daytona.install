@@ -6,6 +6,7 @@ usr/bin/daytona-shell
 usr/bin/daytona-themetool
 usr/libexec/daytona/labwc
 usr/libexec/daytona/daytona-lock
+usr/libexec/daytona/daytona-xembed-proxy
 usr/lib/*/qt6/plugins/styles/libdaytonastyle.so
 usr/share/daytona
 usr/share/themes/Daytona

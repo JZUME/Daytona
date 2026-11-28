@@ -3,10 +3,12 @@
 #include "trayicon.h"
 
 #include "statusnotifieritem.h"
+#include "taskbar.h"
 
 #include <QContextMenuEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QTextDocument>
 
 namespace Daytona {
@@ -64,7 +66,7 @@ void TrayIcon::mouseReleaseEvent(QMouseEvent *event)
 {
     if (!m_item || !rect().contains(event->position().toPoint()))
         return;
-    const QPoint global = event->globalPosition().toPoint();
+    const QPoint global = screenPosition(event->position().toPoint());
     switch (event->button()) {
     case Qt::LeftButton:
         if (m_item->itemIsMenu())
@@ -81,6 +83,43 @@ void TrayIcon::mouseReleaseEvent(QMouseEvent *event)
     default:
         break;
     }
+}
+
+QPoint TrayIcon::screenPosition(const QPoint &pos) const
+{
+    // Programs are told where on screen the click was, in the compositor's
+    // layout, and open their menus there (X11 programs behind
+    // daytona-xembed-proxy among them). Qt cannot know where a layer-shell
+    // surface is, so its global positions in the taskbar are wrong: work it
+    // out from the edge of the screen the taskbar is docked to. The point
+    // is moved to just outside the taskbar's inner edge, so that menus open
+    // beside the taskbar, as NT's did, rather than under it.
+    const QWidget *bar = window();
+    const auto *taskbar = qobject_cast<const Taskbar *>(bar);
+    if (!taskbar || !bar->screen())
+        return mapToGlobal(pos);
+    const QRect screen = bar->screen()->geometry();
+    QRect rect(screen.topLeft(), bar->size());
+    if (taskbar->edge() == TaskbarEdge::Bottom)
+        rect.moveBottom(screen.bottom());
+    else if (taskbar->edge() == TaskbarEdge::Right)
+        rect.moveRight(screen.right());
+    QPoint point = rect.topLeft() + mapTo(bar, pos);
+    switch (taskbar->edge()) {
+    case TaskbarEdge::Bottom:
+        point.setY(rect.top() - 1);
+        break;
+    case TaskbarEdge::Top:
+        point.setY(rect.bottom() + 1);
+        break;
+    case TaskbarEdge::Left:
+        point.setX(rect.right() + 1);
+        break;
+    case TaskbarEdge::Right:
+        point.setX(rect.left() - 1);
+        break;
+    }
+    return point;
 }
 
 void TrayIcon::contextMenuEvent(QContextMenuEvent *event)

@@ -76,6 +76,7 @@ Before writing a component, check whether an established Linux component already
 * GTK2/3 application look: **Chicago95** GTK theme, icons and cursors
 * administrator password prompts (polkit agent): **lxqt-policykit**
 * saved passwords (the Secret Service keyring, unlocked at log on by PAM): **gnome-keyring** and **libpam-gnome-keyring**
+* old X11 tray icons (XEmbed: GtkStatusIcon, Wine, older Java): Daytona's own small `daytona-xembed-proxy` (KDE's `xembedsniproxy` only comes with most of Plasma, `plasma-workspace`)
 * network icon, network password prompts and Network Connections: NetworkManager's **nm-applet** (started with `--indicator` for a StatusNotifierItem icon) and **nm-connection-editor**
 * idle timeout, lock before sleep and on logind's `Lock`: **swayidle** (the lock screen itself is Daytona's `daytona-lock`, as no existing locker can show NT's dialogs)
 * sound server and volume keys: **PipeWire** (through pipewire-pulse) and **WirePlumber**'s `wpctl`
@@ -207,6 +208,7 @@ Daytona
 │   ├── Desktop (background, icons, context menus)
 │   └── Wayland integration (layer-shell, foreign-toplevel)
 ├── locker/       daytona-lock: Workstation Locked screen (ext-session-lock, PAM)
+├── xembed/       daytona-xembed-proxy: X11 (XEmbed) tray icons as StatusNotifierItems
 ├── style/        Win95 QStyle plugin, usable by the shell and any Qt 6 app
 ├── themetool/    .theme converter (CLI)
 ├── labwc/        labwc rc.xml, menu.xml, autostart and default theme
@@ -414,6 +416,17 @@ The shell implements the `org.freedesktop.Notifications` D-Bus service.
 
 ---
 
+## X11 Tray Icons
+
+Programs that only know the X11 system tray (XEmbed) get their icons in the notification area through `daytona-xembed-proxy` (`xembed/`, installed in `libexec/daytona`), the X11 tray on the Xwayland display, which shows each docked icon as a StatusNotifierItem (see `docs/third-party-apps.md`).
+
+* It is a separate process because it must be an X11 client: when Xwayland goes, its clients go with it, and the shell must not. labwc's autostart starts it only when Xwayland is installed and `DISPLAY` is set; it ends with the X display.
+* Icons are read at NT's 16 pixels from each icon window's own pixmap (Composite, updated on Damage), and keep their transparency (the tray offers a 32-bit visual).
+* Clicks are sent to the icon as core events (entering, press, release, leaving) with the X11 pointer and the hidden icon moved under the click; XTEST does not reach X11 windows on Xwayland while the compositor's pointer is over the taskbar. While a menu it opened is showing, a transparent X11 window under it takes clicks elsewhere, so the menu closes.
+* The shell gives tray items the click position in the compositor's layout, just outside the taskbar's inner edge, so programs open their menus beside the taskbar (Qt does not know a layer-shell surface's position).
+
+---
+
 ## Volume Control
 
 NT 4.0's speaker icon in the notification area, built into the shell (no existing tray application offers NT's pop-up):
@@ -569,9 +582,10 @@ Dependencies must earn their place. Current expected dependencies:
 * QtDBus (part of Qt)
 * libpulse and libpulse-mainloop-glib (the notification area's volume control; talks to PipeWire through pipewire-pulse, or to PulseAudio)
 * libcanberra (event sounds from the freedesktop sound theme; plays through pipewire-pulse or PulseAudio with libcanberra-pulse)
+* libxcb with its Composite and Damage extensions (`daytona-xembed-proxy`, the X11 tray on Xwayland)
 * Chicago95 (git submodule; GTK theme, icons and cursors)
 
-Runtime, recommended: grim and wl-clipboard (Print Screen).
+Runtime, recommended: grim and wl-clipboard (Print Screen); Xwayland (X11 programs, and their XEmbed tray icons through `daytona-xembed-proxy`).
 
 Development and test only: wayvnc, noVNC.
 
