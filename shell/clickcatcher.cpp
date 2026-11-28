@@ -4,7 +4,6 @@
 
 #include <LayerShellQt/Window>
 #include <QMouseEvent>
-#include <QPainter>
 #include <QScreen>
 #include <QWindow>
 
@@ -57,11 +56,10 @@ namespace Daytona {
 
 void ClickCatcher::paintEvent(QPaintEvent *)
 {
-    // A surface only receives input once it has a buffer, so paint an
-    // explicitly transparent one.
-    QPainter painter(this);
-    painter.setCompositionMode(QPainter::CompositionMode_Source);
-    painter.fillRect(rect(), Qt::transparent);
+    // A surface only receives input once it has a buffer. A translucent
+    // window's buffer is already cleared to transparent before painting, so
+    // there is nothing to draw: painting the whole screen again each time
+    // the Start menu opens would only add to the wait.
 }
 
 } // namespace Daytona

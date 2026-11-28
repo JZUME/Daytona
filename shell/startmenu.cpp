@@ -209,15 +209,30 @@ QSize StartMenu::sizeHint() const
     return { 2 * frame + BannerWidth + width + 8, 2 * (frame + vmargin) + height };
 }
 
-QRect StartMenu::itemRect(int index) const
+void StartMenu::layOutItems() const
 {
+    m_laidOutSize = size();
+    m_laidOutIconSize = iconSize();
+    m_laidOutFontHeight = fontMetrics().height();
+    m_itemRects.clear();
     const int frame = style()->pixelMetric(QStyle::PM_MenuPanelWidth, nullptr, this);
     const int vmargin = style()->pixelMetric(QStyle::PM_MenuVMargin, nullptr, this);
     int y = frame + vmargin;
-    for (int i = 0; i < index; ++i)
-        y += itemHeight(m_items[i]);
-    return { frame + BannerWidth, y, width() - 2 * frame - BannerWidth,
-        itemHeight(m_items[index]) };
+    for (const Item &item : m_items) {
+        const int height = itemHeight(item);
+        m_itemRects.append(
+            QRect(frame + BannerWidth, y, width() - 2 * frame - BannerWidth, height));
+        y += height;
+    }
+}
+
+QRect StartMenu::itemRect(int index) const
+{
+    if (m_itemRects.size() != m_items.size() || m_laidOutSize != size()
+        || m_laidOutIconSize != iconSize() || m_laidOutFontHeight != fontMetrics().height()) {
+        layOutItems();
+    }
+    return m_itemRects.value(index);
 }
 
 int StartMenu::itemAt(const QPoint &pos) const
@@ -276,8 +291,12 @@ void StartMenu::setCurrent(int index)
 {
     if (index == m_current)
         return;
+    // Repaint only the two items that change, not the whole menu.
+    if (m_current >= 0)
+        update(itemRect(m_current));
     m_current = index;
-    update();
+    if (m_current >= 0)
+        update(itemRect(m_current));
 }
 
 void StartMenu::moveCurrent(int step)
@@ -563,7 +582,10 @@ void StartMenu::rebuildDocuments()
     static const QMimeDatabase mimeDatabase;
     const QList<RecentDocument> documents = readRecentDocuments(m_recentFile);
     for (const RecentDocument &document : documents) {
-        const QMimeType type = mimeDatabase.mimeTypeForFile(document.path);
+        // By name only: reading each file to sniff its type would hold up the
+        // menu, more so on slow or network drives.
+        const QMimeType type
+            = mimeDatabase.mimeTypeForFile(document.path, QMimeDatabase::MatchExtension);
         QIcon icon = QIcon::fromTheme(type.iconName());
         if (icon.isNull())
             icon = QIcon::fromTheme(
@@ -657,12 +679,14 @@ void StartMenu::popUpFrom(QWidget *anchor, bool fromKeyboard)
         layer->setMargins(QMargins(0, along.y(), 0, 0));
     else
         layer->setMargins(QMargins(along.x(), 0, 0, 0));
-    m_catcher->cover(anchor);
     m_current = fromKeyboard ? 0 : -1;
     // Exclusive keyboard interactivity gives the surface the keyboard; no
     // activation request is needed.
     show();
     setFocus();
+    // The screen-sized click catcher after the menu, so the menu is drawn
+    // and sent to the compositor first.
+    m_catcher->cover(anchor);
 }
 
 bool StartMenu::justClosed() const

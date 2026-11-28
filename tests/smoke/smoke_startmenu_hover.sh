@@ -48,8 +48,9 @@ pointer_step -120 0
 pointer_step 0 $((documents - settings))
 # Documents is highlighted and Settings is not.
 wait_for_pixels 5 130 $((documents + 12)) '#000080' 130 $((settings + 12)) '#c0c0c0'
-# Its submenu ("(Empty)") opens beside it, past the menu's right edge (163).
-wait_for_pixels 5 200 $((documents - 5)) '#c0c0c0'
+# Its submenu ("(Empty)") opens beside it, past the menu's right edge (163):
+# its background left of the text (whose pixels depend on the font).
+wait_for_pixels 5 170 $((documents - 5)) '#c0c0c0'
 
 # Into the Documents submenu and back, then a click on Run... runs it: the
 # Start menu closes.

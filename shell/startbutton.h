@@ -9,7 +9,8 @@ namespace Daytona {
 
 // The NT Start button: the operating system's logo (systemLogo(), or
 // Daytona's own when it has none) and bold "Start", raised normally and
-// pressed while the Start menu is open.
+// pressed while the Start menu is open. Like NT's, it acts as soon as the
+// mouse button goes down, not when it comes back up.
 class StartButton : public QPushButton
 {
     Q_OBJECT
@@ -24,6 +25,10 @@ public:
 
     // Shows the operating system's logo (the default) or Daytona's own.
     void setUseSystemLogo(bool use);
+
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
 Q_SIGNALS:
     // Emitted when the button is pressed or released, by the user or by

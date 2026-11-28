@@ -109,6 +109,7 @@ private:
     int iconSize() const;
     int itemHeight(const Item &item) const;
     QRect itemRect(int index) const;
+    void layOutItems() const;
     int itemAt(const QPoint &pos) const;
     void hoverAt(const QPoint &pos);
     void pressAt(const QPoint &pos);
@@ -142,6 +143,12 @@ private:
     bool m_attached = false;
     TaskbarEdge m_edge = TaskbarEdge::Bottom;
     bool m_rebuildPending = false;
+    // Where the items are, worked out once per size (pointer moves look
+    // them up many times a second).
+    mutable QList<QRect> m_itemRects;
+    mutable QSize m_laidOutSize;
+    mutable int m_laidOutIconSize = 0;
+    mutable int m_laidOutFontHeight = 0;
 };
 
 } // namespace Daytona
