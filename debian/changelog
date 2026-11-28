@@ -1,3 +1,28 @@
+daytona (0.3.0) unstable; urgency=medium
+
+  * Optional log on screen, daytona-greeter: a Windows 98-style dialog for
+    greetd with a session chooser, Shut Down and --scale for high-density
+    screens.
+  * System Properties (General and Performance tabs), from Control Panel,
+    My Computer and Win+Pause.
+  * Sound events from the freedesktop sound theme, with a Sounds applet.
+  * Gradient title bars where the colour scheme sets them; the schemes are
+    now Daytona Classic (the default, NT 4.0's solid title bars) and
+    Daytona Standard (two-tone, Windows 98 to XP Classic). Settings naming
+    the old "Windows Standard" still work.
+  * Old X11 (XEmbed) tray icons are shown in the notification area.
+  * Never-expiring and critical notification balloons stay open.
+  * Lock screen: [Lock] DisableCtrlAltDelete opens straight on Unlock
+    Workstation.
+  * IBus input methods start the Wayland way in the session.
+  * The greeter and Start menu name the operating system, not Daytona.
+  * Start menu opens on press with lighter repaints; desktop icons stay
+    whole when the scale changes to 200%.
+  * Packaging: debian/copyright lists the virtual-pointer protocol file;
+    CI runs the smoke tests against the built packages.
+
+ -- Jzume - JZUME <hi@jzu.me>  Sat, 28 Nov 2026 17:29:21 +0000
+
 daytona (0.2.0) unstable; urgency=medium
 
   * Programs from the freedesktop menu files: Start > Programs follows the
