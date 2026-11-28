@@ -363,7 +363,7 @@ QImage renderInputs(qreal ratio)
     editableCombo->setEditable(true);
     editableCombo->addItem(QStringLiteral("C:\\WINNT"));
     auto *combo = new QComboBox;
-    combo->addItems({ QStringLiteral("Windows Standard"), QStringLiteral("High Contrast") });
+    combo->addItems({ QStringLiteral("Daytona Classic"), QStringLiteral("High Contrast") });
     auto *disabledCombo = new QComboBox;
     disabledCombo->addItem(QStringLiteral("Disabled"));
     disabledCombo->setEnabled(false);

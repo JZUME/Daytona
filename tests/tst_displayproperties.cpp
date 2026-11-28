@@ -187,7 +187,7 @@ private Q_SLOTS:
         QTemporaryDir dir;
         Settings settings(dir.filePath(QStringLiteral("daytona.ini")));
         DisplayPropertiesDialog dialog(&settings);
-        QCOMPARE(dialog.schemeBox()->currentText(), QStringLiteral("Windows Standard"));
+        QCOMPARE(dialog.schemeBox()->currentText(), QStringLiteral("Daytona Classic"));
         QCOMPARE(dialog.candidateColours().value(QStringLiteral("ActiveTitle")), QColor(0, 0, 128));
         dialog.schemeBox()->setCurrentText(QStringLiteral("High Contrast Black"));
         QCOMPARE(

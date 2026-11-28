@@ -66,17 +66,31 @@ private Q_SLOTS:
 
     void titleBarGradients()
     {
-        // NT schemes: solid title bars.
+        // NT schemes: solid title bars. Daytona Standard is the gradient one.
         for (const QString &name : builtInSchemeNames()) {
+            if (name == QLatin1String("Daytona Standard"))
+                continue;
             const QByteArray themerc = labwcThemerc(builtInScheme(name)->colours);
             QCOMPARE(themercValue(themerc, "window.active.title.bg"), QByteArray("Solid"));
             QCOMPARE(themercValue(themerc, "window.inactive.title.bg"), QByteArray("Solid"));
         }
         QCOMPARE(themercValue(labwcThemerc(standardColours()), "window.active.title.bg.colorTo"),
             QByteArray("#000080"));
+        {
+            const QByteArray themerc
+                = labwcThemerc(builtInScheme(QStringLiteral("Daytona Standard"))->colours);
+            QCOMPARE(
+                themercValue(themerc, "window.active.title.bg"), QByteArray("Gradient Horizontal"));
+            QCOMPARE(
+                themercValue(themerc, "window.active.title.bg.colorTo"), QByteArray("#1084d0"));
+            QCOMPARE(themercValue(themerc, "window.inactive.title.bg"),
+                QByteArray("Gradient Horizontal"));
+            QCOMPARE(
+                themercValue(themerc, "window.inactive.title.bg.colorTo"), QByteArray("#c0c0c0"));
+        }
 
-        // Windows 98 Standard: the active bar blends, the inactive one has
-        // the same two colours and stays solid.
+        // Only the active bar's colours differ: it blends, the inactive one
+        // has the same two colours and stays solid.
         SchemeColours colours = standardColours();
         colours.insert(QStringLiteral("GradientActiveTitle"), QColor(16, 132, 208));
         const QByteArray themerc = labwcThemerc(colours);

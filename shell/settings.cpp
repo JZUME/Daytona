@@ -2,6 +2,8 @@
 
 #include "settings.h"
 
+#include "colourscheme.h"
+
 #include <QDir>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
@@ -43,7 +45,7 @@ namespace {
     const QString KeyKeyboardLayouts = QStringLiteral("Keyboard/Layouts");
     const QString KeyLayoutHotkey = QStringLiteral("Keyboard/Hotkey");
 
-    const QString DefaultScheme = QStringLiteral("Windows Standard");
+    const QString DefaultScheme = QStringLiteral("Daytona Classic");
 
     QString edgeName(TaskbarEdge edge)
     {
@@ -507,7 +509,8 @@ void Settings::setSystemStartLogo(bool use)
 QString Settings::colourScheme() const
 {
     const QString name = m_settings.value(KeyScheme).toString().trimmed();
-    return name.isEmpty() ? DefaultScheme : name;
+    // A daytona.ini from before the rename may hold "Windows Standard".
+    return name.isEmpty() ? DefaultScheme : currentSchemeName(name);
 }
 
 void Settings::setColourScheme(const QString &name)

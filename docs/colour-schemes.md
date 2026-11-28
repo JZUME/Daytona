@@ -19,7 +19,18 @@ daytona-themetool apply "/path/to/Dangerous Creatures.theme"
 application using the Daytona style, follows changes to `colors.ini` and
 recolours at once, without a restart.
 
-Built-in schemes: Windows Standard, High Contrast Black and High Contrast White.
+Built-in schemes:
+
+- **Daytona Classic** (the default): NT 4.0's grey, teal and navy, with solid
+  title bars.
+- **Daytona Standard**: the same colours with the two-tone title bars of
+  Windows 98 to XP Classic, navy fading to light blue (inactive: grey to
+  light grey).
+- **High Contrast Black** and **High Contrast White**.
+
+Daytona Classic was called "Windows Standard" before. A `daytona.ini` that
+still names it reads as Daytona Classic, and
+`daytona-themetool apply --scheme "Windows Standard"` still applies it.
 
 `apply` also:
 
@@ -39,7 +50,7 @@ Built-in schemes: Windows Standard, High Contrast Black and High Contrast White.
   The Daytona session sets `GTK_THEME=Daytona`, so only GTK applications in
   that session are affected. GTK applications pick up the change when they
   next start. Chicago95's images (check boxes, scroll arrows) keep their
-  Windows Standard colours.
+  Daytona Classic colours.
 - **GTK icons and cursors:** sets `gtk-icon-theme-name=Chicago95`,
   `gtk-cursor-theme-name=Daytona Cursors` and `gtk-cursor-theme-size` (the
   pointer scheme's size) in `$XDG_CONFIG_HOME/gtk-3.0/settings.ini`, keeping
@@ -53,7 +64,7 @@ Built-in schemes: Windows Standard, High Contrast Black and High Contrast White.
   `$XDG_DATA_HOME/daytona/wallpaper/` and records it, with its tile, centre, stretch, fit or fill mode, in
   `daytona.ini`.
 
-For Windows Standard, the generated labwc and GTK themes are removed, so the
+For Daytona Classic, the generated labwc and GTK themes are removed, so the
 shipped ones apply. Only directories Daytona generated (marked with a
 `.daytona-generated` file) are ever replaced or removed.
 
@@ -68,7 +79,7 @@ is a small INI file:
 
 ```ini
 [Scheme]
-Name="Windows Standard"
+Name="Daytona Classic"
 
 [Colors]
 Scrollbar=192 192 192
@@ -82,7 +93,7 @@ ActiveTitle=0 0 128
 - `[Colors]` holds Windows colour keys with `R G B` values from 0 to 255, as in
   the `[Control Panel\Colors]` section of a `.theme` file.
 - A missing key, or a value that is not three numbers from 0 to 255, uses the
-  Windows Standard colour. A missing or unreadable file means Windows Standard.
+  Daytona Classic colour. A missing or unreadable file means Daytona Classic.
 - Files over 64 KiB are ignored.
 - `daytona-themetool` writes every key, in Windows order, and replaces the file
   atomically (it writes a temporary file and renames it into place), so readers
@@ -97,7 +108,7 @@ The file can be edited by hand; changes are picked up when it is saved.
 | ButtonFace | Window, Button, AlternateBase; Disabled Base | Dialogs are drawn in the 3D face colour. |
 | ButtonText | WindowText, ButtonText | Text on the face colour. |
 | ButtonHilight | Light, BrightText | Outer highlight of raised edges. |
-| ButtonLight | Midlight | Inner highlight. The same as ButtonFace in Windows Standard. |
+| ButtonLight | Midlight | Inner highlight. The same as ButtonFace in Daytona Classic. |
 | ButtonShadow | Mid, Dark; Disabled Highlight | Inner shadow. |
 | ButtonDkShadow | Shadow | Outer shadow. |
 | Window | Base | Edit fields and lists. |

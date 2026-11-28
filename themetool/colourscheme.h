@@ -29,12 +29,18 @@ struct ColourScheme
     QColor colour(const QString &key) const { return colours.value(key); }
 };
 
-// NT 4.0's built-in schemes. "Windows Standard" first.
+// The built-in schemes: "Daytona Classic" (NT 4.0's solid navy title bars,
+// the default), "Daytona Standard" (the same with Windows 98 to XP Classic's
+// two-tone gradient title bars) and NT's two high-contrast schemes.
 QStringList builtInSchemeNames();
+// Case-insensitive; the old name "Windows Standard" gives Daytona Classic.
 std::optional<ColourScheme> builtInScheme(const QString &name);
+// A scheme name as daytona.ini may hold it, with retired built-in names
+// ("Windows Standard") changed to their current ones. Other names unchanged.
+QString currentSchemeName(const QString &name);
 
 // Reads a Windows 95/NT/Plus! .theme file. Never fails outright: what cannot
-// be read is reported in warnings and falls back to Windows Standard.
+// be read is reported in warnings and falls back to Daytona Classic.
 // Returns nothing only if the file cannot be opened.
 std::optional<ColourScheme> readThemeFile(const QString &path);
 

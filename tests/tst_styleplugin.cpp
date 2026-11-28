@@ -30,7 +30,7 @@ private Q_SLOTS:
         QCOMPARE(palette.color(QPalette::Highlight), QColor(128, 0, 128));
         QCOMPARE(palette.color(QPalette::Button), QColor(0, 0, 0));
         QCOMPARE(palette.color(QPalette::ButtonText), QColor(255, 255, 255));
-        // Keys the file leaves out are Windows Standard.
+        // Keys the file leaves out are Daytona Classic.
         QCOMPARE(palette.color(QPalette::Base), QColor(255, 255, 255));
     }
 };

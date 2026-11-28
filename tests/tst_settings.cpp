@@ -44,7 +44,7 @@ private Q_SLOTS:
         QCOMPARE(s.runHistory(), QStringList());
         QCOMPARE(s.wallpaperPath(), QString());
         QCOMPARE(s.wallpaperMode(), WallpaperMode::Centre);
-        QCOMPARE(s.colourScheme(), QStringLiteral("Windows Standard"));
+        QCOMPARE(s.colourScheme(), QStringLiteral("Daytona Classic"));
     }
 
     void readingDoesNotCreateFile()
@@ -143,7 +143,18 @@ private Q_SLOTS:
         QCOMPARE(s.showClock(), true);
         QCOMPARE(s.smallStartMenuIcons(), true); // case-insensitive "true" is valid
         QCOMPARE(s.wallpaperMode(), WallpaperMode::Centre);
-        QCOMPARE(s.colourScheme(), QStringLiteral("Windows Standard"));
+        QCOMPARE(s.colourScheme(), QStringLiteral("Daytona Classic"));
+    }
+
+    void oldSchemeNameIsMigrated()
+    {
+        // daytona.ini files from before the rename name the default scheme
+        // "Windows Standard"; it reads as Daytona Classic.
+        const QString file = path(QStringLiteral("oldscheme.ini"));
+        writeFile(file, "[Appearance]\nColourScheme=Windows Standard\n");
+        QCOMPARE(Settings(file).colourScheme(), QStringLiteral("Daytona Classic"));
+        writeFile(file, "[Appearance]\nColourScheme=Dangerous Creatures\n");
+        QCOMPARE(Settings(file).colourScheme(), QStringLiteral("Dangerous Creatures"));
     }
 
     void pointerScheme()

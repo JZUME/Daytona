@@ -9,7 +9,7 @@ height=${DAYTONA_SCREENSHOT_SIZE#*x}
 top=$((height - 28)) # first row of the 28 pixel taskbar
 
 # Taskbar: NT raised top edge (button light, which is the face colour in
-# Windows Standard, then highlight) over the face,
+# Daytona Classic, then highlight) over the face,
 # the raised Start button 2 pixels in from the left, 4 pixels down, and the
 # notification area's 1 pixel sunken edge at the right.
 wait_for_pixels 15 \
@@ -22,7 +22,7 @@ wait_for_pixels 15 \
     1010 $((top + 4)) '#808080' \
     1021 $((top + 14)) '#ffffff'
 
-# Desktop: Windows Standard's desktop colour fills the screen behind windows.
+# Desktop: Daytona Classic's desktop colour fills the screen behind windows.
 wait_for_pixels 15 \
     0 0 '#008080' \
     1023 400 '#008080'

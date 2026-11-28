@@ -107,7 +107,7 @@ int apply(const Daytona::ColourScheme &scheme)
     recordSchemeName(scheme.name);
 
     // Window frames: a generated labwc theme, or the shipped one for
-    // Windows Standard.
+    // Daytona Classic.
     const QString themeDir = Daytona::labwcUserThemeDir();
     const bool standard = scheme.colours == Daytona::standardColours();
     const bool themeOk = standard ? Daytona::removeLabwcTheme(themeDir, &error)
