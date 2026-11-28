@@ -56,14 +56,18 @@ Q_SIGNALS:
     void systemPropertiesRequested();
     // A new wallpaper finished loading (or failed to, and is null).
     void wallpaperLoaded();
+    // The screen's scale changed (see DesktopManager::replace).
+    void scaleChanged();
 
 protected:
+    bool event(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
 private:
     void loadWallpaper();
+    qreal m_ratio = 0; // the scale it was shown at
 
     Settings *m_settings;
     QMenu *m_menu;
@@ -105,6 +109,7 @@ Q_SIGNALS:
 private:
     void add(QScreen *screen);
     void remove(QScreen *screen);
+    void replace(Desktop *desktop);
 
     Settings *m_settings;
     QHash<QScreen *, Desktop *> m_desktops;

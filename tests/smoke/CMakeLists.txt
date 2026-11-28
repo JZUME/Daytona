@@ -77,6 +77,17 @@ if(DAYTONA_BUILD_LABWC)
     # So do Windows 98 style gradient title bars.
     daytona_add_smoke_test(smoke_title_gradient smoke_title_gradient.sh)
 endif()
+# The desktop icons stay whole after the screen changes from 100% to 200% at
+# the same size in pixels. Runs once: the test sets the scale itself.
+add_test(NAME smoke_desktop_rescale
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-session.sh ${SMOKE_PREFIX} 60
+        ${CMAKE_CURRENT_SOURCE_DIR}/smoke_desktop_rescale.sh)
+set_tests_properties(smoke_desktop_rescale PROPERTIES
+    FIXTURES_REQUIRED smoke
+    LABELS smoke
+    TIMEOUT 90
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:daytona-pixelcheck>:$ENV{PATH}")
+
 # A screen's saved font size is applied at login. Runs once: the test sets
 # the scale itself, so the harness leaves the output alone.
 add_test(NAME smoke_screen_scale

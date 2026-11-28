@@ -122,11 +122,18 @@ private:
     int indexOf(const QString &key) const;
     int iconAt(const QPoint &point) const;
     QRect iconRect(const Icon &icon) const;
-    QRect labelRect(const Icon &icon, QStringList *lines = nullptr) const;
+    QRect labelRect(const Icon &icon, QStringList *lines = nullptr, bool wholeName = false) const;
     bool showsFullLabel(int index) const;
     QPoint clampToArea(const QPoint &pos) const;
     void selectOnly(int index);
     void clearSelection();
+    // What a change of selection, focus, drag or rubber band can touch: the
+    // selected and focused icons with their names, and the rubber band.
+    // Take it before the change and repaint it with the region after
+    // (repaintState), not the whole desktop: at 200% on a software-drawn
+    // screen each full-screen repaint is millions of pixels.
+    QRegion stateRegion() const;
+    void repaintState(const QRegion &before);
     void moveCurrent(int key);
     void showMenuFor(int index, const QPoint &globalPos);
     QList<int> selectedFiles() const;

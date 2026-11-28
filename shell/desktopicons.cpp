@@ -458,11 +458,11 @@ bool DesktopIconView::showsFullLabel(int index) const
     return index == m_current && m_icons.at(index).selected && hasFocus();
 }
 
-QRect DesktopIconView::labelRect(const Icon &icon, QStringList *lines) const
+QRect DesktopIconView::labelRect(const Icon &icon, QStringList *lines, bool wholeName) const
 {
     const int index = int(&icon - m_icons.constData());
     const QStringList text = wrapLabel(icon.item.name, font(), const_cast<DesktopIconView *>(this),
-        LabelTextWidth, showsFullLabel(index) ? 0 : MaxLabelLines);
+        LabelTextWidth, wholeName || showsFullLabel(index) ? 0 : MaxLabelLines);
     const QFontMetrics metrics = fontMetrics();
     int width = 0;
     for (const QString &line : text)
@@ -570,23 +570,51 @@ void DesktopIconView::paintEvent(QPaintEvent *event)
 
 void DesktopIconView::selectOnly(int index)
 {
+    const QRegion before = stateRegion();
     for (int i = 0; i < m_icons.size(); ++i)
         m_icons[i].selected = i == index;
     m_current = index;
-    update();
+    repaintState(before);
 }
 
 void DesktopIconView::clearSelection()
 {
+    const QRegion before = stateRegion();
     for (Icon &icon : m_icons)
         icon.selected = false;
-    update();
+    repaintState(before);
+}
+
+QRegion DesktopIconView::stateRegion() const
+{
+    QRegion region;
+    for (int i = 0; i < m_icons.size(); ++i) {
+        const Icon &icon = m_icons.at(i);
+        // The focused icon's whole name, shown or not: it comes and goes
+        // with the keyboard focus, which has already changed by the time a
+        // focus event comes.
+        if (icon.selected || i == m_current)
+            region += iconRect(icon).united(labelRect(icon, nullptr, i == m_current));
+    }
+    if (m_rubberBand && !m_rubberRect.isEmpty())
+        region += m_rubberRect;
+    return region;
+}
+
+void DesktopIconView::repaintState(const QRegion &before)
+{
+    // A pixel more all round, for the focus and rubber band's dotted lines.
+    QRegion region;
+    for (const QRect &rect : before | stateRegion())
+        region += rect.adjusted(-1, -1, 1, 1);
+    update(region);
 }
 
 void DesktopIconView::mousePressEvent(QMouseEvent *event)
 {
     if (m_renameEditor)
         finishRename(true);
+    const QRegion before = stateRegion();
     const QPoint pos = event->position().toPoint();
     const int index = iconAt(pos);
     const bool ctrl = event->modifiers() & Qt::ControlModifier;
@@ -629,7 +657,7 @@ void DesktopIconView::mousePressEvent(QMouseEvent *event)
         m_pressPos = pos;
         m_rubberRect = QRect();
     }
-    update();
+    repaintState(before);
     event->accept();
 }
 
@@ -642,10 +670,12 @@ void DesktopIconView::mouseMoveEvent(QMouseEvent *event)
             m_dragging = m_icons.at(m_pressIndex).selected;
         }
         if (m_dragging) {
+            const QRegion before = stateRegion();
             m_dragDelta = pos - m_pressPos;
-            update();
+            repaintState(before);
         }
     } else if (m_rubberBand) {
+        const QRegion before = stateRegion();
         m_rubberRect = QRect(m_pressPos, pos).normalized();
         for (int i = 0; i < m_icons.size(); ++i) {
             const Icon &icon = m_icons.at(i);
@@ -655,7 +685,7 @@ void DesktopIconView::mouseMoveEvent(QMouseEvent *event)
             if (inBand)
                 m_current = i;
         }
-        update();
+        repaintState(before);
     }
     event->accept();
 }
@@ -666,6 +696,7 @@ void DesktopIconView::mouseReleaseEvent(QMouseEvent *event)
         event->accept();
         return;
     }
+    const QRegion before = stateRegion();
     if (m_dragging) {
         // Each selected icon goes where it was dropped.
         QList<int> moved;
@@ -704,7 +735,7 @@ void DesktopIconView::mouseReleaseEvent(QMouseEvent *event)
     m_pressIndex = -1;
     m_rubberBand = false;
     m_rubberRect = QRect();
-    update();
+    repaintState(before);
     event->accept();
 }
 
@@ -814,11 +845,13 @@ void DesktopIconView::keyPressEvent(QKeyEvent *event)
     }
     if (ctrl) {
         switch (event->key()) {
-        case Qt::Key_A:
+        case Qt::Key_A: {
+            const QRegion before = stateRegion();
             for (Icon &icon : m_icons)
                 icon.selected = true;
-            update();
+            repaintState(before);
             return;
+        }
         case Qt::Key_C:
             copy();
             return;
@@ -850,14 +883,16 @@ void DesktopIconView::keyPressEvent(QKeyEvent *event)
 
 void DesktopIconView::focusInEvent(QFocusEvent *event)
 {
+    const QRegion before = stateRegion();
     QWidget::focusInEvent(event);
-    update();
+    repaintState(before);
 }
 
 void DesktopIconView::focusOutEvent(QFocusEvent *event)
 {
+    const QRegion before = stateRegion();
     QWidget::focusOutEvent(event);
-    update();
+    repaintState(before);
 }
 
 void DesktopIconView::resizeEvent(QResizeEvent *event)

@@ -155,6 +155,19 @@ void Desktop::loadWallpaper()
     }));
 }
 
+bool Desktop::event(QEvent *event)
+{
+    if (event->type() == QEvent::DevicePixelRatioChange) {
+        const qreal ratio = devicePixelRatioF();
+        if (m_ratio != 0 && !qFuzzyCompare(ratio, m_ratio))
+            Q_EMIT scaleChanged();
+        m_ratio = ratio;
+    } else if (event->type() == QEvent::Show && m_ratio == 0) {
+        m_ratio = devicePixelRatioF();
+    }
+    return QWidget::event(event);
+}
+
 void Desktop::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
@@ -218,6 +231,11 @@ void DesktopManager::add(QScreen *screen)
     connect(desktop, &Desktop::propertiesRequested, this, &DesktopManager::propertiesRequested);
     connect(desktop, &Desktop::systemPropertiesRequested, this,
         &DesktopManager::systemPropertiesRequested);
+    // Queued, and with the desktop as context, so it is not run for a desktop
+    // deleted meanwhile, nor deletes one while it is handling an event.
+    connect(
+        desktop, &Desktop::scaleChanged, desktop, [this, desktop] { replace(desktop); },
+        Qt::QueuedConnection);
     desktop->attachToLayerShell(screen);
     desktop->show();
     m_desktops.insert(screen, desktop);
@@ -225,6 +243,23 @@ void DesktopManager::add(QScreen *screen)
         desktop->setIconMargins(m_iconMargins);
         desktop->setShowIcons(true);
     }
+}
+
+void DesktopManager::replace(Desktop *desktop)
+{
+    // Qt 6.8 keeps a window's drawing buffers across a change of scale when
+    // their size in pixels is unchanged, and a full-screen surface's always
+    // is (a 2048x1536 screen at 100% or at 200%). Painting into a buffer made
+    // at the old scale draws everything at that scale, so at 200% the icons
+    // and their names come out half size in every other frame. A new window
+    // starts with buffers at the current scale. (Fixed in later Qt, which
+    // compares the scale too.)
+    QScreen *screen = m_desktops.key(desktop);
+    if (!screen)
+        return;
+    m_desktops.remove(screen);
+    add(screen);
+    desktop->deleteLater();
 }
 
 void DesktopManager::setIconScreen(QScreen *screen, const QMargins &margins)
